@@ -30,8 +30,15 @@ UA = (
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 )
 
-YAHOO_BASE = os.environ.get("YAHOO_BASE", "https://query1.finance.yahoo.com")
-BINANCE_BASE = os.environ.get("BINANCE_BASE", "https://api.binance.com")
+def hosts(env, default):
+    return [h.strip().rstrip("/") for h in os.environ.get(env, default).split(",") if h.strip()]
+
+
+# Yahoo runs identical mirror front-ends; rotate when one is rate limited.
+YAHOO_HOSTS = hosts("YAHOO_BASE", "https://query1.finance.yahoo.com,https://query2.finance.yahoo.com")
+# The .vision host is Binance's public market-data mirror: it answers from
+# regions where api.binance.com refuses to serve (US datacentres).
+BINANCE_HOSTS = hosts("BINANCE_BASE", "https://data-api.binance.vision,https://api.binance.com")
 
 ALLOWED_INTERVALS = {"1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo"}
 ALLOWED_RANGES = {"1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "max"}
@@ -79,16 +86,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def api_status(self):
         out = {"yahoo": False, "binance": False}
-        try:
-            http_get(YAHOO_BASE + "/v8/finance/chart/ES%3DF?interval=5m&range=1d", timeout=5)
-            out["yahoo"] = True
-        except Exception:
-            pass
-        try:
-            http_get(BINANCE_BASE + "/api/v3/ping", timeout=5)
-            out["binance"] = True
-        except Exception:
-            pass
+        for base in YAHOO_HOSTS:
+            try:
+                http_get(base + "/v8/finance/chart/ES%3DF?interval=5m&range=1d", timeout=5)
+                out["yahoo"] = True
+                break
+            except Exception:
+                pass
+        for base in BINANCE_HOSTS:
+            try:
+                http_get(base + "/api/v3/ping", timeout=5)
+                out["binance"] = True
+                break
+            except Exception:
+                pass
         return self._send(200, out)
 
     def api_yahoo(self, q):
@@ -100,20 +111,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         interval = interval if interval in ALLOWED_INTERVALS else "5m"
         rng = rng if rng in ALLOWED_RANGES else "1mo"
 
-        url = (
-            YAHOO_BASE
-            + "/v8/finance/chart/"
+        path = (
+            "/v8/finance/chart/"
             + urllib.parse.quote(symbol, safe="")
             + "?interval=" + interval
             + "&range=" + rng
             + "&includePrePost=false&events=div%2Csplit"
         )
-        try:
-            raw = http_get(url)
-        except urllib.error.HTTPError as e:
-            return self._send(e.code if e.code == 404 else 502, {"error": "upstream %s" % e.code, "symbol": symbol})
-        except Exception as e:
-            return self._send(502, {"error": "upstream failed", "detail": str(e), "symbol": symbol})
+        raw, err = None, None
+        for base in YAHOO_HOSTS:
+            try:
+                raw = http_get(base + path)
+                break
+            except urllib.error.HTTPError as e:
+                err = ("http", e.code)
+                if e.code == 404:
+                    break
+            except Exception as e:  # noqa: BLE001 - any transport error moves to the next mirror
+                err = ("down", str(e))
+        if raw is None:
+            if err and err[0] == "http" and err[1] == 404:
+                return self._send(404, {"error": "no data", "symbol": symbol})
+            detail = err[1] if err else "unreachable"
+            return self._send(502, {"error": "upstream failed", "detail": detail, "symbol": symbol})
 
         try:
             data = json.loads(raw)
@@ -139,24 +159,40 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             limit = 1000
 
         collected, end_time = [], None
-        try:
-            while len(collected) < limit:
-                want = min(1000, limit - len(collected))
-                url = "%s/api/v3/klines?symbol=%s&interval=%s&limit=%d" % (
-                    BINANCE_BASE, urllib.parse.quote(symbol), interval, want)
-                if end_time:
-                    url += "&endTime=%d" % end_time
-                page = json.loads(http_get(url))
-                if not page:
-                    break
-                collected = page + collected
-                end_time = page[0][0] - 1
-                if len(page) < want:
-                    break
-        except urllib.error.HTTPError as e:
-            return self._send(e.code if e.code == 429 else 502, {"error": "upstream %s" % e.code, "symbol": symbol})
-        except Exception as e:
-            return self._send(502, {"error": "upstream failed", "detail": str(e), "symbol": symbol})
+        order = list(BINANCE_HOSTS)
+
+        def fetch(qs):
+            """Try each mirror in turn, keeping the one that answers."""
+            last = None
+            for base in list(order):
+                url = base + "/api/v3/klines?" + qs
+                try:
+                    return json.loads(http_get(url)), None
+                except urllib.error.HTTPError as e:
+                    last = ("http", e.code)
+                    if e.code == 400:
+                        return None, last
+                except Exception as e:  # noqa: BLE001
+                    last = ("down", str(e))
+                    if base in order:
+                        order.remove(base)
+            return None, last
+
+        while len(collected) < limit:
+            want = min(1000, limit - len(collected))
+            qs = "symbol=%s&interval=%s&limit=%d" % (urllib.parse.quote(symbol), interval, want)
+            if end_time:
+                qs += "&endTime=%d" % end_time
+            page, err = fetch(qs)
+            if page is None:
+                code = 502 if not err or err[0] != "http" else (429 if err[1] == 429 else 400 if err[1] == 400 else 502)
+                return self._send(code, {"error": "upstream failed", "detail": err, "symbol": symbol})
+            if not page:
+                break
+            collected = page + collected
+            end_time = page[0][0] - 1
+            if len(page) < want:
+                break
 
         return self._send(200, collected[-limit:], cache="public, max-age=120")
 

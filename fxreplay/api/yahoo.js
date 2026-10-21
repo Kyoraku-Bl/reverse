@@ -8,7 +8,8 @@
 
    GET /api/yahoo?symbol=ES%3DF&interval=5m&range=1mo
    ========================================================= */
-const UPSTREAM = "https://query1.finance.yahoo.com/v8/finance/chart/";
+/* Yahoo runs several identical front-ends; rotate when one is rate limited. */
+const HOSTS = ["https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com"];
 
 const ALLOWED_INTERVALS = new Set(["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo"]);
 const ALLOWED_RANGES = new Set(["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "max"]);
@@ -32,33 +33,46 @@ export default async function handler(req, res) {
   const interval = clamp(String(req.query.interval || "5m"), ALLOWED_INTERVALS, "5m");
   const range = clamp(String(req.query.range || "1mo"), ALLOWED_RANGES, "1mo");
 
-  const url =
-    UPSTREAM +
+  const path =
+    "/v8/finance/chart/" +
     encodeURIComponent(symbol) +
     `?interval=${interval}&range=${range}&includePrePost=false&events=div%2Csplit&corsDomain=finance.yahoo.com`;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 9000);
+  let upstream = null;
+  let text = "";
+  let lastStatus = 0;
+  for (const host of HOSTS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 9000);
+    try {
+      upstream = await fetch(host + path, {
+        signal: controller.signal,
+        headers: {
+          // Yahoo rejects some default runtimes; a normal UA is enough
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+          Accept: "application/json,text/plain,*/*",
+          "Accept-Language": "en-US,en;q=0.9",
+          Referer: "https://finance.yahoo.com/",
+        },
+      });
+      clearTimeout(timer);
+      text = await upstream.text();
+      lastStatus = upstream.status;
+      /* 429/5xx: try the next mirror; 404 means the ticker itself is unknown */
+      if (upstream.ok || upstream.status === 404) break;
+    } catch (e) {
+      clearTimeout(timer);
+      upstream = null;
+      lastStatus = 0;
+    }
+  }
 
   try {
-    const upstream = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        // Yahoo rejects some default runtimes; a normal UA is enough
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-        Accept: "application/json,text/plain,*/*",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-    });
-    clearTimeout(timer);
-
-    const text = await upstream.text();
-
-    if (!upstream.ok) {
+    if (!upstream || !upstream.ok) {
       res.setHeader("Cache-Control", "no-store");
-      return res.status(upstream.status === 404 ? 404 : 502).json({
-        error: "upstream " + upstream.status,
+      return res.status(lastStatus === 404 ? 404 : 502).json({
+        error: "upstream " + (lastStatus || "unreachable"),
         symbol,
       });
     }

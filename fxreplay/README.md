@@ -57,6 +57,12 @@ This is the real product surface: a full-viewport chart, not a marketing mock.
 
 **Keyboard**: `Space` play/pause · `←` `→` step · `V T H L R F` tools · `B` / `S` buy / sell · `Del` delete drawing · `Esc` cancel · `Ctrl+Z` undo · `Ctrl+Shift+Z` redo
 
+### Deploying (Vercel)
+
+1. Import the repository, set **Root Directory** to `fxreplay` (the site lives in this folder).
+2. Framework preset: *Other* · build command: none · output directory: `.`
+3. Deploy. `api/yahoo.js` and `api/binance.js` are picked up as serverless functions, so the deployed site streams live prices with no key and no extra configuration. Any static host works too (GitHub Pages, Netlify, S3) — the terminal then simply falls back to the labelled simulated series, since `/api` will not exist.
+
 ## Everything is free
 
 There is no paid tier, no trial countdown and no plan gate in this build. All three pricing cards read **$0 / month**, and the dashboard shows a "Everything unlocked" card instead of an upgrade funnel. The `?plan=` parameter still works so you can see how the flows were wired, but nothing is restricted.
@@ -118,7 +124,7 @@ Every one of the 103 instruments is mapped to a public ticker. The terminal load
 - **The generator is a labelled fallback only.** It runs when there is no public source for a contract, when the proxy is missing (static hosting) or when the provider is down — and in those cases the chart says so, in the badge and in a note under the chart. It is never presented as market data.
 - **You can force it.** The `Auto / Live / Offline` switch in the top bar cycles auto (real when possible) → live (never simulate) → offline (always simulate, for demos and screenshots).
 - Caching: in-memory TTL per timeframe (45 s for 1m → 15 min for 1D), plus a `localStorage` tail of the last 1,200 bars per instrument/timeframe kept for 6 h so a refresh or an offline moment still shows the last real prices.
-- The proxy is two files: `api/yahoo.js` and `api/binance.js` (Vercel serverless functions, also mirrored by `server.py` for local use). Both allowlist intervals/ranges, time out at 9 s, cache at the CDN edge and never expose a key because none is needed.
+- The proxy is two files: `api/yahoo.js` and `api/binance.js` (Vercel serverless functions, also mirrored by `server.py` for local use). Both allowlist intervals/ranges, time out at 9 s, cache at the CDN edge and never expose a key because none is needed. Requests rotate between mirrors — `query1`/`query2.finance.yahoo.com` and `data-api.binance.vision`/`api.binance.com`, the last one because Binance refuses to serve some regions from `api.binance.com`.
 
 ## Honesty note
 

@@ -10,7 +10,13 @@
 
    GET /api/binance?symbol=BTCUSDT&interval=5m&limit=3000
    ========================================================= */
-const UPSTREAM = "https://api.binance.com/api/v3/klines";
+/* Public market-data mirror first: api.binance.com refuses some regions
+   (notably US datacentres, where Vercel runs). Both serve identical klines. */
+const HOSTS = [
+  "https://data-api.binance.vision",
+  "https://api.binance.com",
+];
+const PATH = "/api/v3/klines";
 const ALLOWED = new Set(["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w"]);
 
 export default async function handler(req, res) {
@@ -28,6 +34,28 @@ export default async function handler(req, res) {
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 9000);
+  let host = 0;
+
+  /* one request, with a host fallback when a mirror is unavailable */
+  async function page(query) {
+    let lastError = null;
+    for (let i = 0; i < HOSTS.length; i++) {
+      const idx = (host + i) % HOSTS.length;
+      try {
+        const r = await fetch(HOSTS[idx] + PATH + "?" + query, {
+          signal: controller.signal,
+          headers: { Accept: "application/json", "User-Agent": "KyorakuReplay/1.0" },
+        });
+        if (r.status === 429) { lastError = { status: 429 }; continue; }
+        if (!r.ok) { lastError = { status: r.status }; continue; }
+        host = idx;                       /* stick to the host that worked */
+        return { ok: true, page: await r.json() };
+      } catch (e) {
+        lastError = { status: 0, aborted: e && e.name === "AbortError" };
+      }
+    }
+    return { ok: false, error: lastError || { status: 0 } };
+  }
 
   try {
     let all = [];
@@ -36,24 +64,23 @@ export default async function handler(req, res) {
     // have `limit` bars or the history runs out.
     while (all.length < limit) {
       const want = Math.min(1000, limit - all.length);
-      let url = `${UPSTREAM}?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${want}`;
-      if (endTime) url += `&endTime=${endTime}`;
+      let query = `symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${want}`;
+      if (endTime) query += `&endTime=${endTime}`;
 
-      const r = await fetch(url, {
-        signal: controller.signal,
-        headers: { Accept: "application/json", "User-Agent": "KyorakuReplay/1.0" },
-      });
-      if (!r.ok) {
+      const got = await page(query);
+      if (!got.ok) {
         clearTimeout(timer);
         res.setHeader("Cache-Control", "no-store");
-        return res.status(r.status === 429 ? 429 : 502).json({ error: "upstream " + r.status, symbol });
+        const st = got.error && got.error.status;
+        return res.status(st === 429 ? 429 : st === 400 ? 400 : 502)
+          .json({ error: "upstream " + (st || (got.error && got.error.aborted ? "timeout" : "failed")), symbol });
       }
-      const page = await r.json();
-      if (!Array.isArray(page) || !page.length) break;
+      const pageData = got.page;
+      if (!Array.isArray(pageData) || !pageData.length) break;
 
-      all = page.concat(all);
-      endTime = page[0][0] - 1;
-      if (page.length < want) break;
+      all = pageData.concat(all);
+      endTime = pageData[0][0] - 1;
+      if (pageData.length < want) break;
     }
     clearTimeout(timer);
 

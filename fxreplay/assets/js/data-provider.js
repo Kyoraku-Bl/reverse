@@ -266,8 +266,12 @@
     return (m === "live" || m === "synthetic") ? m : "auto";
   }
   function setMode(next) {
-    writePref("fxr-data-mode", next === "synthetic" ? "synthetic" : next === "live" ? "live" : "auto");
-    status.mode = next;
+    var m = next === "synthetic" ? "synthetic" : next === "live" ? "live" : "auto";
+    writePref("fxr-data-mode", m);
+    status.mode = m;
+    status.checked = false;       /* re-probe on the next load */
+    status.yahoo = null;
+    status.binance = null;
     mem.clear();
   }
 
@@ -339,6 +343,12 @@
         return Promise.resolve(fallback(id, tf, tried.join(", ") || "Source unavailable"));
       }
       var c = list[i];
+      /* the probe already told us this endpoint is missing in this build:
+         skip the round-trip instead of waiting on a doomed request */
+      if (status.checked && status[c.provider] === false) {
+        tried.push(c.symbol + " (endpoint unavailable)");
+        return attempt(i + 1);
+      }
       var url = c.provider === "binance" ? binanceUrl(c.symbol, tf) : yahooUrl(c.symbol, tf);
       return json(url)
         .then(function (payload) {
