@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#06080f" />
+<title>Download — KyorakuReplay</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23070a17'/%3E%3Cpath d='M22 16v32' stroke='%23ffffff' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M44 16 28 32l16 16' stroke='%238f74ff' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#06080f;--panel:rgba(255,255,255,.035);--line:rgba(255,255,255,.09);
+    --txt:#eef1fa;--txt-2:#c3c9db;--muted:#8b93ab;--violet:#8b6bff;--violet-2:#a78bfa;--mint:#38e2a0;
+    --display:"Sora",ui-sans-serif,system-ui,sans-serif;--body:"Inter",ui-sans-serif,system-ui,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{
+    margin:0;min-height:100vh;background:var(--bg);color:var(--txt);font-family:var(--body);
+    line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+    display:flex;align-items:center;justify-content:center;padding:40px 20px;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% -10%,rgba(139,107,255,.20),transparent 65%),
+      radial-gradient(ellipse 55% 45% at 85% 15%,rgba(77,107,255,.12),transparent 60%),
+      radial-gradient(ellipse 45% 40% at 10% 25%,rgba(56,226,160,.08),transparent 60%);
+  }
+  .wrap{position:relative;width:100%;max-width:720px}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:26px;justify-content:center}
+  .mark{width:38px;height:38px;border-radius:11px;box-shadow:0 8px 24px -8px rgba(120,105,255,.85)}
+  .word{font-family:var(--display);font-size:1.22rem;font-weight:700;letter-spacing:-.04em}
+  .word span{color:var(--violet-2)}
+  .card{
+    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+    border:1px solid var(--line);border-radius:22px;padding:34px;
+    box-shadow:0 40px 100px -40px rgba(0,0,0,.9);
+    backdrop-filter:blur(14px);
+  }
+  h1{font-family:var(--display);font-size:clamp(1.5rem,1.2rem+1.4vw,1.95rem);font-weight:700;letter-spacing:-.035em;margin:0 0 8px;line-height:1.15}
+  .sub{color:var(--muted);font-size:.94rem;margin:0 0 26px}
+  .actions{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:10px;flex:1 1 240px;
+    font-family:var(--display);font-weight:600;font-size:.95rem;letter-spacing:-.01em;
+    padding:15px 22px;border-radius:12px;border:1px solid transparent;cursor:pointer;
+    text-decoration:none;transition:transform .18s ease,box-shadow .25s ease,background .2s ease,border-color .2s ease;
+    white-space:nowrap;
+  }
+  .btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .btn-primary{
+    color:#fff;background:linear-gradient(120deg,#8b6bff,#6a63ff 55%,#4d6bff);
+    box-shadow:0 14px 34px -12px rgba(120,105,255,.85),inset 0 1px 0 rgba(255,255,255,.22);
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 20px 44px -14px rgba(120,105,255,.95),inset 0 1px 0 rgba(255,255,255,.22)}
+  .btn-ghost{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);color:var(--txt);flex:0 1 190px}
+  .btn-ghost:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.26);transform:translateY(-2px)}
+  .hint{font-size:.79rem;color:var(--muted);margin:0 0 26px}
+  .hint b{color:var(--txt-2);font-weight:600}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px}
+  .chip{
+    font-family:var(--mono);font-size:.7rem;color:var(--txt-2);
+    border:1px solid var(--line);background:rgba(255,255,255,.035);
+    border-radius:100px;padding:5px 11px;letter-spacing:.01em;
+  }
+  .chip b{color:var(--mint);font-weight:500}
+  .label{
+    font-size:.68rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);
+    margin:0 0 11px;
+  }
+  .tree{
+    font-family:var(--mono);font-size:.76rem;line-height:1.85;color:var(--txt-2);
+    background:rgba(0,0,0,.32);border:1px solid var(--line);border-radius:13px;
+    padding:16px 18px;margin:0 0 24px;overflow-x:auto;white-space:pre;
+  }
+  .tree .d{color:var(--violet-2)}
+  .tree .f{color:var(--txt-2)}
+  .tree .c{color:var(--muted)}
+  .steps{margin:0;padding:0;list-style:none;counter-reset:s}
+  .steps li{
+    counter-increment:s;position:relative;padding-left:34px;margin-bottom:11px;
+    font-size:.86rem;color:var(--txt-2);
+  }
+  .steps li::before{
+    content:counter(s);position:absolute;left:0;top:1px;width:22px;height:22px;border-radius:50%;
+    display:grid;place-items:center;font-family:var(--mono);font-size:.66rem;
+    background:rgba(139,107,255,.16);border:1px solid rgba(139,107,255,.3);color:#cabfff;
+  }
+  code{
+    font-family:var(--mono);font-size:.82em;background:rgba(255,255,255,.07);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:#d7ceff;
+  }
+  footer{margin-top:22px;text-align:center;font-size:.74rem;color:var(--muted)}
+  footer a{color:var(--txt-2);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(255,255,255,.28)}
+  @media (max-width:560px){
+    body{padding:24px 14px}
+    .card{padding:24px 20px;border-radius:18px}
+    .actions{flex-direction:column}
+    .btn-ghost{flex:1 1 auto}
+    .tree{font-size:.68rem;padding:13px 14px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 40 40" aria-hidden="true">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#a78bfa"/><stop offset=".55" stop-color="#7c6bff"/><stop offset="1" stop-color="#4d6bff"/>
+      </linearGradient></defs>
+      <rect width="40" height="40" rx="11" fill="url(#g)"/>
+      <path d="M14 12v16" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+      <path d="M26.5 12 17 20l9.5 8" stroke="#c9bdff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="word">Kyoraku<span>Replay</span></span>
+  </div>
+
+  <div class="card">
+    <h1>Your project is ready to download</h1>
+    <p class="sub">The complete KyorakuReplay site — 5 pages, 4 stylesheets, 3 scripts. No build step, no dependencies.</p>
+
+    <div class="actions">
+      <a class="btn btn-primary" href="kyorakureplay-site.zip" download="kyorakureplay-site.zip" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Download .zip · 133 KB
+      </a>
+      <a class="btn btn-ghost" href="kyorakureplay-site.tar.gz" download="kyorakureplay-site.tar.gz" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+        .tar.gz
+      </a>
+    </div>
+    <p class="hint">Button ma khdamch? <b>Right-click → “Save link as…”</b> 3la r-rabet.</p>
+
+    <div class="meta">
+      <span class="chip">18 files</span>
+      <span class="chip">539 KB raw</span>
+      <span class="chip">SHA-256 <b>1f431a72…</b></span>
+    </div>
+
+    <p class="label">What's inside</p>
+    <pre class="tree"><span class="d">kyorakureplay/</span>
+├── <span class="f">index.html</span>        <span class="c"># EN landing page</span>
+├── <span class="f">ar.html</span>           <span class="c"># Arabic RTL version</span>
+├── <span class="f">login.html</span>
+├── <span class="f">signup.html</span>
+├── <span class="f">dashboard.html</span>
+├── <span class="f">README.md</span>
+├── <span class="f">.gitignore</span>
+└── <span class="d">assets/</span>
+    ├── <span class="d">css/</span>  main.css · auth.css · rtl.css · dashboard.css
+    └── <span class="d">js/</span>   app.js · auth.js · dashboard.js</pre>
+
+    <p class="label">How to run it</p>
+    <ol class="steps">
+      <li>Unzip the archive — you get a single <code>kyorakureplay/</code> folder.</li>
+      <li>Open <code>index.html</code> directly in your browser, or serve it locally:<br>
+        <code>cd kyorakureplay &amp;&amp; python3 -m http.server 8000</code></li>
+      <li>Visit <code>http://localhost:8000</code> — sign up, then the dashboard opens.</li>
+    </ol>
+  </div>
+
+  <footer>
+    Demo login: <code>mack@demo.kyorakureplay.com</code> · design study, not affiliated with FX Replay Inc.
+    <br /><a href="https://github.com/Kyoraku-Bl/reverse" target="_blank" rel="noopener">GitHub repository</a>
+  </footer>
+</div>
+</body>
+</html>
