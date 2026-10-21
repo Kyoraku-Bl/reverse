@@ -109,7 +109,7 @@
   var TTL = { "1m": 45000, "5m": 120000, "15m": 240000, "1H": 420000, "4H": 600000, "1D": 900000 };
 
   var mem = new Map();          /* id:tf -> { series, at } */
-  var status = { mode: "auto", checked: false, yahoo: null, binance: null, lastError: null, lastSource: null };
+  var status = { mode: "auto", checked: false, yahoo: null, binance: null, direct: null, transport: null, lastError: null, lastSource: null };
 
   function readPref(key, fallback) {
     try { var v = localStorage.getItem(key); return v === null ? fallback : v; }
@@ -171,6 +171,72 @@
     var limit = tf === "1D" ? 1500 : 1000;
     return API + "/binance?symbol=" + encodeURIComponent(symbol) +
       "&interval=" + encodeURIComponent(interval) + "&limit=" + limit;
+  }
+
+  /* ---------------------------------------------------------
+     Direct + relay transports.
+     When the site is served by a plain static host (GitHub Pages,
+     jsDelivr, Netlify drop…) there is no /api proxy. Binance allows
+     cross-origin reads, so crypto still loads straight from the
+     exchange; Yahoo has no CORS, so its candles go through a public
+     passthrough relay. Same bytes, same numbers, no key.
+  --------------------------------------------------------- */
+  var DIRECT = window.KRDirect || {
+    yahoo: "https://query1.finance.yahoo.com/v8/finance/chart/",
+    binance: [
+      "https://data-api.binance.vision/api/v3/klines",
+      "https://api.binance.com/api/v3/klines"
+    ],
+    relays: [
+      function (u) { return "https://api.allorigins.win/raw?url=" + encodeURIComponent(u); },
+      function (u) { return "https://corsproxy.io/?url=" + encodeURIComponent(u); }
+    ]
+  };
+
+  function yahooDirect(symbol, tf) {
+    var cfg = YAHOO[tf] || YAHOO["1m"];
+    return DIRECT.yahoo + encodeURIComponent(symbol) +
+      "?interval=" + cfg.interval + "&range=" + cfg.range +
+      "&includePrePost=false&events=div%2Csplit";
+  }
+  function binanceDirect(symbol, tf, host) {
+    var interval = BINANCE[tf] || "1m";
+    var limit = tf === "1D" ? 1500 : 1000;
+    return (host || DIRECT.binance[0]) + "?symbol=" + encodeURIComponent(symbol) +
+      "&interval=" + encodeURIComponent(interval) + "&limit=" + limit;
+  }
+
+  function jsonAbs(url, ms) {
+    return withTimeout(
+      fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      }), ms || 9000);
+  }
+
+  /* last-resort transport chain for one candidate symbol */
+  function offlineFetch(c, tf) {
+    if (c.provider === "binance") {
+      var hosts = DIRECT.binance;
+      return jsonAbs(binanceDirect(c.symbol, tf, hosts[0]))
+        .then(function (p) { return { payload: p, transport: "direct" }; })
+        .catch(function () {
+          return jsonAbs(binanceDirect(c.symbol, tf, hosts[1]))
+            .then(function (p) { return { payload: p, transport: "direct" }; });
+        });
+    }
+    var target = yahooDirect(c.symbol, tf);
+    var relays = DIRECT.relays;
+    function viaRelay(i) {
+      if (i >= relays.length) return Promise.reject(new Error("no relay"));
+      return jsonAbs(relays[i](target), 11000)
+        .then(function (p) {
+          if (!p || !p.chart) throw new Error("relay payload");
+          return { payload: p, transport: "relay" };
+        })
+        .catch(function () { return viaRelay(i + 1); });
+    }
+    return viaRelay(0);
   }
 
   /* ---------------------------------------------------------
@@ -279,17 +345,30 @@
   function probe() {
     if (status.checked) return Promise.resolve(status);
     status.checked = true;
+    var relay = DIRECT.relays[0];
     var checks = [
       json(API + "/yahoo?symbol=" + encodeURIComponent("ES=F") + "&interval=5m&range=5d&probe=1")
-        .then(function (d) { return !!(d && d.chart && d.chart.result); })
-        .catch(function () { return false; }),
+        .then(function (d) { status.transport = "proxy"; return !!(d && d.chart && d.chart.result); })
+        .catch(function () {
+          return jsonAbs(relay(yahooDirect("ES=F", "5m")), 11000)
+            .then(function (d) {
+              if (d && d.chart && d.chart.result) { status.transport = "relay"; return true; }
+              return false;
+            })
+            .catch(function () { return false; });
+        }),
       json(API + "/binance?symbol=BTCUSDT&interval=5m&limit=5&probe=1")
         .then(function (d) { return Array.isArray(d) && d.length > 0; })
-        .catch(function () { return false; })
+        .catch(function () {
+          return jsonAbs(binanceDirect("BTCUSDT", "5m"), 9000)
+            .then(function (d) { return Array.isArray(d) && d.length > 0; })
+            .catch(function () { return false; });
+        })
     ];
     return Promise.all(checks).then(function (r) {
       status.yahoo = r[0];
       status.binance = r[1];
+      status.direct = true;      /* Binance answers cross-origin on its own */
       return status;
     });
   }
@@ -352,7 +431,12 @@
       }
       var url = c.provider === "binance" ? binanceUrl(c.symbol, tf) : yahooUrl(c.symbol, tf);
       return json(url)
-        .then(function (payload) {
+        .then(function (payload) { return { payload: payload, transport: "proxy" }; })
+        .catch(function () { return offlineFetch(c, tf); })
+        .then(function (res) {
+          var payload = res.payload;
+          var transport = res.transport;
+          return (function () {
           var parsed = c.provider === "binance" ? parseBinance(payload) : parseYahoo(payload);
           var cfg = c.provider === "yahoo" ? (YAHOO[tf] || {}) : {};
           var bars = parsed.bars;
@@ -366,6 +450,7 @@
               symbol: c.symbol,
               label: c.provider === "binance" ? "Binance" : "Yahoo Finance",
               fetchedAt: Date.now(),
+              transport: transport,
               currency: parsed.meta && parsed.meta.currency
             }
           });
@@ -375,6 +460,7 @@
           status.lastSource = series.source;
           status.lastError = null;
           return series;
+          })();
         })
         .catch(function (err) {
           tried.push(c.symbol + " (" + (err && err.message ? err.message : "error") + ")");

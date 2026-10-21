@@ -260,9 +260,11 @@
     el.innerHTML = live
       ? '<span class="src-dot"></span>' + (stale ? "CACHED" : "LIVE") + " · " + (src && src.label ? src.label : "feed")
       : '<span class="src-dot"></span>SIMULATED';
+    var how = src && src.transport === "relay" ? " · via public relay"
+      : src && src.transport === "direct" ? " · direct from the exchange" : "";
     el.title = live
       ? (stale ? "Last saved real prices from " : "Real market prices from ") +
-        (src && src.symbol ? src.symbol + " · " + fmtFull(src.fetchedAt || Date.now()) + " UTC" : "a public feed")
+        (src && src.symbol ? src.symbol + how + " · " + fmtFull(src.fetchedAt || Date.now()) + " UTC" : "a public feed")
       : "Public feed unavailable for this instrument — using the built-in synthetic engine";
     if (live && src && src.symbol) {
       var sym = $("#srcSymbol");
@@ -312,9 +314,13 @@
     if ((st.mode === "live") && !(st.yahoo || st.binance)) {
       copy.innerHTML += " This preview has no network access, so every instrument falls back to the offline engine.";
     }
+    var via = st.transport === "proxy" ? "same-origin proxy"
+      : st.transport === "relay" ? "public relay (no proxy on this host)"
+      : st.direct ? "direct from the exchange" : "checked on first load";
     var rows = [
       ["Yahoo Finance", st.yahoo === true ? "reachable" : st.yahoo === false ? "unavailable" : "unchecked"],
       ["Binance", st.binance === true ? "reachable" : st.binance === false ? "unavailable" : "unchecked"],
+      ["Transport", via],
       ["Simulated fallback", st.mode === "synthetic" ? "forced on" : "labelled only"]
     ];
     list.innerHTML = rows.map(function (r) {
