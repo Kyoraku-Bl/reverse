@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#06080f" />
+<meta name="color-scheme" content="dark light" />
+<title>Create your free account — KyorakuReplay</title>
+<meta name="description" content="Create a free KyorakuReplay account and start backtesting 310 markets with bar-by-bar replay, a trading journal and prop firm simulations. No credit card required." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23070a17'/%3E%3Cpath d='M22 16v32' stroke='%23ffffff' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M44 16 28 32l16 16' stroke='%238f74ff' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script>
+  try {
+    var t = localStorage.getItem("fxr-theme");
+    document.documentElement.dataset.theme = (t === "light" || t === "dark") ? t : "dark";
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="assets/css/auth.css" />
+</head>
+<body>
+<a class="skip-link" href="#authForm">Skip to form</a>
+
+<svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m4.5 12.5 5 5L20 6.5"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.8 8.8 0 1 0 11.1 11.1z"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7.5 8 5.5 8-5.5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 6.1A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-3.2 3.9M6.5 8.3C4 10 2.5 12 2.5 12S6 18 12 18a9.7 9.7 0 0 0 4.1-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2.8 2.9 6 6.6.9-4.8 4.6 1.2 6.5-5.9-3.2-5.9 3.2 1.2-6.5L2.5 9.7l6.6-.9z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2.8 4.5 6v5.4c0 4.7 3.1 7.8 7.5 9.2 4.4-1.4 7.5-4.5 7.5-9.2V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/></symbol>
+    <symbol id="i-google" viewBox="0 0 24 24"><path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285F4" stroke="none"/><path d="M12 21.8c2.7 0 4.9-.9 6.6-2.3l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.7-5.6-4.1H3.1v2.6A9.8 9.8 0 0 0 12 21.8z" fill="#34A853" stroke="none"/><path d="M6.4 13.9a5.9 5.9 0 0 1 0-3.8V7.5H3.1a9.8 9.8 0 0 0 0 9z" fill="#FBBC05" stroke="none"/><path d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.8-2.8A9.6 9.6 0 0 0 12 2.2a9.8 9.8 0 0 0-8.9 5.3l3.3 2.6C7.2 7.7 9.4 5.9 12 5.9z" fill="#EA4335" stroke="none"/></symbol>
+    <symbol id="i-apple" viewBox="0 0 24 24"><path d="M16.2 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.7-1.8-3.3-1.8-1.4-.1-2.7.8-3.4.8-.7 0-1.8-.8-3-.8-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.3-2.5 1.3-2.6-.1 0-2.7-1-2.7-3.8z" fill="currentColor" stroke="none"/><path d="M14.1 5.3c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-.9 2.8 1 .1 2-.5 2.7-1.3z" fill="currentColor" stroke="none"/></symbol>
+  </defs>
+</svg>
+
+<div class="auth-shell">
+  <!-- Brand / marketing side -->
+  <aside class="auth-visual" aria-label="Why traders choose KyorakuReplay">
+    <span class="auth-orb auth-orb--1" aria-hidden="true"></span>
+    <span class="auth-orb auth-orb--2" aria-hidden="true"></span>
+
+    <div class="av-top">
+      <a class="brand" href="index.html" aria-label="KyorakuReplay home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="11" fill="url(#authBrand)"/><path d="M14 12v16" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M26.5 12 17 20l9.5 8" stroke="#c9bdff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="authBrand" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#8b6bff"/><stop offset="1" stop-color="#4d6bff"/></linearGradient></defs></svg>
+        </span>
+        <span class="brand-word">Kyoraku<span>Replay</span></span>
+      </a>
+      <a class="av-back" href="index.html"><svg class="ic ic--sm"><use href="#i-arrow"/></svg> Back to KyorakuReplay</a>
+    </div>
+
+    <div class="av-body">
+      <span class="av-pill"><span class="dot"></span> Free forever plan · no card</span>
+      <h1>Your next 100 trades<br />start with a <span class="grad">replay</span>.</h1>
+      <p>Join over a million traders who stopped guessing. Replay real market history bar by bar, journal every decision and pressure-test your rules before the market does.</p>
+      <ul class="av-feats">
+        <li><svg class="ic"><use href="#i-check"/></svg> 310 assets across futures, forex, crypto, indices, metals and energy</li>
+        <li><svg class="ic"><use href="#i-check"/></svg> 20+ years of data, from 1-second candles to monthly</li>
+        <li><svg class="ic"><use href="#i-check"/></svg> Journal, prop firm simulator and Mentor AI included</li>
+      </ul>
+
+      <div class="auth-card" aria-hidden="true">
+        <div class="ac-head"><span>EUR/USD · Replay 2×</span><span class="ac-live"><i></i> Session live</span></div>
+        <div class="ac-chart">
+          <svg viewBox="0 0 420 86" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="acGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop stop-color="#8b6bff" stop-opacity=".35"/><stop offset="1" stop-color="#8b6bff" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path class="ac-fill" d="M0 70 L0 62 L24 66 L48 54 L72 60 L96 46 L120 54 L144 40 L168 48 L192 32 L216 42 L240 28 L264 36 L288 22 L312 30 L336 18 L360 26 L384 14 L408 20 L420 12 L420 86 L0 86 Z"/>
+            <path class="ac-line" d="M0 62 L24 66 L48 54 L72 60 L96 46 L120 54 L144 40 L168 48 L192 32 L216 42 L240 28 L264 36 L288 22 L312 30 L336 18 L360 26 L384 14 L408 20 L420 12"/>
+            <line class="ac-dash" x1="0" y1="44" x2="420" y2="44"/>
+          </svg>
+        </div>
+        <div class="ac-row">
+          <div><small>Net R</small><b class="mint">+18.4R</b></div>
+          <div><small>Win rate</small><b>61%</b></div>
+          <div><small>Profit factor</small><b>2.14</b></div>
+        </div>
+      </div>
+
+      <blockquote class="av-quote">
+        <p>“KyorakuReplay is hands down the best backtesting software in the game. I use it all the time.”</p>
+        <cite>Mack Grey · Trader</cite>
+      </blockquote>
+    </div>
+
+    <div class="av-foot">
+      <span class="stars"><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg></span>
+      <span>4.8 / 5 · 2,300+ trader reviews</span>
+    </div>
+  </aside>
+
+  <!-- Form side -->
+  <main class="auth-main">
+    <div class="auth-main-top">
+      <a class="brand" href="index.html" aria-label="KyorakuReplay home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="11" fill="url(#authBrand2)"/><path d="M14 12v16" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M26.5 12 17 20l9.5 8" stroke="#c9bdff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="authBrand2" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#8b6bff"/><stop offset="1" stop-color="#4d6bff"/></linearGradient></defs></svg>
+        </span>
+        <span class="brand-word">Kyoraku<span>Replay</span></span>
+      </a>
+      <a class="auth-back-mobile" href="index.html"><svg class="ic ic--sm" style="transform:rotate(180deg)"><use href="#i-arrow"/></svg> Back to site</a>
+      <div class="auth-util">
+        <a class="icon-btn" href="ar.html" aria-label="Version arabe" title="النسخة العربية" style="font-size:.72rem;font-weight:600">ع</a>
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="Switch to light theme" title="Switch theme">
+          <svg class="ic icon-sun"><use href="#i-sun"/></svg>
+          <svg class="ic icon-moon"><use href="#i-moon"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="auth-wrap" id="authForm">
+      <div id="formState">
+        <div class="auth-head">
+          <span class="eyebrow">Create account</span>
+          <h2>Start backtesting free</h2>
+          <p>Already have an account? <a href="login.html">Log in</a></p>
+          <span class="plan-chip" id="planChip"><svg class="ic"><use href="#i-spark"/></svg> Selected plan: <b id="planName">Free</b></span>
+        </div>
+
+        <div class="socials-auth">
+          <button class="social-btn" type="button" data-provider="Google"><svg class="ic"><use href="#i-google"/></svg> Continue with Google</button>
+          <button class="social-btn" type="button" data-provider="Apple"><svg class="ic"><use href="#i-apple"/></svg> Continue with Apple</button>
+        </div>
+        <div class="divider">or sign up with email</div>
+
+        <form class="auth-form" id="signupForm" novalidate>
+          <div class="field">
+            <label for="fullName">Full name</label>
+            <div class="input-wrap">
+              <svg class="ic"><use href="#i-user"/></svg>
+              <input id="fullName" name="name" type="text" autocomplete="name" placeholder="Yassine El Amrani" required />
+            </div>
+            <span class="error" id="nameError"><svg class="ic"><use href="#i-alert"/></svg><span>Please enter your name.</span></span>
+          </div>
+
+          <div class="field">
+            <label for="email">Email address</label>
+            <div class="input-wrap">
+              <svg class="ic"><use href="#i-mail"/></svg>
+              <input id="email" name="email" type="email" autocomplete="email" placeholder="you@email.com" required />
+            </div>
+            <span class="error" id="emailError"><svg class="ic"><use href="#i-alert"/></svg><span>Enter a valid email address.</span></span>
+          </div>
+
+          <div class="field">
+            <label for="password">Password <span class="hint">8+ characters</span></label>
+            <div class="input-wrap">
+              <svg class="ic"><use href="#i-lock"/></svg>
+              <input id="password" name="password" type="password" autocomplete="new-password" placeholder="Create a strong password" required minlength="8" />
+              <button class="toggle-pass" type="button" data-target="password" aria-label="Show password" aria-pressed="false">
+                <svg class="ic"><use href="#i-eye"/></svg>
+              </button>
+            </div>
+            <div class="strength">
+              <div class="strength-bars" id="strengthBars" data-level="0"><i></i><i></i><i></i><i></i></div>
+              <div class="strength-meta"><span>Password strength</span><b id="strengthLabel">—</b></div>
+            </div>
+            <span class="error" id="passwordError"><svg class="ic"><use href="#i-alert"/></svg><span>Use at least 8 characters.</span></span>
+          </div>
+
+          <div class="check-wrap">
+            <label class="check-row">
+              <input type="checkbox" id="terms" required />
+              <span>I agree to the <a href="index.html#footer">Terms of Service</a> and <a href="index.html#footer">Privacy Policy</a>, and I understand trading involves risk.</span>
+            </label>
+            <span class="error" id="termsError"><svg class="ic"><use href="#i-alert"/></svg><span>Please accept the terms to continue.</span></span>
+          </div>
+
+          <button class="btn btn-primary" type="submit" id="signupSubmit">Create free account <svg class="ic"><use href="#i-arrow"/></svg></button>
+          <p class="auth-terms">No credit card required. Free forever plan. Cancel anything, anytime.</p>
+        </form>
+
+        <div class="trust-row">
+          <span><svg class="ic"><use href="#i-shield"/></svg> Encrypted</span>
+          <span><svg class="ic"><use href="#i-check"/></svg> No card required</span>
+          <span><svg class="ic"><use href="#i-check"/></svg> Cancel anytime</span>
+        </div>
+      </div>
+
+      <div class="auth-success" id="successState">
+        <div class="success-icon"><svg class="ic"><use href="#i-check"/></svg></div>
+        <h3>You're in, <span id="successName">trader</span>.</h3>
+        <p>We sent a confirmation link to <b id="successEmail">your email</b>. Verify it, then jump straight into your replay session.</p>
+        <div class="success-steps">
+          <div><svg class="ic"><use href="#i-check"/></svg> Free plan activated</div>
+          <div><svg class="ic"><use href="#i-check"/></svg> Journal workspace created</div>
+          <div><svg class="ic"><use href="#i-check"/></svg> 3 replay sessions saved</div>
+        </div>
+        <a class="btn btn-primary" href="dashboard.html">Go to my dashboard <svg class="ic"><use href="#i-arrow"/></svg></a>
+        <p class="auth-footer">Wrong email? <a href="#" id="editSignup">Edit details</a></p>
+      </div>
+
+      <p class="auth-footer" style="margin-top:26px">Demo build · no real account is created and no email is sent.</p>
+    </div>
+  </main>
+</div>
+
+<div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
+<script src="assets/js/auth.js"></script>
+</body>
+</html>

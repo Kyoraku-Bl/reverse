@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#06080f" />
+<meta name="color-scheme" content="dark" />
+<title>KyorakuReplay — Futures, Forex &amp; Crypto Backtesting Platform</title>
+<meta name="description" content="Replay real market history bar by bar, journal every trade, simulate prop firm challenges and let Mentor AI find the patterns behind your edge. 310 assets, 20+ years of data." />
+<meta property="og:title" content="KyorakuReplay — Trading with confidence starts with backtesting" />
+<meta property="og:description" content="Practice on 310 assets with bar-by-bar replay, a built-in journal, prop firm simulator and AI trade analysis. Free forever plan." />
+<meta property="og:type" content="website" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23070a17'/%3E%3Cpath d='M22 16v32' stroke='%23ffffff' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M44 16 28 32l16 16' stroke='%238f74ff' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script>
+  try {
+    var t = localStorage.getItem("fxr-theme");
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="assets/css/main.css" />
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>
+
+<!-- ============ ICON SPRITE ============ -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="7" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="13.5" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-step" viewBox="0 0 24 24"><path d="M5 5v14"/><path d="M19 5.5 9.5 12 19 18.5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-replay" viewBox="0 0 24 24"><path d="M3.05 11a9 9 0 1 0 3.2-6.3M3 5v4.5h4.5"/><path d="M12 8v4l2.5 1.5"/></symbol>
+    <symbol id="i-layout" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M3 9.5h18M9.5 21V9.5"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M8 2.5v4M16 2.5v4M3 10h18"/><path d="M7.5 14h1M11.5 14h1M15.5 14h1M7.5 17.5h1M11.5 17.5h1"/></symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l2.5 7L14 5l2.5 7H21"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 10-12h-7z"/></symbol>
+    <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 1.5M9 2h6"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24"><path d="M12 5.2A3.2 3.2 0 0 0 6 7v.6A3.4 3.4 0 0 0 4.4 14 3.4 3.4 0 0 0 8 19.4 3.2 3.2 0 0 0 12 18z"/><path d="M12 5.2A3.2 3.2 0 0 1 18 7v.6A3.4 3.4 0 0 1 19.6 14 3.4 3.4 0 0 1 16 19.4 3.2 3.2 0 0 1 12 18z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2.8 4.5 6v5.4c0 4.7 3.1 7.8 7.5 9.2 4.4-1.4 7.5-4.5 7.5-9.2V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-4.5 4L8 16M16 8l4.5 4L16 16M14 4.5l-4 15"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m4.5 12.5 5 5L20 6.5"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="M8 16v-4M12.5 16V8M17 16v-6"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/><path d="m3 17.5 9 5 9-5"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2.8 2.9 6 6.6.9-4.8 4.6 1.2 6.5-5.9-3.2-5.9 3.2 1.2-6.5L2.5 9.7l6.6-.9z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-quote" viewBox="0 0 24 24"><path d="M9.5 6C6.5 7 5 9.4 5 13v5h5.5v-6H8c.1-2.1.7-3.4 2.4-4.2zM20 6c-3 1-4.5 3.4-4.5 7v5H21v-6h-2.5c.1-2.1.7-3.4 2.4-4.2z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.8 8.8 0 1 0 11.1 11.1z"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></symbol>
+  </defs>
+</svg>
+
+<!-- ============ ANNOUNCEMENT ============ -->
+<div class="announce">
+  <div class="container announce-inner">
+    <span class="announce-new">New</span>
+    <span>Mentor AI now reviews every replay session — <a href="#platform">see what it found</a></span>
+    <button class="announce-close" id="announceClose" aria-label="Dismiss announcement"><svg class="ic"><use href="#i-close"/></svg></button>
+  </div>
+</div>
+
+<!-- ============ HEADER ============ -->
+<header class="site-header" id="siteHeader">
+  <div class="container header-inner">
+    <a class="brand" href="#top" aria-label="KyorakuReplay home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="11" fill="url(#brandGrad)"/><path d="M14 12v16" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M26.5 12 17 20l9.5 8" stroke="#c9bdff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="brandGrad" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#8b6bff"/><stop offset="1" stop-color="#4d6bff"/></linearGradient></defs></svg>
+      </span>
+      <span class="brand-word">Kyoraku<span>Replay</span></span>
+    </a>
+
+    <nav class="main-nav" id="mainNav" aria-label="Main navigation">
+      <div class="nav-item has-menu">
+        <button class="nav-link" aria-expanded="false" aria-haspopup="true">Platform <svg class="ic ic--sm"><use href="#i-chev"/></svg></button>
+        <div class="nav-menu" role="menu">
+          <a href="#platform" role="menuitem"><span class="nm-icon"><svg class="ic"><use href="#i-replay"/></svg></span><span><b>Market replay</b><small>Bar-by-bar backtesting on 20+ years of data</small></span></a>
+          <a href="#platform" role="menuitem"><span class="nm-icon"><svg class="ic"><use href="#i-chart"/></svg></span><span><b>Trading journal</b><small>Tags, stats and a record you can't argue with</small></span></a>
+          <a href="#platform" role="menuitem"><span class="nm-icon"><svg class="ic"><use href="#i-shield"/></svg></span><span><b>Prop firm simulator</b><small>Stress-test your process against challenge rules</small></span></a>
+          <a href="#platform" role="menuitem"><span class="nm-icon"><svg class="ic"><use href="#i-brain"/></svg></span><span><b>Mentor AI</b><small>Surface the patterns behind your mistakes</small></span></a>
+          <a href="#platform" role="menuitem"><span class="nm-icon"><svg class="ic"><use href="#i-code"/></svg></span><span><b>FXR Script</b><small>Turn verified ideas into custom indicators</small></span></a>
+        </div>
+      </div>
+      <a class="nav-link" href="#markets">Markets</a>
+      <a class="nav-link" href="#indicators">Indicators</a>
+      <a class="nav-link" href="#pricing">Pricing</a>
+      <a class="nav-link" href="#faq">FAQ</a>
+    </nav>
+
+    <div class="header-actions">
+      <div class="ctrl-group">
+        <div class="lang-switch" aria-label="Language">
+          <span class="on" aria-current="true">EN</span>
+          <a href="ar.html" lang="ar" hreflang="ar" title="النسخة العربية">عربي</a>
+        </div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" title="Switch theme">
+          <svg class="ic icon-sun"><use href="#i-sun"/></svg>
+          <svg class="ic icon-moon"><use href="#i-moon"/></svg>
+        </button>
+      </div>
+      <a class="login-link" href="login.html">Log in</a>
+      <a class="btn btn-primary btn-sm" href="signup.html">Get started free <svg class="ic ic--sm"><use href="#i-arrow"/></svg></a>
+      <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav">
+        <svg class="ic icon-open"><use href="#i-menu"/></svg>
+        <svg class="ic icon-close"><use href="#i-close"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="mobile-nav" id="mobileNav" hidden>
+    <div class="container">
+      <p class="mn-label">Platform</p>
+      <a href="#platform">Market replay</a>
+      <a href="#platform">Trading journal</a>
+      <a href="#platform">Prop firm simulator</a>
+      <a href="#platform">Mentor AI</a>
+      <a href="#platform">FXR Script</a>
+      <p class="mn-label">Explore</p>
+      <a href="#markets">Markets &amp; assets</a>
+      <a href="#indicators">Indicator library</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a href="login.html">Log in</a>
+      <a class="btn btn-primary mobile-cta" href="signup.html">Get started free</a>
+      <p class="mn-note">No credit card · Free forever plan</p>
+      <div class="ctrl-group">
+        <div class="lang-switch" aria-label="Language">
+          <span class="on" aria-current="true">EN</span>
+          <a href="ar.html" lang="ar" hreflang="ar">عربي</a>
+        </div>
+        <button class="theme-toggle" id="themeToggleMobile" type="button" aria-label="Switch to light theme" title="Switch theme">
+          <svg class="ic icon-sun"><use href="#i-sun"/></svg>
+          <svg class="ic icon-moon"><use href="#i-moon"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <!-- ============ HERO ============ -->
+  <section class="hero" id="top">
+    <div class="hero-bg" aria-hidden="true">
+      <span class="orb orb--violet"></span>
+      <span class="orb orb--blue"></span>
+      <span class="orb orb--mint"></span>
+      <span class="grid-plane"></span>
+    </div>
+
+    <div class="container hero-copy">
+      <a class="eyebrow reveal" href="#testimonials"><span class="pulse-dot"></span> <span class="eyebrow-copy">Over <b>1,000,000</b> traders practice here</span> <span class="rating-inline"><svg class="ic"><use href="#i-star"/></svg> 4.8/5</span></a>
+      <h1 class="reveal" style="--d:1">Trading with <span class="grad-text">confidence</span> starts with backtesting</h1>
+      <p class="hero-lede reveal" style="--d:2">Replay real market history one candle at a time, journal every decision, stress-test prop firm rules, and let Mentor AI find the patterns behind your edge — all in your browser.</p>
+      <div class="hero-cta reveal" style="--d:3">
+        <a class="btn btn-primary btn-lg" href="signup.html">Get started for free <svg class="ic"><use href="#i-arrow"/></svg></a>
+        <a class="btn btn-ghost btn-lg" href="#terminal"><span class="btn-play"><svg class="ic ic--sm"><use href="#i-play"/></svg></span> Try the live demo</a>
+      </div>
+      <ul class="hero-points reveal" style="--d:4">
+        <li><svg class="ic"><use href="#i-check"/></svg> No credit card</li>
+        <li><svg class="ic"><use href="#i-check"/></svg> 120+ assets, 6 markets</li>
+        <li><svg class="ic"><use href="#i-check"/></svg> 20 years of data</li>
+      </ul>
+    </div>
+
+    <div class="container">
+      <div class="term-wrap reveal" style="--d:4">
+        <div class="term-glow" aria-hidden="true"></div>
+        <p class="term-caption"><span class="blink"></span> Interactive demo — simulated market data</p>
+
+        <div class="term" id="terminal">
+          <div class="term-chrome">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <div class="term-addr"><span class="addr-pill"><svg class="ic ic--xs"><use href="#i-lock"/></svg> app.kyorakureplay.com/replay</span></div>
+            <span class="term-tag"><span class="live-dot"></span> Session live</span>
+          </div>
+
+          <div class="term-shell">
+            <!-- Watchlist -->
+            <aside class="wl" aria-label="Watchlist">
+              <div class="wl-top"><span>Watchlist</span><button class="wl-add" aria-label="Add symbol"><svg class="ic ic--xs"><use href="#i-plus"/></svg></button></div>
+              <div class="wl-list" id="watchlist"><!-- JS --></div>
+              <div class="wl-challenge">
+                <div class="ch-head"><span>Prop challenge</span><span class="ch-day">Day 4 / 30</span></div>
+                <div class="ch-row"><span>Profit target</span><b class="mint">+6.4%</b></div>
+                <div class="meter"><i style="width:64%"></i></div>
+                <div class="ch-row"><span>Daily drawdown</span><b class="mint">1.2%</b></div>
+                <div class="meter meter--rose"><i style="width:24%"></i></div>
+                <p class="ch-foot">$100k evaluation · 2 rules at risk</p>
+              </div>
+            </aside>
+
+            <!-- Chart -->
+            <section class="chartcol" aria-label="Replay chart">
+              <div class="ctools">
+                <div class="symrow">
+                  <span class="sym-ic" id="symIcon">€</span>
+                  <div class="sym-meta">
+                    <div class="sym-name"><span id="symLabel">EUR/USD</span><span class="sym-badge" id="symMarket">Forex</span></div>
+                    <div class="sym-sub"><span id="symPrice">1.08421</span><span id="symDelta" class="up">+0.24%</span></div>
+                  </div>
+                </div>
+                <div class="tfgroup" id="tfGroup" role="group" aria-label="Timeframe">
+                  <button data-tf="1s">1s</button>
+                  <button data-tf="1m" class="on">1m</button>
+                  <button data-tf="5m">5m</button>
+                  <button data-tf="15m">15m</button>
+                  <button data-tf="1H">1H</button>
+                  <button data-tf="4H">4H</button>
+                  <button data-tf="1D">1D</button>
+                </div>
+                <div class="toolgroup">
+                  <button class="tool on" id="emaBtn" aria-pressed="true" title="Toggle EMA 21/50">EMA</button>
+                  <button class="tool on" id="vwapBtn" aria-pressed="true" title="Toggle VWAP">VWAP</button>
+                  <span class="tool-sep"></span>
+                  <button class="tool tool--icon" id="zoomOut" title="Zoom out" aria-label="Zoom out">−</button>
+                  <button class="tool tool--icon" id="zoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+                </div>
+              </div>
+
+              <div class="chartbox" id="chartBox">
+                <canvas id="priceChart" aria-label="Simulated candlestick chart with replay controls" role="img"></canvas>
+                <div class="chart-flag"><span></span> REPLAY</div>
+                <div class="chart-ohlc" id="chartOhlc">O <b>—</b> H <b>—</b> L <b>—</b> C <b>—</b></div>
+                <div class="chart-date" id="chartDate">—</div>
+                <div class="chart-hint" id="chartHint">Scroll to zoom · hover for OHLC</div>
+                <div class="chart-watermark" aria-hidden="true">FXR</div>
+              </div>
+
+              <div class="replay">
+                <button class="rbtn rbtn--play" id="playBtn" aria-label="Play replay"><svg class="ic"><use href="#i-play"/></svg></button>
+                <button class="rbtn" id="stepBtn" aria-label="Step forward one candle"><svg class="ic"><use href="#i-step"/></svg></button>
+                <div class="scrubwrap">
+                  <input type="range" id="scrub" min="0" max="100" value="50" aria-label="Replay position" />
+                  <div class="scrubticks"><span id="dateStart">—</span><span id="dateNow">—</span></div>
+                </div>
+                <select id="speedSel" class="speed" aria-label="Replay speed">
+                  <option value="1">1×</option>
+                  <option value="2" selected>2×</option>
+                  <option value="5">5×</option>
+                  <option value="10">10×</option>
+                  <option value="25">25×</option>
+                </select>
+                <button class="rbtn rbtn--ghost" id="jumpBtn"><svg class="ic ic--xs"><use href="#i-calendar"/></svg> Jump to date</button>
+              </div>
+            </section>
+
+            <!-- Trade panel -->
+            <aside class="side" aria-label="Order and journal panel">
+              <div class="order">
+                <button class="ord ord--buy" id="buyBtn"><span>BUY</span><small id="bidPrice">1.08419</small></button>
+                <button class="ord ord--sell" id="sellBtn"><span>SELL</span><small id="askPrice">1.08424</small></button>
+              </div>
+              <div class="spread-note">Spread 0.5 · Risk <b>$100</b> / trade · 1 lot</div>
+
+              <div class="pos" id="posCard">
+                <div class="pos-empty" id="posEmpty">
+                  <svg class="ic"><use href="#i-chart"/></svg>
+                  <p>No open position.<br /><span>Buy or sell to see live P&amp;L.</span></p>
+                </div>
+                <div class="pos-live" id="posLive" hidden>
+                  <div class="pos-top">
+                    <span class="pos-dir" id="posDir">LONG</span>
+                    <span class="pos-sym" id="posSym">EUR/USD</span>
+                    <button class="pos-close" id="closePos">Close</button>
+                  </div>
+                  <div class="pos-pnl"><b id="posR">+0.00R</b><span id="posUsd">$0.00</span></div>
+                  <div class="pos-meta">
+                    <span>Entry <b id="posEntry">—</b></span>
+                    <span>Last <b id="posNow">—</b></span>
+                  </div>
+                  <div class="pos-track"><i id="posBar"></i></div>
+                  <div class="pos-sub"><span id="posPips">0.0 pips</span><span id="posRisk">Risk $100</span></div>
+                </div>
+              </div>
+
+              <div class="jrnl">
+                <div class="jrnl-head"><span>Session journal</span><b id="tradeCount">0 trades</b></div>
+                <div class="jrnl-stats">
+                  <div><small>Win rate</small><span id="statWin">—</span></div>
+                  <div><small>Net R</small><span id="statR">—</span></div>
+                  <div><small>Profit factor</small><span id="statPF">—</span></div>
+                </div>
+                <ul class="jrnl-list" id="tradeLog"><li class="jrnl-empty">Closed trades appear here, with R multiples calculated automatically.</li></ul>
+              </div>
+            </aside>
+          </div>
+
+          <div class="term-foot">
+            <span><kbd>space</kbd> play / pause</span>
+            <span><kbd>→</kbd> next candle</span>
+            <span><kbd>B</kbd> / <kbd>S</kbd> trade</span>
+            <span class="term-foot-right"><span class="live-dot"></span> Simulated data for demo</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ticker -->
+    <div class="ticker" aria-label="Market snapshot">
+      <div class="ticker-track" id="tickerTrack"><!-- JS --></div>
+    </div>
+  </section>
+
+  <!-- ============ STATS ============ -->
+  <section class="stats" aria-label="Platform statistics">
+    <div class="container stats-grid">
+      <div class="stat reveal"><strong data-count="1000000" data-format="compact" data-suffix="+">0</strong><span>Traders backtesting</span></div>
+      <div class="stat reveal" style="--d:1"><strong data-count="310" data-suffix="">0</strong><span>Assets across 6 markets</span></div>
+      <div class="stat reveal" style="--d:2"><strong data-count="20" data-suffix="+">0</strong><span>Years of historical data</span></div>
+      <div class="stat reveal" style="--d:3"><strong data-count="4.8" data-decimals="1" data-suffix="/5">0</strong><span>Average trader rating</span></div>
+    </div>
+  </section>
+
+  <!-- ============ PLATFORM TABS ============ -->
+  <section class="section section--platform" id="platform">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="tagline">One platform, every edge</span>
+        <h2>Everything you need to <span class="grad-text">trade like you've seen this before</span></h2>
+        <p>Replay, journal, prop challenges, AI review and custom indicators used to live in five different tools. Now they share one chart and one subscription.</p>
+      </div>
+
+      <div class="tabs reveal" role="tablist" aria-label="Platform features">
+        <button class="tab on" id="tab-replay" role="tab" aria-selected="true" aria-controls="panel-replay" data-tab="replay"><svg class="ic"><use href="#i-replay"/></svg> Backtesting</button>
+        <button class="tab" id="tab-journal" role="tab" aria-selected="false" aria-controls="panel-journal" data-tab="journal"><svg class="ic"><use href="#i-chart"/></svg> FXR Journal</button>
+        <button class="tab" id="tab-prop" role="tab" aria-selected="false" aria-controls="panel-prop" data-tab="prop"><svg class="ic"><use href="#i-shield"/></svg> Prop simulator</button>
+        <button class="tab" id="tab-mentor" role="tab" aria-selected="false" aria-controls="panel-mentor" data-tab="mentor"><svg class="ic"><use href="#i-brain"/></svg> Mentor AI</button>
+        <button class="tab" id="tab-script" role="tab" aria-selected="false" aria-controls="panel-script" data-tab="script"><svg class="ic"><use href="#i-code"/></svg> FXR Script</button>
+      </div>
+
+      <div class="panels reveal">
+        <!-- REPLAY -->
+        <div class="tab-panel show" id="panel-replay" role="tabpanel" aria-labelledby="tab-replay">
+          <div class="panel-grid">
+            <div class="panel-copy">
+              <span class="tagline">Backtesting</span>
+              <h3>Press play on any market day.</h3>
+              <p>Step through real historical price data one candle at a time. Pause the clock, jump to a date, and experience the session exactly as it unfolded — without knowing what comes next.</p>
+              <ul class="ticks">
+                <li><svg class="ic"><use href="#i-check"/></svg> Bar-by-bar control with adjustable replay speed</li>
+                <li><svg class="ic"><use href="#i-check"/></svg> Multi-chart layouts for correlated pairs</li>
+                <li><svg class="ic"><use href="#i-check"/></svg> Charting powered by TradingView</li>
+              </ul>
+              <a class="link-arrow" href="#terminal">Try it in the live demo <svg class="ic"><use href="#i-arrow"/></svg></a>
+            </div>
+            <div class="mock mock--replay">
+              <div class="mock-top"><span class="mock-sym">EUR/USD</span><span class="mock-tf">5m</span><span class="mock-live"><span></span> Replay 2×</span></div>
+              <div class="mock-chart">
+                <svg viewBox="0 0 460 210" preserveAspectRatio="none" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="areaA" x1="0" y1="0" x2="0" y2="1">
+                      <stop stop-color="#8b6bff" stop-opacity=".35"/><stop offset="1" stop-color="#8b6bff" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path class="mock-area" fill="url(#areaA)" d="M0 168 L0 148 L22 154 L42 138 L60 146 L82 126 L102 134 L122 116 L142 128 L162 102 L184 112 L204 96 L226 108 L248 86 L268 100 L290 78 L310 92 L332 70 L352 84 L374 60 L396 76 L418 56 L438 70 L460 46 L460 210 L0 210 Z"/>
+                  <path class="mock-line" d="M0 148 L22 154 L42 138 L60 146 L82 126 L102 134 L122 116 L142 128 L162 102 L184 112 L204 96 L226 108 L248 86 L268 100 L290 78 L310 92 L332 70 L352 84 L374 60 L396 76 L418 56 L438 70 L460 46"/>
+                  <line x1="0" y1="112" x2="460" y2="112" class="mock-entry"/>
+                </svg>
+                <span class="mock-candle" style="left:58%;top:40%"></span>
+                <span class="mock-float">LONG · +1.42R</span>
+              </div>
+              <div class="mock-controls"><span class="mc-btn"><svg class="ic ic--xs"><use href="#i-pause"/></svg></span><div class="mock-scrub"><i style="width:58%"></i></div><span class="mock-speed">2×</span><span class="mock-date">12 Jun 2024 · 14:30</span></div>
+              <div class="mock-foot"><span>O 1.08417</span><span>H 1.08442</span><span>L 1.08405</span><span class="up">C 1.08431</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- JOURNAL -->
+        <div class="tab-panel" id="panel-journal" role="tabpanel" aria-labelledby="tab-journal" hidden>
+          <div class="panel-grid">
+            <div class="panel-copy">
+              <span class="tagline">FXR Journal</span>
+              <h3>Build a record you cannot argue with.</h3>
+              <p>Entries, exits, screenshots, notes and tags attach themselves to every session. Review what you actually did — not what you remember doing.</p>
+              <ul class="ticks">
+                <li><svg class="ic"><use href="#i-check"/></svg> Automatic trade log with charts attached</li>
+                <li><svg class="ic"><use href="#i-check"/></svg> Tags and filters to isolate your setups</li>
+                <li><svg class="ic"><use href="#i-check"/></svg> Session notes and screenshot reviews</li>
+              </ul>
+              <a class="link-arrow" href="signup.html">Open a journal free <svg class="ic"><use href="#i-arrow"/></svg></a>
+            </div>
+            <div class="mock mock--journal">
+              <div class="mock-top"><span class="mock-sym">Trade journal</span><span class="mock-chip">This month</span></div>
+              <div class="jstats">
+                <div><small>Net R</small><b class="mint">+18.4R</b></div>
+                <div><small>Win rate</small><b>61%</b></div>
+                <div><small>Profit factor</small><b>2.14</b></div>
+                <div><small>Trades</small><b>84</b></div>
+              </div>
+              <div class="jmock-table">
+                <div class="jmock-row jmock-row--head"><span>Pair</span><span>Setup</span><span>Session</span><span>R</span></div>
+                <div class="jmock-row"><span>EUR/USD</span><span class="tag-pill">Breakout</span><span>London</span><b class="mint">+2.4R</b></div>
+                <div class="jmock-row"><span>XAU/USD</span><span class="tag-pill tag-pill--rose">Reversal</span><span>NY AM</span><b class="rose">−1.0R</b></div>
+                <div class="jmock-row"><span>NAS100</span><span class="tag-pill">Pullback</span><span>NY PM</span><b class="mint">+3.1R</b></div>
+                <div class="jmock-row"><span>GBP/JPY</span><span class="tag-pill">Breakout</span><span>Asia</span><b class="mint">+1.8R</b></div>
+              </div>
+              <div class="heatwrap"><span class="heat-label">Consistency · last 8 weeks</span><div class="heat" id="heatmap"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROP -->
+        <div class="tab-panel" id="panel-prop" role="tabpanel" aria-labelledby="tab-prop" hidden>
+          <div class="panel-grid">
+            <div class="panel-copy">
+              <span class="tagline">Prop firm simulator</span>
+              <h3>Stress-test your process before the challenge does.</h3>
+              <p>Run your strategy inside realistic challenge rules. Track profit targets, daily drawdown and consistency limits automatically, so the first time you meet them isn't on a funded account.</p>
+              <ul class="ticks">
+                <li><svg class="ic"><use href="#i-check"/></svg> Configurable targets, drawdown and spreads</li>
+                <li><svg class="ic"><use href="#i-check"/></svg> Live objective tracking on every candle</li>
+                <li><svg class="ic"><use href="#i-check"/></svg> Replay any firm's rule set before you pay</li>
+              </ul>
+              <a class="link-arrow" href="signup.html?plan=pro">Simulate a challenge <svg class="ic"><use href="#i-arrow"/></svg></a>
+            </div>
+            <div class="mock mock--prop">
+              <div class="prop-head">
+                <div class="prop-badge"><svg class="ic"><use href="#i-shield"/></svg></div>
+                <div><b>$100,000 Evaluation</b><small>Phase 1 · 30 day limit</small></div>
+                <span class="prop-status">On track</span>
+              </div>
+              <div class="prop-balance"><small>Account balance</small><b>$106,420.00</b><span class="mint">+6.42%</span></div>
+              <div class="prop-goal">
+                <div class="pg-top"><span>Profit target</span><span><b>$8,000</b> / $10,000</span></div>
+                <div class="meter meter--lg"><i style="width:80%"></i></div>
+              </div>
+              <div class="prop-goal">
+                <div class="pg-top"><span>Max drawdown</span><span class="mint"><b>$1,180</b> / $5,000</span></div>
+                <div class="meter meter--lg meter--rose"><i style="width:24%"></i></div>
+              </div>
+              <div class="prop-rules">
+                <div><span class="rule-dot ok"></span> Daily loss limit <b>OK</b></div>
+                <div><span class="rule-dot ok"></span> Consistency rule <b>OK</b></div>
+                <div><span class="rule-dot warn"></span> Min. trading days <b>4 / 5</b></div>
+              </div>
+              <div class="prop-foot"><span><span class="live-dot"></span> Evaluating live</span><b>Day 12 of 30</b></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MENTOR -->
+        <div class="tab-panel" id="panel-mentor" role="tabpanel" aria-labelledby="tab-mentor" hidden>
+          <div class="panel-grid">
+            <div class="panel-copy">
+              <span class="tagline">Mentor AI</span>
+              <h3>Find the pattern behind your mistakes.</h3>
+              <p>Mentor AI reads across your sessions, tags and execution data to surface the recurring issues manual review misses — then tells you exactly which session to review next.</p>
+              <ul class="ticks">
+                <li><svg class="ic"><use href="#i-check"/></svg> Setup, entry and exit analysis from your own trades</li>
+                <li><svg class="ic"><use href="#i-check"/></svg> Recurring strengths and mistakes, ranked by cost</li>
+                <li><svg class="ic"><use href="#i-check"/></svg> A focused review plan after every session</li>
+              </ul>
+              <a class="link-arrow" href="signup.html?plan=intermediate">Meet your mentor <svg class="ic"><use href="#i-arrow"/></svg></a>
+            </div>
+            <div class="mock mock--mentor">
+              <div class="mock-top"><span class="mock-sym"><svg class="ic ic--xs"><use href="#i-spark"/></svg> Mentor AI</span><span class="mock-chip">84 trades analysed</span></div>
+              <div class="chat">
+                <div class="bubble bubble--ai">
+                  <div class="bubble-avatar">AI</div>
+                  <div>
+                    <p>Your biggest leak isn't entries — it's <b>holding losers past the invalidation level</b>. 11 of your 14 losing trades closed below the planned stop.</p>
+                    <div class="insight-tags"><span>Stop discipline</span><span>NY session</span><span>−7.2R impact</span></div>
+                  </div>
+                </div>
+                <div class="bubble bubble--user"><p>Which sessions should I review?</p></div>
+                <div class="bubble bubble--ai">
+                  <div class="bubble-avatar">AI</div>
+                  <div>
+                    <p>Start with <b>May 21 · NY AM</b> and <b>Jun 4 · NY PM</b>. Both had a valid setup and a late exit.</p>
+                    <div class="confidence"><span>Confidence</span><div class="meter"><i style="width:87%"></i></div><b>87%</b></div>
+                  </div>
+                </div>
+              </div>
+              <div class="chat-input"><span>Ask Mentor AI about your last 20 trades…</span><span class="send"><svg class="ic ic--xs"><use href="#i-up"/></svg></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCRIPT -->
+        <div class="tab-panel" id="panel-script" role="tabpanel" aria-labelledby="tab-script" hidden>
+          <div class="panel-grid">
+            <div class="panel-copy">
+              <span class="tagline">FXR Script</span>
+              <h3>Turn a verified idea into your own indicator.</h3>
+              <p>Translate the setup you've tested into a custom indicator with FXR Script — a simple, trader-first language with a built-in editor. Save it, then bring it back into replay for another evidence-based cycle.</p>
+              <ul class="ticks">
+                <li><svg class="ic"><use href="#i-check"/></svg> Built-in editor with instant feedback</li>
+                <li><svg class="ic"><use href="#i-check"/></svg> Live chart updates as you edit</li>
+                <li><svg class="ic"><use href="#i-check"/></svg> Publish private or shared indicators</li>
+              </ul>
+              <a class="link-arrow" href="#indicators">Browse the indicator library <svg class="ic"><use href="#i-arrow"/></svg></a>
+            </div>
+            <div class="mock mock--script">
+              <div class="script-head">
+                <div class="script-tabs"><span class="on">supertrend.fxr</span><span>vwap.fxr</span><span>+</span></div>
+                <span class="script-run"><svg class="ic ic--xs"><use href="#i-play"/></svg> Run</span>
+              </div>
+              <div class="code">
+                <div class="code-line"><i>1</i><span><span class="c-kw">indicator</span>(<span class="c-str">"Supertrend"</span>, overlay: <span class="c-kw">true</span>)</span></div>
+                <div class="code-line"><i>2</i><span></span></div>
+                <div class="code-line"><i>3</i><span>atr = <span class="c-fn">atr</span>(<span class="c-num">10</span>)</span></div>
+                <div class="code-line"><i>4</i><span>mult = <span class="c-num">3.0</span></span></div>
+                <div class="code-line"><i>5</i><span>upper = (<span class="c-fn">high</span> + <span class="c-fn">low</span>) / <span class="c-num">2</span> + mult * atr</span></div>
+                <div class="code-line"><i>6</i><span>lower = (<span class="c-fn">high</span> + <span class="c-fn">low</span>) / <span class="c-num">2</span> - mult * atr</span></div>
+                <div class="code-line"><i>7</i><span></span></div>
+                <div class="code-line"><i>8</i><span>trend = <span class="c-fn">close</span> &gt; upper[-<span class="c-num">1</span>] ? <span class="c-num">1</span> : <span class="c-fn">close</span> &lt; lower[-<span class="c-num">1</span>] ? -<span class="c-num">1</span> : trend[-<span class="c-num">1</span>]</span></div>
+                <div class="code-line"><i>9</i><span><span class="c-fn">plot</span>(trend &gt; <span class="c-num">0</span> ? lower : upper, color: trend &gt; <span class="c-num">0</span> ? <span class="c-str">#38e2a0</span> : <span class="c-str">#ff5d7d</span>)</span></div>
+              </div>
+              <div class="script-out">
+                <div class="so-head"><span>Chart preview</span><span class="mint"><svg class="ic ic--xs"><use href="#i-check"/></svg> Compiled in 24 ms</span></div>
+                <svg viewBox="0 0 460 84" preserveAspectRatio="none" aria-hidden="true">
+                  <path class="mock-line" d="M0 62 L24 58 L48 64 L72 48 L96 54 L120 42 L144 50 L168 34 L192 44 L216 30 L240 38 L264 22 L288 32 L312 18 L336 28 L360 14 L384 24 L408 12 L432 20 L460 8"/>
+                  <path class="mock-line mock-line--alt" d="M0 40 L24 42 L48 36 L72 38 L96 32 L120 36 L144 28 L168 32 L192 26 L216 30 L240 24 L264 28 L288 20 L312 25 L336 18 L360 22 L384 16 L408 20 L432 14 L460 17"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURE GRID ============ -->
+  <section class="section section--features" id="features">
+    <div class="container">
+      <div class="section-head section-head--left reveal">
+        <span class="tagline">The terminal</span>
+        <h2>Built for reps, <span class="grad-text">not guesses</span>.</h2>
+        <p>Every tool in KyorakuReplay exists for one reason: to shorten the distance between a new idea and reliable execution.</p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card reveal">
+          <span class="fc-icon"><svg class="ic"><use href="#i-replay"/></svg></span>
+          <h3>Replay mode</h3>
+          <p>Jump to any date and experience price action as it unfolded. Rewind, pause and replay the moments that matter.</p>
+          <div class="fc-visual fc-visual--replay" aria-hidden="true"><span class="rewind-pill">◀◀ 12 Jun 2024</span><div class="rewind-line"><i style="width:62%"></i><b></b></div></div>
+        </article>
+
+        <article class="feature-card reveal" style="--d:1">
+          <span class="fc-icon"><svg class="ic"><use href="#i-layout"/></svg></span>
+          <h3>Multipar &amp; multichart</h3>
+          <p>Compare correlated pairs and timeframes side by side in one session. Charting powered by TradingView.</p>
+          <div class="fc-visual fc-grid2" aria-hidden="true">
+            <div class="mini-chart"><svg viewBox="0 0 160 60" preserveAspectRatio="none"><path d="M0 46 L16 40 L32 44 L48 30 L64 36 L80 22 L96 30 L112 16 L128 24 L144 10 L160 16"/></svg></div>
+            <div class="mini-chart"><svg viewBox="0 0 160 60" preserveAspectRatio="none"><path class="alt" d="M0 20 L16 26 L32 22 L48 34 L64 28 L80 42 L96 34 L112 48 L128 40 L144 54 L160 46"/></svg></div>
+          </div>
+        </article>
+
+        <article class="feature-card reveal" style="--d:2">
+          <span class="fc-icon"><svg class="ic"><use href="#i-calendar"/></svg></span>
+          <h3>Economic calendar</h3>
+          <p>Line up backtests with real events. Filter by impact, currency and session so news never surprises you again.</p>
+          <div class="fc-visual fc-cal" aria-hidden="true">
+            <span class="cal-event"><i class="hi"></i> CPI <small>US · 13:30</small><b>High</b></span>
+            <span class="cal-event"><i class="md"></i> ECB <small>EU · 14:15</small><b>Med</b></span>
+            <span class="cal-event"><i class="lo"></i> NFP <small>US · 12:30</small><b>Low</b></span>
+          </div>
+        </article>
+
+        <article class="feature-card reveal">
+          <span class="fc-icon"><svg class="ic"><use href="#i-activity"/></svg></span>
+          <h3>Monte Carlo simulation</h3>
+          <p>See where your strategy could take you over 100, 200 or 300 trades — if you stick to your rules.</p>
+          <div class="fc-visual fc-monte" aria-hidden="true"><span style="--h:26px"></span><span style="--h:38px"></span><span style="--h:33px"></span><span style="--h:50px"></span><span style="--h:44px"></span><span style="--h:60px"></span><span style="--h:54px"></span><span style="--h:68px"></span></div>
+        </article>
+
+        <article class="feature-card reveal" style="--d:1">
+          <span class="fc-icon"><svg class="ic"><use href="#i-timer"/></svg></span>
+          <h3>Seconds timeframes</h3>
+          <p>Test with precision using 1-second charts. Replicate fast markets and scalping conditions with second-level detail.</p>
+          <div class="fc-visual fc-tf" aria-hidden="true"><span>1s</span><span>5s</span><span>15s</span><span class="on">30s</span><span>1m</span><span>5m</span><span>1H</span></div>
+        </article>
+
+        <article class="feature-card reveal" style="--d:2">
+          <span class="fc-icon"><svg class="ic"><use href="#i-zap"/></svg></span>
+          <h3>Tick-precise execution</h3>
+          <p>Place, manage and close trades with realistic spreads, commissions and slippage — so results transfer to live markets.</p>
+          <div class="fc-visual fc-ticket" aria-hidden="true"><div class="ft-row"><span>Entry</span><b>1.08421</b></div><div class="ft-row"><span>Stop</span><b class="rose">1.08306</b></div><div class="ft-row"><span>Target</span><b class="mint">1.08651</b></div><div class="ft-rr">1 : 2.0 R</div></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ASSETS / MARKETS ============ -->
+  <section class="section section--assets" id="markets">
+    <div class="container">
+      <div class="section-head section-head--left reveal">
+        <span class="tagline">Assets &amp; timeframes</span>
+        <h2>310 markets. 20 years of data.<br /><span class="grad-text">Every candle yours to revisit.</span></h2>
+        <p>Futures, Forex, Indices, Metals, Crypto and Energy — with resolution from 1 second to 1 month.</p>
+      </div>
+
+      <div class="assets-toolbar reveal">
+        <div class="filter-group" id="marketFilters" role="group" aria-label="Filter by market">
+          <button class="filter on" data-market="all">All</button>
+          <button class="filter" data-market="Forex">Forex</button>
+          <button class="filter" data-market="Futures">Futures</button>
+          <button class="filter" data-market="Crypto">Crypto</button>
+          <button class="filter" data-market="Indices">Indices</button>
+          <button class="filter" data-market="Metals">Metals</button>
+          <button class="filter" data-market="Energy">Energy</button>
+        </div>
+        <label class="asset-search">
+          <svg class="ic"><use href="#i-search"/></svg>
+          <input type="search" id="assetSearch" placeholder="Search symbol or name…" aria-label="Search assets" />
+        </label>
+      </div>
+
+      <div class="assets-table-wrap reveal">
+        <table class="assets-table">
+          <thead>
+            <tr><th>Asset</th><th>Market</th><th>Broker</th><th>Resolution</th><th>Data since</th><th>Plan</th></tr>
+          </thead>
+          <tbody id="assetsBody"><!-- JS --></tbody>
+        </table>
+      </div>
+      <div class="assets-foot reveal">
+        <span id="assetsCount">Showing 0 of 310 assets</span>
+        <button class="btn btn-ghost btn-sm" id="showAllAssets">Show all assets <svg class="ic ic--sm"><use href="#i-arrow"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INDICATORS ============ -->
+  <section class="section section--indicators" id="indicators">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="tagline">FXR custom &amp; standard</span>
+        <h2>An indicator library that <span class="grad-text">plugs straight into replay</span></h2>
+        <p>Test a setup with the indicators you already trade — or build your own with FXR Script and keep the edge private.</p>
+      </div>
+
+      <div class="indicator-grid">
+        <article class="ind-card reveal">
+          <div class="ind-top"><span class="ind-badge">FXR Custom</span><span class="ind-type">Overlay</span></div>
+          <svg class="ind-spark" viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"><path class="spark-base" d="M0 62 L20 56 L40 60 L60 44 L80 50 L100 36 L120 44 L140 28 L160 34 L180 22 L200 30 L220 16 L240 24 L260 12 L280 18 L300 8"/><path class="spark-alt" d="M0 50 L20 52 L40 46 L60 50 L80 44 L100 48 L120 40 L140 44 L160 38 L180 42 L200 36 L220 40 L240 32 L260 38 L280 30 L300 34"/></svg>
+          <h3>Supertrend</h3>
+          <p>Clear trend direction and dynamic entry / exit cues that shift with volatility, keeping you on the right side of price.</p>
+          <div class="ind-foot"><span>Often used with <b>VWAP</b></span><a href="#pricing" aria-label="Test Supertrend">Test <svg class="ic ic--xs"><use href="#i-arrow"/></svg></a></div>
+        </article>
+
+        <article class="ind-card reveal" style="--d:1">
+          <div class="ind-top"><span class="ind-badge">FXR Custom</span><span class="ind-type">Session</span></div>
+          <svg class="ind-spark" viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"><path class="spark-base" d="M0 70 L25 60 L50 66 L75 48 L100 56 L125 38 L150 46 L175 28 L200 36 L225 24 L250 34 L275 20 L300 26"/><path class="spark-alt" d="M0 30 L30 34 L60 26 L90 32 L120 24 L150 30 L180 22 L210 28 L240 20 L270 26 L300 18"/></svg>
+          <h3>VWAP</h3>
+          <p>Your intraday anchor. Measure premium versus discount, filter bias and confirm momentum during session strategies.</p>
+          <div class="ind-foot"><span>Often used with <b>Volume Profile</b></span><a href="#pricing" aria-label="Test VWAP">Test <svg class="ic ic--xs"><use href="#i-arrow"/></svg></a></div>
+        </article>
+
+        <article class="ind-card reveal" style="--d:2">
+          <div class="ind-top"><span class="ind-badge">FXR Custom</span><span class="ind-type">Time cycles</span></div>
+          <svg class="ind-spark" viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"><path class="spark-base" d="M0 58 L20 52 L40 58 L60 42 L80 50 L100 34 L120 42 L140 26 L160 34 L180 20 L200 28 L220 14 L240 22 L260 10 L280 16 L300 6"/><path class="spark-alt" d="M0 36 L25 40 L50 32 L75 36 L100 28 L125 32 L150 24 L175 28 L200 20 L225 24 L250 16 L275 20 L300 12"/></svg>
+          <h3>Zeussy Time Cycles</h3>
+          <p>Overlay 30- and 90-minute AMD cycles plus session splits to test how price reacts to institutional time windows.</p>
+          <div class="ind-foot"><span>Often used with <b>VWAP</b></span><a href="#pricing" aria-label="Test Zeussy Time Cycles">Test <svg class="ic ic--xs"><use href="#i-arrow"/></svg></a></div>
+        </article>
+
+        <article class="ind-card reveal">
+          <div class="ind-top"><span class="ind-badge ind-badge--std">Standard</span><span class="ind-type">Structure</span></div>
+          <svg class="ind-spark" viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"><path class="spark-base" d="M0 64 L20 48 L40 56 L60 40 L80 58 L100 34 L120 52 L140 30 L160 46 L180 26 L200 42 L220 22 L240 38 L260 18 L280 34 L300 14"/><path class="spark-alt" d="M0 44 L30 36 L60 44 L90 30 L120 40 L150 26 L180 36 L210 22 L240 32 L270 18 L300 26"/></svg>
+          <h3>Williams Fractal</h3>
+          <p>Spot swing highs and lows that signal potential reversals, breakouts and entries during session-based backtests.</p>
+          <div class="ind-foot"><span>Often used with <b>Alligator</b></span><a href="#pricing" aria-label="Test Williams Fractal">Test <svg class="ic ic--xs"><use href="#i-arrow"/></svg></a></div>
+        </article>
+
+        <article class="ind-card reveal" style="--d:1">
+          <div class="ind-top"><span class="ind-badge ind-badge--std">Standard</span><span class="ind-type">Trend</span></div>
+          <svg class="ind-spark" viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"><path class="spark-base" d="M0 66 L20 58 L40 62 L60 50 L80 56 L100 42 L120 50 L140 36 L160 44 L180 30 L200 38 L220 26 L240 34 L260 22 L280 30 L300 18"/><path class="spark-alt" d="M0 48 L30 42 L60 46 L90 36 L120 42 L150 32 L180 38 L210 28 L240 34 L270 24 L300 30"/></svg>
+          <h3>Williams Alligator</h3>
+          <p>Three smoothed averages that show whether the market is asleep, awakening, trending or exhausted — at a glance.</p>
+          <div class="ind-foot"><span>Often used with <b>Awesome Osc.</b></span><a href="#pricing" aria-label="Test Williams Alligator">Test <svg class="ic ic--xs"><use href="#i-arrow"/></svg></a></div>
+        </article>
+
+        <article class="ind-card reveal" style="--d:2">
+          <div class="ind-top"><span class="ind-badge ind-badge--std">Standard</span><span class="ind-type">Momentum</span></div>
+          <svg class="ind-spark" viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"><path class="spark-base" d="M0 52 L20 60 L40 44 L60 54 L80 38 L100 48 L120 30 L140 40 L160 24 L180 34 L200 18 L220 28 L240 12 L260 22 L280 8 L300 18"/><path class="spark-alt" d="M0 32 L30 40 L60 26 L90 36 L120 22 L150 32 L180 18 L210 28 L240 14 L270 24 L300 10"/></svg>
+          <h3>Williams %R</h3>
+          <p>Catch overbought and oversold conditions, divergences and momentum shifts before a session turns.</p>
+          <div class="ind-foot"><span>Often used with <b>Structure</b></span><a href="#pricing" aria-label="Test Williams %R">Test <svg class="ic ic--xs"><use href="#i-arrow"/></svg></a></div>
+        </article>
+      </div>
+      <div class="ind-cta reveal"><a class="btn btn-ghost" href="#pricing">Explore all 80+ indicators <svg class="ic"><use href="#i-arrow"/></svg></a></div>
+    </div>
+  </section>
+
+  <!-- ============ PRICING ============ -->
+  <section class="section section--pricing" id="pricing">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="tagline">Pricing</span>
+        <h2>Simple pricing. <span class="grad-text">Serious practice.</span></h2>
+        <p>Start free, forever. Upgrade when you want more data, more sessions and the full analysis layer.</p>
+        <div class="billing-toggle" role="group" aria-label="Billing period">
+          <button class="on" data-period="annual">Annual <span class="save-badge">Save 20%</span></button>
+          <button data-period="monthly">Monthly</button>
+        </div>
+      </div>
+
+      <div class="price-grid">
+        <article class="price-card reveal">
+          <div class="price-head"><h3>Free</h3><p>Test the platform, build the habit.</p></div>
+          <div class="price-amount"><span class="cur">$</span><b data-monthly="0" data-annual="0">0</b><span class="per">/ month</span></div>
+          <p class="price-bill" data-bill>Free forever · no card required</p>
+          <a class="btn btn-ghost btn-block" href="signup.html?plan=free">Start for free</a>
+          <ul class="price-features">
+            <li><svg class="ic"><use href="#i-check"/></svg> Forex &amp; indices data</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> 1-minute resolution</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> 3 saved replay sessions</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> Basic trade journal</li>
+            <li class="muted"><svg class="ic"><use href="#i-close"/></svg> Mentor AI reviews</li>
+            <li class="muted"><svg class="ic"><use href="#i-close"/></svg> Futures &amp; seconds data</li>
+          </ul>
+        </article>
+
+        <article class="price-card price-card--popular reveal" style="--d:1">
+          <div class="pop-badge"><svg class="ic ic--xs"><use href="#i-spark"/></svg> Most popular</div>
+          <div class="price-head"><h3>Intermediate</h3><p>For traders building a repeatable edge.</p></div>
+          <div class="price-amount"><span class="cur">$</span><b data-monthly="19" data-annual="15">15</b><span class="per">/ month</span></div>
+          <p class="price-bill" data-bill>Billed annually · $180 / year</p>
+          <a class="btn btn-primary btn-block" href="signup.html?plan=intermediate">Start 7-day trial <svg class="ic"><use href="#i-arrow"/></svg></a>
+          <ul class="price-features">
+            <li><svg class="ic"><use href="#i-check"/></svg> Everything in Free</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> Unlimited replay sessions</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> 8 years of history, 1s–1M</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> Mentor AI · 20 reviews / month</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> Prop firm simulator</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> Economic calendar &amp; alerts</li>
+          </ul>
+        </article>
+
+        <article class="price-card reveal" style="--d:2">
+          <div class="price-head"><h3>Pro</h3><p>Every market, every resolution, no limits.</p></div>
+          <div class="price-amount"><span class="cur">$</span><b data-monthly="39" data-annual="29">29</b><span class="per">/ month</span></div>
+          <p class="price-bill" data-bill>Billed annually · $348 / year</p>
+          <a class="btn btn-ghost btn-block" href="signup.html?plan=pro">Go Pro <svg class="ic"><use href="#i-arrow"/></svg></a>
+          <ul class="price-features">
+            <li><svg class="ic"><use href="#i-check"/></svg> Everything in Intermediate</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> Futures &amp; stocks data</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> 20 years of history</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> Seconds timeframes (1s+)</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> Unlimited Mentor AI &amp; Monte Carlo</li>
+            <li><svg class="ic"><use href="#i-check"/></svg> FXR Script custom indicators</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="compare reveal">
+        <div class="compare-head">
+          <h3>Compare plans</h3>
+          <span>All plans include the TradingView chart engine and 310-asset market map.</span>
+        </div>
+        <div class="compare-scroll">
+          <table class="compare-table">
+            <thead><tr><th>Feature</th><th>Free</th><th class="col-pop">Intermediate</th><th>Pro</th></tr></thead>
+            <tbody>
+              <tr><td>Historical data resolution</td><td>1m</td><td class="col-pop">1s – 1M</td><td>1s – 1M</td></tr>
+              <tr><td>Markets</td><td>FX + indices</td><td class="col-pop">+ Crypto + metals</td><td>All 6 markets</td></tr>
+              <tr><td>Replay sessions</td><td>3 saved</td><td class="col-pop">Unlimited</td><td>Unlimited</td></tr>
+              <tr><td>Mentor AI reviews</td><td class="dim">—</td><td class="col-pop">20 / month</td><td>Unlimited</td></tr>
+              <tr><td>Prop firm simulator</td><td class="dim">—</td><td class="col-pop"><svg class="ic check"><use href="#i-check"/></svg></td><td><svg class="ic check"><use href="#i-check"/></svg></td></tr>
+              <tr><td>Monte Carlo simulation</td><td class="dim">—</td><td class="col-pop">10 runs</td><td>Unlimited</td></tr>
+              <tr><td>FXR Script indicators</td><td class="dim">—</td><td class="col-pop"><svg class="ic check"><use href="#i-check"/></svg></td><td><svg class="ic check"><use href="#i-check"/></svg></td></tr>
+              <tr><td>Support</td><td>Community</td><td class="col-pop">Priority email</td><td>Dedicated</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="pricing-note reveal"><svg class="ic ic--sm"><use href="#i-shield"/></svg> 14-day money-back guarantee · Cancel anytime · Prices in USD</p>
+    </div>
+  </section>
+
+  <!-- ============ TESTIMONIALS ============ -->
+  <section class="section section--testimonials" id="testimonials">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="tagline">Real experiences</span>
+        <h2>Stories from the charts</h2>
+        <div class="stars-line"><span class="stars"><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg></span> 4.8 / 5 from 2,300+ reviews</div>
+      </div>
+
+      <div class="testi-grid">
+        <figure class="testi reveal">
+          <svg class="testi-quote"><use href="#i-quote"/></svg>
+          <blockquote>KyorakuReplay is hands down the best backtesting software in the game. I use it all the time — I'm honestly a little jealous I didn't have it earlier in my journey.</blockquote>
+          <figcaption><span class="avatar avatar--1">MG</span><span><b>Mack Grey</b><small>Trader · 6 years</small></span></figcaption>
+        </figure>
+        <figure class="testi reveal" style="--d:1">
+          <svg class="testi-quote"><use href="#i-quote"/></svg>
+          <blockquote>Anyone can watch a YouTube video or take a course, but KyorakuReplay lets you put what you've learned on a real chart and see what actually works for you. That's what helps you progress.</blockquote>
+          <figcaption><span class="avatar avatar--2">RC</span><span><b>Ryan Condi</b><small>Trader · 4 years</small></span></figcaption>
+        </figure>
+        <figure class="testi reveal" style="--d:2">
+          <svg class="testi-quote"><use href="#i-quote"/></svg>
+          <blockquote>Trading always pushes you to improve, and this is the kind of tool that helps you become a better trader. The journal alone changed how I review my sessions.</blockquote>
+          <figcaption><span class="avatar avatar--3">DM</span><span><b>Dylan Mitch</b><small>Prop trader</small></span></figcaption>
+        </figure>
+        <figure class="testi reveal" style="--d:3">
+          <svg class="testi-quote"><use href="#i-quote"/></svg>
+          <blockquote>Replaying London sessions bar by bar changed how I read liquidity. For the first time my journal has data behind it — not just how I felt that day.</blockquote>
+          <figcaption><span class="avatar avatar--4">AR</span><span><b>Amina R.</b><small>Intraday trader</small></span></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section section--faq" id="faq">
+    <div class="container faq-wrap">
+      <div class="faq-side reveal">
+        <span class="tagline">FAQ</span>
+        <h2>Questions, <span class="grad-text">answered</span>.</h2>
+        <p>Still curious? The help center has 200+ guides, or the community is one click away.</p>
+        <a class="btn btn-ghost btn-sm" href="#footer">Visit help center <svg class="ic ic--sm"><use href="#i-arrow"/></svg></a>
+      </div>
+
+      <div class="faq-list reveal" id="faqList">
+        <div class="faq-item open">
+          <button class="faq-q" aria-expanded="true">What is KyorakuReplay?<span class="faq-chev"><svg class="ic"><use href="#i-chev"/></svg></span></button>
+          <div class="faq-a"><p>KyorakuReplay is a browser-based backtesting and trading practice platform. It replays real historical price data across Futures, Forex, Stocks, Indices, Metals, Crypto and Energy so you can test strategies and practice execution without risking real money. Market replay, a trading journal, Mentor AI, a prop firm simulator and custom indicators all live in one platform.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Is KyorakuReplay free to use?<span class="faq-chev"><svg class="ic"><use href="#i-chev"/></svg></span></button>
+          <div class="faq-a"><p>Yes. The free plan never expires and needs no credit card. It gives you core backtesting and a basic journal. Paid plans unlock unlimited sessions, more history, futures and stocks data, seconds-level granularity and the full Mentor AI layer. You can upgrade, downgrade or stay free at any time.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Which markets can I backtest?<span class="faq-chev"><svg class="ic"><use href="#i-chev"/></svg></span></button>
+          <div class="faq-a"><p>310 assets across six markets: Forex pairs, Futures contracts, Indices, Metals, Crypto and Energy. History goes back to 2012 for major futures and 2003 for major forex pairs, with resolutions from 1 second to 1 month. Pro adds futures, stocks and tick-level seconds data.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">How is it different from other backtesting software?<span class="faq-chev"><svg class="ic"><use href="#i-chev"/></svg></span></button>
+          <div class="faq-a"><p>Most tools are either fully automated, code-based strategy testers or basic replay tools with no analysis layer. KyorakuReplay is built for manual traders: real-feel replay with a journal, AI trade analysis, prop challenge simulation and custom indicators included in one subscription — no separate journal or analytics add-ons.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Do I need coding experience?<span class="faq-chev"><svg class="ic"><use href="#i-chev"/></svg></span></button>
+          <div class="faq-a"><p>No. Replay, journaling, AI review and prop simulations are entirely visual. If you want to build custom indicators, FXR Script is a simple trader-first language — but it is completely optional and not needed for the core platform.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">How quickly can backtesting improve my trading?<span class="faq-chev"><svg class="ic"><use href="#i-chev"/></svg></span></button>
+          <div class="faq-a"><p>Speed depends on session volume, not calendar time. Replay compresses years of screen time into hours, so traders who review consistently often identify their edge and cut repeat mistakes within the first 30–50 trade sessions. The journal and Mentor AI help by surfacing patterns you would miss manually.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <section class="section section--cta">
+    <div class="container">
+      <div class="cta-card reveal">
+        <div class="cta-bg" aria-hidden="true"><span></span><span></span></div>
+        <span class="tagline">Evidence, not vibes</span>
+        <h2>Test your edge across<br />a <span class="grad-text">larger sample</span>.</h2>
+        <p>Join over a million traders who stopped guessing and started measuring. Free forever — no card, no excuses.</p>
+        <div class="cta-actions">
+          <a class="btn btn-primary btn-lg" href="signup.html">Start backtesting free <svg class="ic"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn-ghost btn-lg" href="#indicators">Explore the library</a>
+        </div>
+        <ul class="hero-points">
+          <li><svg class="ic"><use href="#i-check"/></svg> 310 assets</li>
+          <li><svg class="ic"><use href="#i-check"/></svg> 20+ years of data</li>
+          <li><svg class="ic"><use href="#i-check"/></svg> Cancel anytime</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site-footer" id="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a class="brand" href="#top" aria-label="KyorakuReplay home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="11" fill="url(#brandGrad2)"/><path d="M14 12v16" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M26.5 12 17 20l9.5 8" stroke="#c9bdff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="brandGrad2" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#8b6bff"/><stop offset="1" stop-color="#4d6bff"/></linearGradient></defs></svg>
+          </span>
+          <span class="brand-word">Kyoraku<span>Replay</span></span>
+        </a>
+        <p>Backtest real markets, journal every decision and build an edge you can measure.</p>
+        <form class="newsletter" id="newsletter" novalidate>
+          <label class="sr-only" for="newsletterEmail">Email address</label>
+          <input type="email" id="newsletterEmail" placeholder="you@email.com" required />
+          <button class="btn btn-primary btn-sm" type="submit">Get updates</button>
+        </form>
+        <p class="newsletter-note" id="newsletterNote">Product updates and market replay tips. No spam.</p>
+        <div class="socials">
+          <a href="#footer" aria-label="X (Twitter)">X</a>
+          <a href="#footer" aria-label="YouTube">YT</a>
+          <a href="#footer" aria-label="Discord">DC</a>
+          <a href="#footer" aria-label="Instagram">IG</a>
+        </div>
+      </div>
+
+      <div class="footer-cols">
+        <div class="fcol">
+          <h4>Platform</h4>
+          <a href="#platform">Market replay</a>
+          <a href="#platform">Trading journal</a>
+          <a href="#platform">Prop simulator</a>
+          <a href="#platform">Mentor AI</a>
+          <a href="#platform">FXR Script</a>
+          <a href="#indicators">Indicators</a>
+        </div>
+        <div class="fcol">
+          <h4>Markets</h4>
+          <a href="#markets">Forex</a>
+          <a href="#markets">Futures</a>
+          <a href="#markets">Crypto</a>
+          <a href="#markets">Indices</a>
+          <a href="#markets">Metals</a>
+          <a href="#markets">Energy</a>
+        </div>
+        <div class="fcol">
+          <h4>Resources</h4>
+          <a href="#faq">Help center</a>
+          <a href="#indicators">Indicator library</a>
+          <a href="#platform">Economic calendar</a>
+          <a href="#testimonials">Community</a>
+          <a href="#faq">Blog</a>
+          <a href="#footer">System status</a>
+        </div>
+        <div class="fcol">
+          <h4>Company</h4>
+          <a href="#footer">About</a>
+          <a href="#footer">Careers</a>
+          <a href="#footer">Contact</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#footer">Affiliates</a>
+          <a href="#footer">Legal</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 KyorakuReplay. Design study for demonstration purposes — not affiliated with FX Replay Inc.</p>
+      <div class="footer-links">
+        <a href="#footer">Privacy</a>
+        <a href="#footer">Terms</a>
+        <a href="#footer">Risk disclosure</a>
+        <a href="#footer">Cookies</a>
+      </div>
+    </div>
+    <p class="footer-disclaimer">Trading foreign exchange, futures and crypto on margin carries a high level of risk and may not be suitable for every investor. Past performance is not indicative of future results. All data on this demo page is simulated and provided for educational purposes only. Nothing here constitutes financial advice.</p>
+  </div>
+</footer>
+
+<dialog class="jump-modal" id="jumpModal" aria-labelledby="jumpTitle">
+  <div class="jm-head">
+    <div><span class="tagline">Replay</span><h3 id="jumpTitle">Jump to a date</h3></div>
+    <button class="jm-close" id="jumpClose" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button>
+  </div>
+  <p class="jm-note">Pick a point in the loaded session. Everything before it stays hidden — no peeking ahead.</p>
+  <div class="jm-dates" id="jumpDates"></div>
+  <button class="btn btn-ghost btn-block btn-sm" id="jumpLatest">Jump to the latest candle</button>
+</dialog>
+
+<button class="to-top" id="toTop" aria-label="Back to top"><svg class="ic"><use href="#i-up"/></svg></button>
+<div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
+
+<script src="assets/js/app.js"></script>
+</body>
+</html>
