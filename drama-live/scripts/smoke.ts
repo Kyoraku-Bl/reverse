@@ -8,6 +8,7 @@ import { classifyInput, decodeFgCode, encodeFgCode, isFgCode } from '../src/lib/
 import { parseXmltvDate } from '../src/lib/epg.ts';
 import { DEMO_PLAYLIST, buildDemoEpg, matchCategory } from '../src/lib/demo.ts';
 import { guessContentType, isCastableUrl, startCast } from '../src/lib/cast.ts';
+import { applyProxy, isFresh, isPlayable, probeMany, probeUrl, PROBE_TTL_MS } from '../src/lib/probe.ts';
 
 let checks = 0;
 const ok = (label: string) => {
@@ -113,5 +114,62 @@ ok('cast url filter rejects udp/raw-TS streams');
 assert.deepEqual(await startCast('udp://@239.0.0.1:1234'), { ok: false, reason: 'unsupported-stream' });
 assert.deepEqual(await startCast('https://a.example/x.m3u8'), { ok: false, reason: 'unavailable' }, 'no SDK here → graceful');
 ok('startCast degrades gracefully instead of throwing');
+
+// --- channel health probing ------------------------------------------------
+assert.equal(applyProxy('', 'https://a.example/x.m3u8'), 'https://a.example/x.m3u8', 'no proxy = unchanged');
+assert.equal(
+  applyProxy('https://p.example/?u={url}', 'https://a.example/x.m3u8'),
+  'https://p.example/?u=https%3A%2F%2Fa.example%2Fx.m3u8',
+  'template substitution',
+);
+assert.equal(applyProxy('https://p.example/?u=', 'https://a.example/x'), 'https://p.example/?u=https%3A%2F%2Fa.example%2Fx');
+assert.equal(applyProxy('https://p.example', 'https://a.example/x'), 'https://p.example/https%3A%2F%2Fa.example%2Fx');
+ok('proxy template substitution (placeholder, suffix and path forms)');
+
+// stub fetch so the probe logic runs for real without network access
+const realFetch = globalThis.fetch;
+let mode: 'ok' | 'cors' | 'missing' | 'slow' = 'ok';
+globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  if (mode === 'slow') {
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(resolve, 5000);
+      init?.signal?.addEventListener('abort', () => {
+        clearTimeout(timer);
+        reject(new DOMException('Aborted', 'AbortError'));
+      });
+    });
+  }
+  if (mode === 'cors') throw new TypeError('Failed to fetch');
+  const status = mode === 'missing' ? 404 : 200;
+  return new Response(null, { status, headers: { 'content-type': 'application/x-mpegURL' } });
+}) as typeof fetch;
+
+assert.equal((await probeUrl('https://a.example/live.m3u8')).status, 'ok');
+mode = 'cors';
+const cors = await probeUrl('https://a.example/live.m3u8');
+assert.equal(cors.status, 'cors', 'blocked stream reported as CORS');
+mode = 'missing';
+assert.equal((await probeUrl('https://a.example/gone.m3u8')).status, 'missing');
+mode = 'slow';
+assert.equal((await probeUrl('https://a.example/slow.m3u8', { timeoutMs: 50 })).status, 'timeout');
+mode = 'ok';
+ok('probe classifies ok / CORS / 404 / timeout correctly');
+
+const seen: string[] = [];
+const many = await probeMany(['https://a/1.m3u8', 'https://a/2.m3u8', 'https://a/3.m3u8'], {
+  concurrency: 2,
+  onResult: (url) => seen.push(url),
+});
+assert.equal(many.size, 3, 'every url probed');
+assert.equal(seen.length, 3, 'progress callback fired per url');
+ok('probeMany probes a batch with a concurrency cap and reports progress');
+
+assert.equal(isPlayable('ok'), true);
+assert.equal(isPlayable(undefined), true, 'unknown is not treated as dead');
+assert.equal(isPlayable('cors'), false);
+assert.ok(isFresh(Date.now() - 1000) && !isFresh(Date.now() - PROBE_TTL_MS - 1), 'probe cache TTL');
+ok('health helpers: playability + 10 minute cache TTL');
+
+globalThis.fetch = realFetch;
 
 console.log(`\nAll ${checks} smoke checks passed.`);

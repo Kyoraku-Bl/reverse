@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Channel, ChannelKind } from '../types';
 import { channelKey, useAppStore } from '../store/appStore';
@@ -13,7 +13,8 @@ import {
   useChannelFilters,
 } from '../components/ChannelList';
 import type { TKey } from '../i18n';
-import { Plug } from 'lucide-react';
+import { Plug, Stethoscope, Filter } from 'lucide-react';
+import { probeMany } from '../lib/probe';
 import { isAdult } from '../lib/filters';
 
 export function WatchPage({
@@ -36,6 +37,12 @@ export function WatchPage({
   const settings = useAppStore((state) => state.settings);
   const setSettings = useAppStore((state) => state.setSettings);
   const parentalUnlocked = useAppStore((state) => state.parentalUnlocked);
+  const health = useAppStore((state) => state.health);
+  const setHealth = useAppStore((state) => state.setHealth);
+
+  const [onlyWorking, setOnlyWorking] = useState(false);
+  const [probing, setProbing] = useState<{ done: number; total: number } | null>(null);
+  const skipCount = useRef(0);
 
   const scoped = useMemo(
     () =>
@@ -48,8 +55,45 @@ export function WatchPage({
     [allChannels, kinds, favoriteOnly, favorites, settings.parentalEnabled, parentalUnlocked],
   );
 
-  const { query, setQuery, group, setGroup, groups, filtered } = useChannelFilters(scoped);
+  const { query, setQuery, group, setGroup, groups, filtered: matched } = useChannelFilters(scoped);
+
+  const filtered = useMemo(() => {
+    if (!onlyWorking) return matched;
+    return matched.filter((channel) => health[channel.urls[0]]?.status === 'ok');
+  }, [matched, onlyWorking, health]);
+
   const current = filtered.find((channel) => channelKey(channel) === currentKey) ?? null;
+
+  /** Ask the streams themselves which channels actually play from this device. */
+  const runProbe = useCallback(async () => {
+    const targets = matched.slice(0, 80);
+    if (!targets.length) return;
+    setProbing({ done: 0, total: targets.length });
+    let done = 0;
+    await probeMany(targets.map((channel) => channel.urls[0]), {
+      concurrency: 6,
+      timeoutMs: 7000,
+      proxy: settings.corsProxy,
+      onResult: (url, result) => {
+        done += 1;
+        setHealth(url, { status: result.status, at: Date.now(), detail: result.detail });
+        setProbing({ done, total: targets.length });
+      },
+    });
+    setProbing(null);
+  }, [matched, setHealth, settings.corsProxy]);
+
+  const autoNext = useCallback(() => {
+    // never loop forever through a dead playlist
+    if (skipCount.current >= 5) return;
+    skipCount.current += 1;
+    step(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const resetSkips = useCallback(() => {
+    skipCount.current = 0;
+  }, []);
 
   // autoplay the first channel of the section
   useEffect(() => {
@@ -87,6 +131,8 @@ export function WatchPage({
             }}
             onPrev={() => step(-1)}
             onNext={() => step(1)}
+            onAutoNext={autoNext}
+            onPlaying={resetSkips}
           />
         </div>
 
@@ -117,9 +163,32 @@ export function WatchPage({
           {groups.length > 1 ? (
             <GroupChips groups={groups} active={group} onSelect={setGroup} allLabel={t('player.all')} />
           ) : null}
-          <p className="text-[11px] text-slate-500">
-            {filtered.length.toLocaleString()} {t('player.channelsCount')}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={runProbe}
+              disabled={Boolean(probing)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-[11px] font-bold text-slate-200 hover:bg-white/20 disabled:opacity-50"
+            >
+              <Stethoscope className="h-3.5 w-3.5" />
+              {probing ? `${t('player.probe.running')} ${probing.done}/${probing.total}` : t('player.probe')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOnlyWorking((value) => !value)}
+              className={
+                onlyWorking
+                  ? 'inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[11px] font-bold text-white'
+                  : 'inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-[11px] font-bold text-slate-300 hover:bg-white/20'
+              }
+            >
+              <Filter className="h-3.5 w-3.5" />
+              {t('player.probe.onlyWorking')}
+            </button>
+            <span className="text-[11px] text-slate-500">
+              {filtered.length.toLocaleString()} {t('player.channelsCount')}
+            </span>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-2">

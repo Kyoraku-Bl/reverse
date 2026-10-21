@@ -86,6 +86,18 @@ export interface Settings {
   bufferLength: number;
   sleepTimerMinutes: number;
   tvMode: boolean;
+  /** Jump to the next channel automatically when one cannot be played */
+  autoSkip: boolean;
+  /** Optional user-supplied proxy template for their own streams, e.g. "https://p/?u={url}" */
+  corsProxy: string;
+}
+
+export type ProbeStatus = 'ok' | 'cors' | 'missing' | 'timeout' | 'error';
+
+export interface HealthEntry {
+  status: ProbeStatus;
+  at: number;
+  detail?: string;
 }
 
 export interface QualityLevel {

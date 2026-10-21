@@ -120,6 +120,27 @@ export function SettingsPage() {
           />
           <Toggle label={t('settings.startMuted')} checked={settings.startMuted} onChange={(value) => setSettings({ startMuted: value })} />
           <Toggle label={t('settings.autoplay')} checked={settings.autoplay} onChange={(value) => setSettings({ autoplay: value })} />
+          <Toggle
+            label={t('settings.autoSkip')}
+            description={lang === 'ar' ? 'إلا فشلت قناة، كيدوز وحده للتالية (حتى 5 مرات)' : 'When a channel fails, move to the next one automatically (up to 5 times)'}
+            checked={settings.autoSkip}
+            onChange={(value) => setSettings({ autoSkip: value })}
+          />
+        </Card>
+
+        <Card className="space-y-3">
+          <h2 className="text-sm font-extrabold text-white">{t('settings.corsProxy')}</h2>
+          <Field
+            value={settings.corsProxy}
+            onChange={(event) => setSettings({ corsProxy: event.target.value })}
+            placeholder="https://my-proxy.example/?u={url}"
+          />
+          <p className="text-[11px] leading-relaxed text-slate-500">{t('settings.corsProxy.hint')}</p>
+          <p className="text-[11px] leading-relaxed text-amber-400/90">
+            {lang === 'ar'
+              ? 'استعملو غير مع المحتوى المرخّص لك (اشتراكك أنت). البروキシ كيشوف كل رابط كتشغّلو.'
+              : 'Only use this for content you are licensed for (your own subscription). The proxy sees every url you play.'}
+          </p>
         </Card>
 
         <Card className="space-y-1">

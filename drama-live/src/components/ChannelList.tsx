@@ -2,11 +2,38 @@ import { memo, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { Radio, Search, Star, Tv } from 'lucide-react';
 import type { Channel } from '../types';
+import type { TKey } from '../i18n';
 import { channelKey, useAppStore } from '../store/appStore';
 import { useI18n } from '../hooks/useI18n';
 import { currentProgramme, formatTime } from '../lib/epg';
 
 const PAGE_SIZE = 120;
+
+const HEALTH_LABEL: Record<string, 'player.health.ok' | 'player.health.cors' | 'player.health.missing' | 'player.health.timeout' | 'player.health.error'> = {
+  ok: 'player.health.ok',
+  cors: 'player.health.cors',
+  missing: 'player.health.missing',
+  timeout: 'player.health.timeout',
+  error: 'player.health.error',
+};
+
+const HEALTH_COLOR: Record<string, string> = {
+  ok: 'bg-emerald-500',
+  cors: 'bg-amber-500',
+  missing: 'bg-red-500',
+  timeout: 'bg-orange-500',
+  error: 'bg-red-500',
+};
+
+function healthDot(status: string | undefined, t: (key: TKey) => string) {
+  if (!status) return null;
+  return (
+    <span
+      title={`${t(HEALTH_LABEL[status] ?? 'player.health.error')}`}
+      className={clsx('h-2 w-2 shrink-0 rounded-full', HEALTH_COLOR[status] ?? 'bg-slate-500')}
+    />
+  );
+}
 
 export function useChannelFilters(channels: Channel[]) {
   const [query, setQuery] = useState('');
@@ -122,7 +149,8 @@ export const ChannelList = memo(function ChannelList({
   emptyLabel: string;
   emptyHint?: string;
 }) {
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
+  const health = useAppStore((state) => state.health);
   const favorites = useAppStore((state) => state.favorites);
   const toggleFavorite = useAppStore((state) => state.toggleFavorite);
   const epgByChannel = useAppStore((state) => state.epgByChannel);
@@ -198,6 +226,8 @@ export const ChannelList = memo(function ChannelList({
                 ×{channel.urls.length}
               </span>
             ) : null}
+
+            {healthDot(health[channel.urls[0]]?.status, t)}
 
             <button
               type="button"

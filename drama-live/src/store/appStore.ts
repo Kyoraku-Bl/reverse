@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Channel, ChatMessage, Programme, Settings, Source, SourceKind, XtreamCredentials } from '../types';
+import type { Channel, ChatMessage, HealthEntry, Programme, Settings, Source, SourceKind, XtreamCredentials } from '../types';
 import { mergeServers, parsePlaylistText, serializePlaylist } from '../lib/m3u';
 import { classifyInput, decodeFgCode, encodeFgCode } from '../lib/fgcode';
 import { fetchXtreamChannels, xtreamM3uUrl } from '../lib/xtream';
@@ -33,6 +33,7 @@ interface AppState {
   chat: ChatMessage[];
   hydrated: boolean;
   parentalUnlocked: boolean;
+  health: Record<string, HealthEntry>;
 
   setSettings: (patch: Partial<Settings>) => void;
   addSourceFromText: (input: {
@@ -61,6 +62,8 @@ interface AppState {
   pushChat: (message: ChatMessage) => void;
   unlockParental: (pin: string) => boolean;
   lockParental: () => void;
+  setHealth: (url: string, entry: HealthEntry) => void;
+  clearHealth: () => void;
   clearChat: () => void;
   resetAll: () => void;
   exportM3u: () => string;
@@ -88,6 +91,8 @@ const defaultSettings: Settings = {
   bufferLength: 30,
   sleepTimerMinutes: 0,
   tvMode: false,
+  autoSkip: true,
+  corsProxy: '',
 };
 
 /**
@@ -154,6 +159,7 @@ export const useAppStore = create<AppState>()(
       chat: [],
       hydrated: false,
       parentalUnlocked: false,
+      health: {},
 
       setSettings: (patch) => set((state) => ({ settings: { ...state.settings, ...patch } })),
 
@@ -332,6 +338,19 @@ export const useAppStore = create<AppState>()(
 
       lockParental: () => set({ parentalUnlocked: false }),
 
+      setHealth: (url, entry) =>
+        set((state) => {
+          const next = { ...state.health, [url]: entry };
+          // keep the persisted map bounded
+          const keys = Object.keys(next);
+          if (keys.length > 600) {
+            for (const key of keys.slice(0, keys.length - 600)) delete next[key];
+          }
+          return { health: next };
+        }),
+
+      clearHealth: () => set({ health: {} }),
+
       pushChat: (message) => set((state) => ({ chat: [...state.chat, message].slice(-200) })),
 
       clearChat: () => set({ chat: [] }),
@@ -387,6 +406,7 @@ export const useAppStore = create<AppState>()(
         sources: state.sources,
         favorites: state.favorites,
         recent: state.recent,
+        health: state.health,
         chat: state.chat.slice(-50),
       }),
       onRehydrateStorage: () => (state) => {

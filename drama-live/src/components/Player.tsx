@@ -27,6 +27,7 @@ import type { Channel } from '../types';
 import { channelKey, useAppStore } from '../store/appStore';
 import { useHlsPlayer } from '../hooks/useHlsPlayer';
 import { castSessionState, loadCastSdk, startCast, stopCast, watchCastState } from '../lib/cast';
+import { applyProxy, probeUrl, type ProbeResult } from '../lib/probe';
 import type { TKey } from '../i18n';
 import { useI18n } from '../hooks/useI18n';
 import { currentProgramme, formatTime, nextProgramme, programmeProgress } from '../lib/epg';
@@ -41,6 +42,10 @@ interface PlayerProps {
   onOpenMultiview?: () => void;
   onPrev?: () => void;
   onNext?: () => void;
+  /** Called when the player gave up, so the list can move to the next channel */
+  onAutoNext?: () => void;
+  /** Called once playback starts, so the caller can reset its skip counter */
+  onPlaying?: () => void;
 }
 
 export function Player({
@@ -52,6 +57,8 @@ export function Player({
   onOpenMultiview,
   onPrev,
   onNext,
+  onAutoNext,
+  onPlaying,
 }: PlayerProps) {
   const { t, lang } = useI18n();
   const settings = useAppStore((state) => state.settings);
@@ -83,6 +90,7 @@ export function Player({
   const inMultiview = key ? multiview.includes(key) : false;
 
   const url = channel ? (channel.urls[Math.min(serverIndex, channel.urls.length - 1)] ?? null) : null;
+  const playbackUrl = url ? applyProxy(settings.corsProxy, url) : null;
 
   const onFatal = useCallback(() => {
     if (!channel || channel.urls.length < 2) return;
@@ -90,7 +98,7 @@ export function Player({
   }, [channel]);
 
   const player = useHlsPlayer({
-    url,
+    url: playbackUrl,
     muted: muted || localMuted,
     volume: settings.volume,
     qualityCap: settings.qualityCap,
@@ -216,6 +224,50 @@ export function Player({
     }
     window.setTimeout(() => setCastNote(null), 3500);
   };
+
+  // When playback fails, find out *why* so the message is useful instead of generic.
+  const [failure, setFailure] = useState<ProbeResult | null>(null);
+  useEffect(() => {
+    if (player.state !== 'error' || !url) {
+      setFailure(null);
+      return;
+    }
+    let active = true;
+    void probeUrl(url, { timeoutMs: 6000, proxy: settings.corsProxy }).then((result) => {
+      if (active) setFailure(result);
+    });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player.state, url, settings.corsProxy]);
+
+  const playingRef = useRef(onPlaying);
+  playingRef.current = onPlaying;
+  useEffect(() => {
+    if (player.state === 'playing') playingRef.current?.();
+  }, [player.state]);
+
+  const skippedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (player.state !== 'error' || !settings.autoSkip || !onAutoNext || !channel) return;
+    if (skippedFor.current === channel.id) return;
+    skippedFor.current = channel.id;
+    const timer = window.setTimeout(() => onAutoNext(), 2000);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player.state, settings.autoSkip, channel?.id]);
+
+  const failureKey: TKey | null =
+    failure?.status === 'cors'
+      ? 'player.reason.cors'
+      : failure?.status === 'missing'
+        ? 'player.reason.missing'
+        : failure?.status === 'timeout'
+          ? 'player.reason.timeout'
+          : failure
+            ? 'player.reason.error'
+            : null;
 
   // keyboard / TV remote shortcuts
   const shortcuts = useRef({ togglePlay: player.togglePlay, pip: player.pip, toggleFullscreen, onPrev, onNext, setLocalMuted });
@@ -395,6 +447,12 @@ export function Player({
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/80 p-6 text-center">
             <p className="text-sm font-bold text-white">{t('player.failed')}</p>
             <p className="max-w-md text-xs text-slate-400">{t('player.failedHint')}</p>
+            {failureKey ? (
+              <p className="max-w-md rounded-xl bg-white/5 px-3 py-2 text-[11px] leading-relaxed text-amber-300">
+                {t(failureKey)}
+                {failure?.detail ? <span className="ms-1 font-mono text-slate-500">({failure.detail})</span> : null}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={player.retry}
