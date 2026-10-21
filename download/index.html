@@ -120,12 +120,12 @@
 
   <div class="card">
     <h1>Your project is ready to download</h1>
-    <p class="sub">The complete KyorakuReplay app — 6 pages, 5 stylesheets, 5 scripts, 103 instruments and a full replay terminal. No build step, no dependencies.</p>
+    <p class="sub">The complete KyorakuReplay app — 6 pages, 5 stylesheets, 6 scripts, 103 instruments and a full replay terminal that charts <b>real market data</b>. No build step, no dependencies, no API keys.</p>
 
     <div class="actions">
       <a class="btn btn-primary" href="kyorakureplay-site.zip" download="kyorakureplay-site.zip" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
-        Download .zip · 165 KB
+        Download .zip · 182 KB
       </a>
       <a class="btn btn-ghost" href="kyorakureplay-site.tar.gz" download="kyorakureplay-site.tar.gz" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
@@ -135,9 +135,9 @@
     <p class="hint">Button ma khdamch? <b>Right-click → “Save link as…”</b> 3la r-rabet.</p>
 
     <div class="meta">
-      <span class="chip">22 files</span>
-      <span class="chip">664 KB raw</span>
-      <span class="chip">SHA-256 <b>ce8685a3…</b></span>
+      <span class="chip">28 files</span>
+      <span class="chip">711 KB raw</span>
+      <span class="chip">SHA-256 <b>648fe86d…</b></span>
     </div>
 
     <p class="label">What's inside</p>
@@ -150,21 +150,25 @@
 ├── <span class="f">dashboard.html</span>
 ├── <span class="f">README.md</span>
 ├── <span class="f">.gitignore</span>
+├── <span class="f">server.py</span>         <span class="c"># static server + /api proxy (no deps)</span>
+├── <span class="f">vercel.json</span>       <span class="c"># deploy config for the two API routes</span>
+├── <span class="d">api/</span>              <span class="c"># yahoo.js · binance.js — same-origin price proxies</span>
 └── <span class="d">assets/</span>
     ├── <span class="d">css/</span>  main.css · auth.css · rtl.css · replay.css · dashboard.css
-    └── <span class="d">js/</span>   market-data.js · replay.js · app.js · auth.js · dashboard.js</pre>
+    └── <span class="d">js/</span>   market-data.js · data-provider.js · replay.js · app.js · auth.js · dashboard.js</pre>
 
     <p class="label">How to run it</p>
     <ol class="steps">
       <li>Unzip the archive — you get a single <code>kyorakureplay/</code> folder.</li>
-      <li>Open <code>index.html</code> directly in your browser, or serve it locally:<br>
-        <code>cd kyorakureplay &amp;&amp; python3 -m http.server 8000</code></li>
-      <li>Visit <code>http://localhost:8000</code> — sign up, then open <code>replay.html</code> to backtest.</li>
+      <li>Serve it (this also starts the live-data proxy):<br>
+        <code>cd kyorakureplay &amp;&amp; python3 server.py</code></li>
+      <li>Visit <code>http://localhost:8000</code> — sign up, then open <code>replay.html</code>. The chart badge reads <code>LIVE · Yahoo Finance</code> or <code>LIVE · Binance</code>; opening the files without <code>server.py</code> makes the badge say <code>SIMULATED</code>.</li>
+      <li>To publish: drop the folder on Vercel — <code>api/yahoo.js</code> and <code>api/binance.js</code> become the live endpoints automatically.</li>
     </ol>
   </div>
 
   <footer>
-    No seeded data — sign up and your journal starts at zero. Design study, not affiliated with FX Replay Inc.
+    Real prices from Yahoo Finance &amp; Binance — simulated candles only ever appear with an explicit label. No seeded data: your journal starts at zero. Design study, not affiliated with FX Replay Inc.
     <br /><a href="https://github.com/Kyoraku-Bl/reverse" target="_blank" rel="noopener">GitHub repository</a>
   </footer>
 </div>

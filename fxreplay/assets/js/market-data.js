@@ -275,11 +275,19 @@
       if (d.l > Math.min(d.o, d.c)) d.l = Math.min(d.o, d.c);
     }
 
+    var series = decorate(asset, tf, data);
+    cache.set(key, series);
+    return series;
+  }
+
+  /* Adds the indicator columns + a live-data-friendly metadata block.
+     Shared by the synthetic generator and the live data provider. */
+  function decorate(asset, tf, data, extra) {
+    var n = data.length;
     var closes = data.map(function (d) { return d.c; });
     var e21 = ema(closes, 21);
     var e50 = ema(closes, 50);
 
-    /* rolling VWAP over 96 bars */
     var vwap = new Array(n);
     var win = 96, pv = 0, vv = 0, queue = [];
     for (var k = 0; k < n; k++) {
@@ -288,20 +296,41 @@
       queue.push([pvt, data[k].v]);
       pv += pvt; vv += data[k].v;
       if (queue.length > win) { var out = queue.shift(); pv -= out[0]; vv -= out[1]; }
-      vwap[k] = pv / vv;
+      vwap[k] = vv ? pv / vv : typical;
     }
 
-    var series = {
-      asset: asset,
+    /* Size stops from the instrument's own volatility (ATR 14) when we have
+       real candles; the catalogue figure is only a synthetic fallback. */
+    var atr = atrOf(data, 14);
+    var sized = Object.assign({}, asset);
+    if (atr > 0) {
+      sized.stop = +(atr * 1.5).toFixed(asset.digits);
+      if (!sized.stop) sized.stop = asset.tick;
+    }
+
+    return Object.assign({
+      asset: sized,
       tf: tf,
-      step: step,
+      step: TF[tf] || TF["1m"],
       data: data,
       ema21: e21,
       ema50: e50,
-      vwap: vwap
-    };
-    cache.set(key, series);
-    return series;
+      vwap: vwap,
+      atr: atr,
+      synthetic: true,
+      source: null
+    }, extra || {});
+  }
+
+  function atrOf(data, len) {
+    var n = data.length;
+    if (n < len + 1) return 0;
+    var tr = 0;
+    for (var i = n - len; i < n; i++) {
+      var p = data[i - 1] ? data[i - 1].c : data[i].o;
+      tr += Math.max(data[i].h - data[i].l, Math.abs(data[i].h - p), Math.abs(data[i].l - p));
+    }
+    return tr / len;
   }
 
   /* ---------------------------------------------------------
@@ -345,6 +374,14 @@
     TF_LIST: TF_LIST,
     get: function (id) { return BY_ID[id] || ASSETS[0]; },
     series: function (id, tf) { return build(BY_ID[id] || ASSETS[0], tf || "1m"); },
+    syntheticSeries: function (id, tf) {
+      var asset = BY_ID[id] || ASSETS[0];
+      var s = build(asset, tf || "1m");
+      return Object.assign({}, s, { synthetic: true, source: null });
+    },
+    decorate: decorate,
+    atrOf: atrOf,
+    TF_SECONDS: TF,
     fmt: fmt,
     pnl: pnl,
     sizeFor: sizeFor,

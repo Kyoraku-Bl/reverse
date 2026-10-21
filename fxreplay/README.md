@@ -1,12 +1,16 @@
 # KyorakuReplay — website study
 
-A self-contained, dependency-free trading-platform site branded **KyorakuReplay**, built as a design study of the [fxreplay.com](https://fxreplay.com) marketing site *and* its product. Vanilla HTML/CSS/JS — no build step, no framework, no API keys, no backend.
+A trading-platform site branded **KyorakuReplay**, built as a design study of the [fxreplay.com](https://fxreplay.com) marketing site *and* its product. Vanilla HTML/CSS/JS — no build step, no framework, no API keys.
+
+**The charts show real market data.** Candles on the replay terminal come from public feeds (Yahoo Finance chart API for indices, futures, metals, energy and spot FX; Binance klines for crypto) through a tiny same-origin proxy, so there is no key to configure and no CORS problem.
 
 ```bash
-# from this folder
-python3 -m http.server 8000
-# open http://localhost:8000
+# from this folder — static site + /api proxy, no dependencies
+python3 server.py            # http://localhost:8000
+PORT=9000 python3 server.py  # another port
 ```
+
+`server.py` serves the pages *and* the two data endpoints (`/api/yahoo`, `/api/binance`). Opening the HTML files directly, or serving them with a plain static server, still works — the terminal then detects that the feed is missing and says so on the chart.
 
 ## Pages
 
@@ -97,9 +101,28 @@ The workspace starts **empty** on purpose:
 - **Settings**: profile, replay defaults, notification switches, theme picker, clear-data and log out
 - Light + dark, logical-property layout for RTL, 390 px → desktop responsive
 
+## Real market data
+
+Every one of the 103 instruments is mapped to a public ticker. The terminal loads it on boot and on every symbol / timeframe change:
+
+| Market | Source | Symbols |
+| --- | --- | --- |
+| Forex (spot) | Yahoo Finance | `EURUSD=X`, `GBPJPY=X`, `USDZAR=X` … |
+| Indices | Yahoo Finance | `^NDX`, `^GSPC`, `^DJI`, `^GDAXI`, `^N225`, `^HSI` … |
+| Futures | Yahoo Finance | continuous front month `ES=F`, `NQ=F`, `CL=F`, `GC=F`, `ZC=F`, `6E=F` … |
+| Metals / Energy | Yahoo Finance | spot `XAUUSD=X` with `GC=F` as the fallback, `CL=F`, `BZ=F`, `NG=F` |
+| Crypto | Binance | `BTCUSDT`, `ETHUSDT`, `SOLUSDT` … (spot) |
+
+- **The candles are the provider's own OHLCV.** Nothing is rescaled, smoothed or resampled except 4H, which is built by bucketing Yahoo's 60-minute candles 4:1 (Binance serves 4H natively).
+- **The chart tells you where the data came from.** A chip in the legend reads `LIVE · Yahoo Finance` (green) or `LIVE · Binance`; hovering it shows the exact ticker and fetch time. If the feed is unreachable it reads `CACHED · Cached` (last real prices saved in the browser) or `SIMULATED` (amber).
+- **The generator is a labelled fallback only.** It runs when there is no public source for a contract, when the proxy is missing (static hosting) or when the provider is down — and in those cases the chart says so, in the badge and in a note under the chart. It is never presented as market data.
+- **You can force it.** The `Auto / Live / Offline` switch in the top bar cycles auto (real when possible) → live (never simulate) → offline (always simulate, for demos and screenshots).
+- Caching: in-memory TTL per timeframe (45 s for 1m → 15 min for 1D), plus a `localStorage` tail of the last 1,200 bars per instrument/timeframe kept for 6 h so a refresh or an offline moment still shows the last real prices.
+- The proxy is two files: `api/yahoo.js` and `api/binance.js` (Vercel serverless functions, also mirrored by `server.py` for local use). Both allowlist intervals/ranges, time out at 9 s, cache at the CDN edge and never expose a key because none is needed.
+
 ## Honesty note
 
-Market data is **procedurally generated** (seeded, deterministic per instrument + timeframe) so the site runs with zero API keys — it is practice data, never a live feed. Trades are paper trades. Accounts live in `localStorage` only; nothing is sent anywhere. The KyorakuReplay brand is fictional and this is an independent design study of **fxreplay.com**, not affiliated with FX Replay Inc.
+Prices are real public market data; the *trading* is paper trading. Accounts, drawings, trades and sessions live in `localStorage` only — nothing is sent anywhere except the symbol you are looking at, to the public price API. The synthetic engine still exists so the site never shows a blank chart, but whenever it is used the UI labels it **SIMULATED**. The KyorakuReplay brand is fictional and this is an independent design study of **fxreplay.com**, not affiliated with FX Replay Inc.
 
 ## Files
 
@@ -115,7 +138,12 @@ assets/css/rtl.css        Arabic/RTL layer and Arabic typography overrides
 assets/css/auth.css       auth-page styles (dark + light)
 assets/css/replay.css     terminal layout, chart chrome, tool rail, ticket panel
 assets/css/dashboard.css  app-shell, cards, charts, tables, settings
-assets/js/market-data.js  instrument catalogue (103 symbols), series generator, sizing
+assets/js/market-data.js  instrument catalogue (103 symbols), indicators, synthetic fallback engine
+assets/js/data-provider.js live data layer: symbol map, Yahoo/Binance fetchers, cache, fallbacks
+api/yahoo.js              serverless proxy for the Yahoo Finance chart API
+api/binance.js            serverless proxy for Binance spot klines
+server.py                 local dev server: static files + the same /api routes
+vercel.json               Vercel function settings for the two proxies
 assets/js/replay.js       chart renderer, drawings + undo/redo, playback, paper trading
 assets/js/app.js          landing-page engine: demo chart, theme, i18n, UI behaviour
 assets/js/auth.js         form validation, password strength, theme, session handling

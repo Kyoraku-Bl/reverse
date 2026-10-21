@@ -90,6 +90,9 @@
       <button class="icon-btn" id="undoBtn" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="ic"><use href="#i-undo"/></svg></button>
       <button class="icon-btn" id="redoBtn" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg class="ic"><use href="#i-redo"/></svg></button>
     </div>
+    <button class="src-toggle" id="dataMode" aria-label="Market data mode" title="Switch between live market data and the offline engine">
+      <span class="src-dot"></span><span id="dataModeLabel">Live data</span>
+    </button>
     <button class="icon-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme"><svg class="ic"><use href="#i-moon"/></svg></button>
     <button class="icon-btn" id="helpBtn" title="Keyboard shortcuts" aria-label="Keyboard shortcuts"><svg class="ic"><use href="#i-info"/></svg></button>
     <a class="btn-rp btn-rp--ghost" href="dashboard.html" id="backBtn"><svg class="ic ic--sm"><use href="#i-back"/></svg> <span>Dashboard</span></a>
@@ -120,7 +123,10 @@
       </span>
       <span class="lg-chg" id="lgChg">—</span>
       <span class="lg-ind">EMA 21 · EMA 50 · VWAP</span>
+      <span class="src-badge" id="srcBadge" hidden></span>
     </div>
+    <div class="rp-loading" id="loadingBadge" hidden><span class="spinner"></span> Loading market data…</div>
+    <div class="rp-note" id="srcNote" hidden></div>
     <div class="rp-live" id="liveBtn" hidden>
       <button class="btn-rp btn-rp--chip" id="jumpLive"><svg class="ic ic--sm"><use href="#i-step-fwd"/></svg> Jump to replay position</button>
     </div>
@@ -281,7 +287,12 @@
         <li><span>Pan chart</span><kbd>Drag</kbd></li>
         <li><span>Buy / sell</span><kbd>B</kbd><kbd>S</kbd></li>
       </ul>
-      <p class="modal-note">Drawings, trades and sessions are stored in your browser only. Candles are simulated market data.</p>
+      <p class="modal-note">Drawings, trades and sessions are stored in your browser only.</p>
+      <div class="src-panel" id="srcPanel">
+        <p class="src-panel-title">Market data</p>
+        <p class="src-panel-copy" id="srcPanelCopy">Checking feeds…</p>
+        <ul class="src-list" id="srcPanelList"></ul>
+      </div>
     </div>
   </div>
 </dialog>
@@ -289,6 +300,7 @@
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
 <script src="assets/js/market-data.js"></script>
+<script src="assets/js/data-provider.js"></script>
 <script src="assets/js/replay.js"></script>
 </body>
 </html>

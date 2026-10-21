@@ -1,5 +1,6 @@
 /* KyorakuReplay — design study — interactive demo
-   All market data is procedurally generated for demonstration purposes. */
+   The hero chart below is an illustrative animation; the replay terminal
+   loads real market data through /api (see data-provider.js). */
 (() => {
   "use strict";
 

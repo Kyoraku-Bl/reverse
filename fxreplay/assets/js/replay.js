@@ -10,6 +10,7 @@
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
   var K = window.KRMarket;
+  var DP = window.KRData;
   var root = document.documentElement;
   var clamp = function (v, a, b) { return Math.min(b, Math.max(a, v)); };
 
@@ -178,12 +179,11 @@
     if (r) r.disabled = !S.redo.length;
   }
 
-  function setSeries(symbolId, tf, opts) {
+  /* Applies an already-built series object (live or synthetic). */
+  function applySeries(series, opts) {
     opts = opts || {};
-    S.symbolId = symbolId;
-    S.tf = tf;
-    S.series = K.series(symbolId, tf);
-    S.data = S.series.data;
+    S.series = series;
+    S.data = series.data;
     S.n = S.data.length;
     S.cursor = opts.cursor !== undefined ? opts.cursor : Math.round(S.n * 0.6);
     S.cursor = clamp(S.cursor, 20, S.n - 2);
@@ -197,7 +197,129 @@
     if (!opts.keepDrawings) loadDrawings();
     syncSymbolUI();
     syncUI();
+    syncSourceBadge();
     scheduleDraw();
+  }
+
+  /* Loads real candles when the data layer can reach a public source,
+     otherwise falls back to the deterministic synthetic engine. */
+  var loadToken = 0;
+  function setSeries(symbolId, tf, opts) {
+    opts = opts || {};
+    S.symbolId = symbolId;
+    S.tf = tf;
+    var token = ++loadToken;
+    var quick = opts.cursor;
+    var loader = (DP && DP.load) ? DP.load(symbolId, tf) : Promise.resolve(K.syntheticSeries(symbolId, tf));
+
+    setLoading(true);
+    loader.then(function (series) {
+      if (token !== loadToken) return;
+      applySeries(series, { cursor: quick, keepDrawings: opts.keepDrawings });
+      setLoading(false);
+      if (series.synthetic && !warnedSim && DP && DP.status && DP.status.checked &&
+          !DP.status.yahoo && !DP.status.binance) {
+        warnedSim = true;
+        toast("Live feed unreachable — showing simulated candles", true);
+      }
+    }).catch(function () {
+      if (token !== loadToken) return;
+      applySeries(K.syntheticSeries(symbolId, tf), { cursor: quick, keepDrawings: opts.keepDrawings });
+      setLoading(false);
+    });
+  }
+
+  var warnedSim = false;
+  var loadingState = false;
+  function setLoading(on) {
+    loadingState = !!on;
+    var el = $("#chartWrap");
+    if (el) el.classList.toggle("loading", !!on);
+    var badge = $("#loadingBadge");
+    if (badge) badge.hidden = !on;
+    if (on) {
+      var b = $("#srcBadge");
+      if (b) b.hidden = true;
+      var n = $("#srcNote");
+      if (n) n.hidden = true;
+    } else {
+      syncSourceBadge();
+    }
+  }
+
+  /* "LIVE · Yahoo Finance" / "SIMULATED" chip in the chart legend */
+  function syncSourceBadge() {
+    var el = $("#srcBadge");
+    if (!el) return;
+    if (loadingState) { el.hidden = true; return; }
+    var src = S.series && S.series.source;
+    var live = S.series && !S.series.synthetic;
+    var stale = live && S.series.stale;
+    el.hidden = false;
+    el.className = "src-badge " + (stale ? "src-badge--cache" : live ? "src-badge--live" : "src-badge--sim");
+    el.innerHTML = live
+      ? '<span class="src-dot"></span>' + (stale ? "CACHED" : "LIVE") + " · " + (src && src.label ? src.label : "feed")
+      : '<span class="src-dot"></span>SIMULATED';
+    el.title = live
+      ? (stale ? "Last saved real prices from " : "Real market prices from ") +
+        (src && src.symbol ? src.symbol + " · " + fmtFull(src.fetchedAt || Date.now()) + " UTC" : "a public feed")
+      : "Public feed unavailable for this instrument — using the built-in synthetic engine";
+    if (live && src && src.symbol) {
+      var sym = $("#srcSymbol");
+      if (sym) sym.textContent = src.symbol;
+    }
+    var note = $("#srcNote");
+    if (note) {
+      note.hidden = live;
+      note.textContent = "Live feed unavailable — these candles are simulated, not market prices.";
+      if (stale) {
+        note.hidden = false;
+        note.textContent = "Offline — showing the last real prices saved for this instrument (" + fmtFull(src.fetchedAt || Date.now()) + " UTC).";
+      }
+    }
+  }
+
+  /* Live / offline switch in the top bar */
+  function syncDataMode() {
+    var btn = $("#dataMode");
+    if (!btn) return;
+    var m = DP && DP.mode ? DP.mode() : "synthetic";
+    var live = m === "live" || (m === "auto" && S.series && !S.series.synthetic);
+    btn.dataset.mode = live ? "live" : "sim";
+    btn.setAttribute("aria-pressed", live ? "true" : "false");
+    var label = $("#dataModeLabel");
+    if (label) label.textContent = m === "auto" ? "Auto" : m === "live" ? "Live" : "Offline";
+    btn.setAttribute("aria-label", "Market data mode: " + (label ? label.textContent : m));
+    btn.title = m === "live"
+      ? "Live market data only — no simulated fallback"
+      : m === "synthetic"
+        ? "Offline engine — simulated candles"
+        : "Auto — real prices when available, labelled fallback otherwise";
+    renderSrcPanel();
+  }
+
+  /* feed coverage list inside the help dialog */
+  function renderSrcPanel() {
+    var copy = $("#srcPanelCopy");
+    var list = $("#srcPanelList");
+    if (!copy || !list || !DP) return;
+    var live = DP.liveCount ? DP.liveCount() : 0;
+    var total = K.ASSETS.length;
+    var st = DP.status || {};
+    copy.innerHTML = "<b>" + live + "/" + total + "</b> instruments are mapped to a public symbol — " +
+      "Yahoo Finance for indices, futures, metals, energy and spot FX; Binance for crypto. " +
+      "The badge on the chart shows the provider, the exact ticker and the fetch time.";
+    if ((st.mode === "live") && !(st.yahoo || st.binance)) {
+      copy.innerHTML += " This preview has no network access, so every instrument falls back to the offline engine.";
+    }
+    var rows = [
+      ["Yahoo Finance", st.yahoo === true ? "reachable" : st.yahoo === false ? "unavailable" : "unchecked"],
+      ["Binance", st.binance === true ? "reachable" : st.binance === false ? "unavailable" : "unchecked"],
+      ["Simulated fallback", st.mode === "synthetic" ? "forced on" : "labelled only"]
+    ];
+    list.innerHTML = rows.map(function (r) {
+      return "<li><span>" + r[0] + "</span><b>" + r[1] + "</b></li>";
+    }).join("");
   }
 
   function range() {
@@ -1212,7 +1334,6 @@
     if (S.pos) closePosition("Closed on switch");
     var a = K.get(id);
     setSeries(a.id, S.tf);
-    toast(a.label + " · " + a.market + " loaded");
     $("#symModal").close();
   }
 
@@ -1220,11 +1341,22 @@
     if (tf === S.tf) return;
     if (S.pos) closePosition("Closed on timeframe change");
     var keep = Math.round((S.cursor / Math.max(1, S.n - 1)) * 1000) / 1000;
-    setSeries(S.symbolId, tf);
-    S.cursor = clamp(Math.round(S.n * keep), 20, S.n - 2);
-    S.right = S.cursor;
-    syncUI();
-    scheduleDraw();
+    S.symbolId = S.symbolId;
+    S.tf = tf;
+    setLoading(true);
+    loadSeries(S.symbolId, tf).then(function (series) {
+      applySeries(series);
+      S.cursor = clamp(Math.round(S.n * keep), 20, S.n - 2);
+      S.right = S.cursor;
+      syncUI();
+      scheduleDraw();
+      setLoading(false);
+    });
+    syncSymbolUI();
+  }
+
+  function loadSeries(id, tf) {
+    return (DP && DP.load) ? DP.load(id, tf) : Promise.resolve(K.syntheticSeries(id, tf));
   }
 
   /* ---------------- dialogs ---------------- */
@@ -1389,10 +1521,26 @@
     else window.addEventListener("resize", resize);
 
     S.W = Math.max(1, wrap.getBoundingClientRect().width);
-    setSeries(initial.id, tf);
-    S.bars = clamp(Math.round(S.W / 8), 90, 210);
     resize();
-    syncUI();
+    S.bars = clamp(Math.round(S.W / 8), 90, 210);
+
+    /* Paint instantly with the built-in engine, then swap in real candles. */
+    S.symbolId = initial.id;
+    S.tf = tf;
+    applySeries(K.syntheticSeries(initial.id, tf));
+    S.bars = clamp(Math.round(S.W / 8), 90, 210);
+    setLoading(true);
+    var bootLoad = (DP && DP.ready) ? DP.ready(initial.id, tf) : Promise.resolve(K.syntheticSeries(initial.id, tf));
+    bootLoad.then(function (series) {
+      if (S.symbolId !== initial.id || S.tf !== tf) return;
+      applySeries(series);
+      setLoading(false);
+      syncUI();
+      syncDataMode();
+    }).catch(function () {
+      setLoading(false);
+      syncDataMode();
+    });
     renderFeed();
     updateStats();
     setPlayUI();
@@ -1402,6 +1550,21 @@
     /* theme */
     $("#themeToggle").addEventListener("click", function () {
       applyTheme(isLight() ? "dark" : "light");
+    });
+
+    /* live / auto / offline data mode */
+    syncDataMode();
+    $("#dataMode").addEventListener("click", function () {
+      if (!DP) return;
+      var order = ["auto", "live", "synthetic"];
+      var next = order[(order.indexOf(DP.mode()) + 1) % order.length];
+      DP.setMode(next);
+      syncDataMode();
+      toast(next === "synthetic" ? "Offline engine — simulated candles"
+        : next === "live" ? "Live feed only — no simulated fallback"
+        : "Auto — real prices when the feed responds");
+      if (S.pos) closePosition("Closed on data mode change");
+      setSeries(S.symbolId, S.tf);
     });
 
     /* timeframe */
@@ -1507,7 +1670,7 @@
     });
 
     /* help */
-    $("#helpBtn").addEventListener("click", function () { openDialog($("#helpModal")); });
+    $("#helpBtn").addEventListener("click", function () { renderSrcPanel(); openDialog($("#helpModal")); });
 
     /* side panel (mobile) */
     function toggleSide(force) {
