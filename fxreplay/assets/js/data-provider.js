@@ -329,6 +329,7 @@
     tf = tf || "1m";
     var asset = K.get(id);
     var m = mode();
+    if (!status.checked && m !== "synthetic") probe();   /* refresh reachability in the background */
     var hit = cached(id, tf);
     if (hit) return Promise.resolve(hit);
     if (m === "synthetic" || !LIVE[id]) {

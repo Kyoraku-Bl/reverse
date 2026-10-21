@@ -1560,6 +1560,7 @@
       var next = order[(order.indexOf(DP.mode()) + 1) % order.length];
       DP.setMode(next);
       syncDataMode();
+      if (next !== "synthetic") DP.probe().then(syncDataMode);
       toast(next === "synthetic" ? "Offline engine — simulated candles"
         : next === "live" ? "Live feed only — no simulated fallback"
         : "Auto — real prices when the feed responds");
