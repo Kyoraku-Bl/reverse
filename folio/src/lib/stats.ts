@@ -1,6 +1,6 @@
 import { ACCOUNTS, PLAYBOOKS } from "./content";
 import { etDate, etHour, holdLabel } from "./format";
-import type { AccountId, Trade } from "./types";
+import type { Account, AccountId, Trade } from "./types";
 
 export interface GroupStat {
   key: string;
@@ -137,7 +137,7 @@ function clamp(n: number, a = 0, b = 100) {
   return Math.max(a, Math.min(b, n));
 }
 
-export function computeStats(tradesIn: Trade[], base = 100000): Stats {
+export function computeStats(tradesIn: Trade[], base = 100000, accounts: Account[] = ACCOUNTS): Stats {
   const trades = [...tradesIn].sort((a, b) => a.openedAt.localeCompare(b.openedAt));
   const wins = trades.filter((t) => t.pnl > 1);
   const losses = trades.filter((t) => t.pnl < -1);
@@ -355,7 +355,7 @@ export function computeStats(tradesIn: Trade[], base = 100000): Stats {
     ),
     bySession: group(trades, (t) => t.session),
     bySide: group(trades, (t) => t.side),
-    byAccount: group(trades, (t) => t.accountId, (k) => ACCOUNTS.find((a) => a.id === k)?.name ?? k),
+    byAccount: group(trades, (t) => t.accountId, (k) => accounts.find((a) => a.id === k)?.name ?? k),
     byDuration: duration,
     byTag: group(
       trades.flatMap((t) => t.tags.map((tag) => ({ ...t, id: t.id + tag, tags: [tag] }))),
@@ -400,9 +400,9 @@ export function computeStats(tradesIn: Trade[], base = 100000): Stats {
   };
 }
 
-export function accountBase(ids: Array<"all" | AccountId>) {
-  if (ids.includes("all") || ids.length === 0) return ACCOUNTS.reduce((s, a) => s + a.balance0, 0);
-  return ACCOUNTS.filter((a) => ids.includes(a.id)).reduce((s, a) => s + a.balance0, 0);
+export function accountBase(ids: Array<"all" | AccountId>, accounts: Account[] = ACCOUNTS) {
+  if (ids.includes("all") || ids.length === 0) return accounts.reduce((s, a) => s + a.balance0, 0);
+  return accounts.filter((a) => ids.includes(a.id)).reduce((s, a) => s + a.balance0, 0);
 }
 
 export interface PropSnapshot {
@@ -418,6 +418,8 @@ export interface PropSnapshot {
   maxDd: number;
   trailRoom: number;
   dailyRoom: number;
+  dailyLimit: number;
+  lossLimit: number;
   todayPnl: number;
   tradingDays: number;
   minDays: number;
@@ -431,8 +433,8 @@ export interface PropSnapshot {
   note: string;
 }
 
-export function propSnapshots(trades: Trade[]): PropSnapshot[] {
-  return ACCOUNTS.filter((a) => a.rules).map((a) => {
+export function propSnapshots(trades: Trade[], accounts: Account[] = ACCOUNTS): PropSnapshot[] {
+  return accounts.filter((a) => a.rules).map((a) => {
     const rules = a.rules!;
     const list = trades.filter((t) => t.accountId === a.id).sort((x, y) => x.openedAt.localeCompare(y.openedAt));
     const days = new Map<string, number>();
@@ -490,6 +492,8 @@ export function propSnapshots(trades: Trade[]): PropSnapshot[] {
       maxDd,
       trailRoom,
       dailyRoom,
+      dailyLimit: rules.dailyLoss,
+      lossLimit: rules.maxLoss,
       todayPnl,
       tradingDays: days.size,
       minDays: rules.minDays,

@@ -1,7 +1,7 @@
 import { PLAYBOOKS } from "./content";
 import { money, pct } from "./format";
 import { propSnapshots, type Stats } from "./stats";
-import type { Trade } from "./types";
+import type { Account, Trade } from "./types";
 
 export interface AiReply {
   title: string;
@@ -15,7 +15,7 @@ function pbName(id: string) {
   return PLAYBOOKS.find((p) => p.id === id)?.name ?? id;
 }
 
-export function answerQuestion(question: string, stats: Stats, trades: Trade[]): AiReply {
+export function answerQuestion(question: string, stats: Stats, trades: Trade[], accounts?: Account[]): AiReply {
   const q = question.toLowerCase();
   const chips = CHIPS.filter((c) => c.toLowerCase() !== q.trim());
 
@@ -24,7 +24,7 @@ export function answerQuestion(question: string, stats: Stats, trades: Trade[]):
   }
 
   if (/ftmo|apex|topstep|prop|evaluation|funded|pass/.test(q)) {
-    const snaps = propSnapshots(trades);
+    const snaps = propSnapshots(trades, accounts);
     const focus = snaps.find((s) => q.includes(s.firm.toLowerCase()) || q.includes(s.accountId)) ?? snaps[0];
     const lines = snaps
       .map((s) => {

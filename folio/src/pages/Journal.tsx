@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { CHECKLIST, PLAYBOOKS, SPACES } from "../lib/content";
+import { PLAYBOOKS, SPACES } from "../lib/content";
 import { etDate, formatEt, holdLabel, money, pct, priceFmt, signedMoney, uid } from "../lib/format";
 import { candlesForTrade } from "../lib/market";
 import { dayAdherence } from "../lib/stats";
@@ -24,52 +24,48 @@ export function DayView() {
   const monthNet = store.stats.daily.filter((d) => d.date.startsWith(month)).reduce((s, d) => s + d.pnl, 0);
 
   return (
-    <div className="split">
-      <div>
-        <MonthCalendar month={month} setMonth={setMonth} daily={store.stats.daily} monthNet={monthNet} />
+    <div className="stack day-view">
+      <MonthCalendar month={month} setMonth={setMonth} daily={store.stats.daily} monthNet={monthNet} />
+      <div className="between">
+        <div>
+          <h2>{date}</h2>
+          <div className={pnl >= 0 ? "green" : "red"} style={{ fontSize: 28, fontWeight: 700 }}>{signedMoney(pnl)}</div>
+          <div className="muted">{trades.length} trades · day score {pct(adherence.score)}</div>
+        </div>
+        <button className="btn btn-primary" onClick={() => {
+          store.saveDay({ ...plan, journal });
+          store.addNote({ id: uid("n"), folder: "Reviews", title: `Session ${date}`, body: journal || `${date} closed ${signedMoney(pnl)} on ${trades.length} trades.`, updatedAt: new Date().toISOString(), template: "daily" });
+          store.toast("End-of-day note filed");
+        }}>File the day</button>
       </div>
-      <div className="stack">
-        <div className="between">
-          <div>
-            <h2>{date}</h2>
-            <div className={pnl >= 0 ? "green" : "red"} style={{ fontSize: 28, fontWeight: 700 }}>{signedMoney(pnl)}</div>
-            <div className="muted">{trades.length} trades · day score {pct(adherence.score)}</div>
+      <div className="card">
+        <h3>Session note</h3>
+        <textarea className="note-editor" style={{ minHeight: 120 }} value={journal} onChange={(e) => setJournal(e.target.value)} placeholder="What was the decision, not the feeling?" />
+        <div className="faint">Intention: {plan.intention || "—"} · Max loss {money(plan.maxLoss)} · Levels {plan.levels || "—"}</div>
+        <div className="chips" style={{ marginTop: 8 }}>
+          {store.permissions.map((c) => <span key={c.id} className={`chip ${plan.items.includes(c.id) ? "on" : ""}`}>{c.label}</span>)}
+        </div>
+      </div>
+      <div className="card">
+        <h3>Rules that day</h3>
+        {adherence.rules.map((r) => (
+          <div key={r.id} className="between" style={{ padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
+            <span>{r.label}</span>
+            <span className={r.pass ? "green" : "red"}>{r.pass ? "Pass" : "Miss"}</span>
           </div>
-          <button className="btn btn-primary" onClick={() => {
-            store.saveDay({ ...plan, journal });
-            store.addNote({ id: uid("n"), folder: "Reviews", title: `Session ${date}`, body: journal || `${date} closed ${signedMoney(pnl)} on ${trades.length} trades.`, updatedAt: new Date().toISOString(), template: "daily" });
-            store.toast("End-of-day note filed");
-          }}>File the day</button>
-        </div>
-        <div className="card">
-          <h3>Session note</h3>
-          <textarea className="note-editor" style={{ minHeight: 120 }} value={journal} onChange={(e) => setJournal(e.target.value)} placeholder="What was the decision, not the feeling?" />
-          <div className="faint">Intention: {plan.intention || "—"} · Max loss {money(plan.maxLoss)} · Levels {plan.levels || "—"}</div>
-          <div className="chips" style={{ marginTop: 8 }}>
-            {CHECKLIST.map((c) => <span key={c.id} className={`chip ${plan.items.includes(c.id) ? "on" : ""}`}>{c.label}</span>)}
-          </div>
-        </div>
-        <div className="card">
-          <h3>Rules that day</h3>
-          {adherence.rules.map((r) => (
-            <div key={r.id} className="between" style={{ padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
-              <span>{r.label}</span>
-              <span className={r.pass ? "green" : "red"}>{r.pass ? "Pass" : "Miss"}</span>
-            </div>
-          ))}
-        </div>
-        {trades.map((t) => (
-          <Link key={t.id} to={`/app/trades/${t.id}`} className="card">
-            <div className="between">
-              <b>{t.symbol} <span className={t.side === "long" ? "green" : "red"}>{t.side}</span></b>
-              <span className={t.pnl >= 0 ? "green" : "red"}>{signedMoney(t.pnl)} · {t.rMultiple.toFixed(2)}R</span>
-            </div>
-            <div className="muted">{formatEt(t.openedAt)} · {PLAYBOOKS.find((p) => p.id === t.playbookId)?.name} · {t.emotion}</div>
-            <div>{t.notes}</div>
-          </Link>
         ))}
-        {!trades.length && <div className="card muted">No fills this session. Flat is a position.</div>}
       </div>
+      {trades.map((t) => (
+        <Link key={t.id} to={`/app/trades/${t.id}`} className="card">
+          <div className="between">
+            <b>{t.symbol} <span className={t.side === "long" ? "green" : "red"}>{t.side}</span></b>
+            <span className={t.pnl >= 0 ? "green" : "red"}>{signedMoney(t.pnl)} · {t.rMultiple.toFixed(2)}R</span>
+          </div>
+          <div className="muted">{formatEt(t.openedAt)} · {PLAYBOOKS.find((p) => p.id === t.playbookId)?.name} · {t.emotion}</div>
+          <div>{t.notes}</div>
+        </Link>
+      ))}
+      {!trades.length && <div className="card muted">No fills this session. Flat is a position.</div>}
     </div>
   );
 }

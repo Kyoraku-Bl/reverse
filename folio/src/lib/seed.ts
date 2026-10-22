@@ -1,4 +1,4 @@
-import { AGENTS, PLAYBOOKS } from "./content";
+import { ACCOUNTS, AGENTS, CHECKLIST, PLAYBOOKS } from "./content";
 import type { AppState } from "./types";
 
 /** Empty desk. Playbooks are templates, not a filled journal. */
@@ -20,5 +20,7 @@ export function freshState(): AppState {
     lastImport: "",
     aiCredits: 1486,
     lessonsDone: [],
+    accounts: ACCOUNTS,
+    permissions: CHECKLIST,
   };
 }

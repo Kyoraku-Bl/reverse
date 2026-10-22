@@ -1,12 +1,13 @@
 import type { Account, AgentConfig, Playbook, Space } from "./types";
 
 export const ACCOUNTS: Account[] = [
-  { id: "ibkr", name: "IBKR Personal", broker: "Interactive Brokers", kind: "live", balance0: 25000 },
+  { id: "ibkr", name: "IBKR Personal", broker: "Interactive Brokers", kind: "live", desk: "stocks", balance0: 25000 },
   {
     id: "ftmo",
     name: "FTMO 100K",
     broker: "FTMO",
     kind: "prop",
+    desk: "cfd",
     balance0: 100000,
     firm: "FTMO",
     rules: {
@@ -24,6 +25,7 @@ export const ACCOUNTS: Account[] = [
     name: "Apex 50K",
     broker: "Apex",
     kind: "prop",
+    desk: "futures",
     balance0: 50000,
     firm: "Apex",
     rules: {
@@ -41,6 +43,7 @@ export const ACCOUNTS: Account[] = [
     name: "Topstep 50K",
     broker: "Topstep",
     kind: "prop",
+    desk: "futures",
     balance0: 50000,
     firm: "Topstep",
     rules: {

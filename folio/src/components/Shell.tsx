@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  Activity, Bell, BookOpen, Bot, Building2, CalendarDays, Check, FlaskConical, GraduationCap,
+  Activity, Bell, BookOpen, Bot, Building2, CalendarDays, Check, DollarSign, FlaskConical, GraduationCap,
   LayoutDashboard, LineChart, List, Menu, Moon, Play, Plus, Search, Settings, Sparkles,
-  Sun, Target, Users, Wallet,
+  Sun, Target, Users, Wallet, X,
 } from "lucide-react";
-import { ACCOUNTS, CHECKLIST, SAMPLE_CSV } from "../lib/content";
-import { clock, uid } from "../lib/format";
+import { SAMPLE_CSV } from "../lib/content";
+import { clock, signedMoney, uid } from "../lib/format";
 import { SPECS, SYMBOLS, tradePnl, riskDollars } from "../lib/market";
 import { useStore } from "../lib/store";
 import type { Side, Trade } from "../lib/types";
+import { AddAccountModal } from "./AddAccount";
 import { Logo, Modal, Field } from "./Ui";
 
 const NAV = [
@@ -35,6 +36,7 @@ export function AppShell() {
   const loc = useLocation();
   const nav = useNavigate();
   const [openNav, setOpenNav] = useState(false);
+  const [addAccount, setAddAccount] = useState(false);
   const [add, setAdd] = useState(false);
   const [start, setStart] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
@@ -121,10 +123,13 @@ export function AppShell() {
             <option value="90d">Last 90 days</option>
             <option value="ytd">Year to date</option>
           </select>
-          <select className="btn btn-ghost btn-sm" value={store.filters.account} onChange={(e) => store.setFilters({ account: e.target.value as never })}>
-            <option value="all">All accounts</option>
-            {ACCOUNTS.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+          <div className="row" style={{ gap: 4 }}>
+            <select className="btn btn-ghost btn-sm" value={store.filters.account} onChange={(e) => store.setFilters({ account: e.target.value as never })}>
+              <option value="all">All accounts</option>
+              {store.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+            <button className="icon-btn" title="Add account" aria-label="Add account" onClick={() => setAddAccount(true)}><Plus size={14} /></button>
+          </div>
           <NavLink to="/app/ai" className="btn btn-primary btn-sm"><Sparkles size={14} /> Ask Folio AI</NavLink>
           <button className="btn btn-blue btn-sm" onClick={() => setStart(true)}>Start my day</button>
         </header>
@@ -133,6 +138,7 @@ export function AppShell() {
         </div>
       </section>
       {add && <AddTrade onClose={() => setAdd(false)} />}
+      {addAccount && <AddAccountModal onClose={() => setAddAccount(false)} />}
       {start && <StartDay onClose={() => setStart(false)} />}
       {notesOpen && <Alerts onClose={() => setNotesOpen(false)} />}
       {palette && (
@@ -157,7 +163,7 @@ function AddTrade({ onClose }: { onClose: () => void }) {
   const store = useStore();
   const [form, setForm] = useState({
     symbol: "NQ", side: "long" as Side, qty: 1, entry: 20240, exit: 20280, stop: 20210, target: 20320,
-    accountId: "ibkr" as Trade["accountId"], playbookId: store.playbooks[0]?.id ?? "orb", emotion: "focused", notes: "", date: "2026-10-22", time: "09:45",
+    accountId: (store.accounts[0]?.id ?? "ibkr") as Trade["accountId"], playbookId: store.playbooks[0]?.id ?? "orb", emotion: "focused", notes: "", date: "2026-10-22", time: "09:45",
   });
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
   const pnl = tradePnl(form.symbol, form.side, Number(form.qty), Number(form.entry), Number(form.exit), 3.5);
@@ -203,6 +209,14 @@ function AddTrade({ onClose }: { onClose: () => void }) {
   };
   return (
     <Modal title="Add a trade" onClose={onClose}>
+      <div className="pnl-pill" title="Computed P&L in dollars">
+        <span className="icon-btn" aria-hidden><DollarSign size={16} /></span>
+        <div>
+          <div className="faint">P&L</div>
+          <b className={`num ${pnl >= 0 ? "green" : "red"}`}>{signedMoney(pnl)}</b>
+        </div>
+        <span className="faint">{risk ? `${(pnl / risk).toFixed(2)}R` : "Add a stop for R"}</span>
+      </div>
       <div className="grid-3" style={{ gap: 10 }}>
         <Field label="Symbol"><select value={form.symbol} onChange={(e) => set("symbol", e.target.value)}>{SYMBOLS.map((s) => <option key={s}>{s}</option>)}</select></Field>
         <Field label="Side">
@@ -217,7 +231,7 @@ function AddTrade({ onClose }: { onClose: () => void }) {
         <Field label="Stop"><input type="number" value={form.stop} onChange={(e) => set("stop", Number(e.target.value))} /></Field>
         <Field label="Target"><input type="number" value={form.target} onChange={(e) => set("target", Number(e.target.value))} /></Field>
         <Field label="Account">
-          <select value={form.accountId} onChange={(e) => set("accountId", e.target.value)}>{ACCOUNTS.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+          <select value={form.accountId} onChange={(e) => set("accountId", e.target.value)}>{store.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
         </Field>
         <Field label="Playbook">
           <select value={form.playbookId} onChange={(e) => set("playbookId", e.target.value)}>{store.playbooks.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
@@ -232,7 +246,7 @@ function AddTrade({ onClose }: { onClose: () => void }) {
       </div>
       <Field label="Note"><textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></Field>
       <div className="between" style={{ marginTop: 12 }}>
-        <div>Computed P&L <b className={pnl >= 0 ? "green" : "red"}>{pnl.toFixed(2)}</b> · {risk ? `${(pnl / risk).toFixed(2)}R` : "add a stop for R"}</div>
+        <div className="row"><DollarSign size={14} /> <b className={pnl >= 0 ? "green" : "red"}>{signedMoney(pnl)}</b></div>
         <button className="btn btn-primary" onClick={save}>Save trade</button>
       </div>
       <p className="faint" style={{ marginTop: 8 }}>Or import a file from Accounts. Sample header: {SAMPLE_CSV.split("\n")[0]}</p>
@@ -248,17 +262,31 @@ function StartDay({ onClose }: { onClose: () => void }) {
   const [maxLoss, setMaxLoss] = useState(existing?.maxLoss ?? 500);
   const [levels, setLevels] = useState(existing?.levels ?? "");
   const [intention, setIntention] = useState(existing?.intention ?? "");
+  const [custom, setCustom] = useState("");
   const toggle = (id: string) => setItems((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]));
+  const addPermission = () => {
+    const label = custom.trim();
+    if (!label) return;
+    const id = uid("perm");
+    store.addPermission({ id, label });
+    setItems((xs) => [...xs, id]);
+    setCustom("");
+  };
   return (
     <Modal title="Start my day" onClose={onClose}>
       <p className="muted">Write the permissions before the open. The prop desk will use the max loss as your personal circuit breaker.</p>
       <div className="stack" style={{ marginTop: 12 }}>
-        {CHECKLIST.map((item) => (
+        {store.permissions.map((item) => (
           <label key={item.id} className="row" style={{ gap: 10 }}>
             <input type="checkbox" checked={items.includes(item.id)} onChange={() => toggle(item.id)} />
-            {item.label}
+            <span className="grow">{item.label}</span>
+            <button className="icon-btn" aria-label={`Remove ${item.label}`} onClick={(e) => { e.preventDefault(); store.removePermission(item.id); setItems((xs) => xs.filter((x) => x !== item.id)); }}><X size={12} /></button>
           </label>
         ))}
+        <div className="row">
+          <input className="perm-input" value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Add a permission" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addPermission(); } }} />
+          <button className="icon-btn" title="Add permission" aria-label="Add permission" onClick={addPermission}><Plus size={16} /></button>
+        </div>
         <Field label="Max loss today ($)"><input type="number" value={maxLoss} onChange={(e) => setMaxLoss(Number(e.target.value))} /></Field>
         <Field label="Levels"><input value={levels} onChange={(e) => setLevels(e.target.value)} /></Field>
         <Field label="Intention"><input value={intention} onChange={(e) => setIntention(e.target.value)} /></Field>

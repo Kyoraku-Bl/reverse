@@ -4,7 +4,7 @@ import { rangeBounds, uid } from "./format";
 import { SPECS, tradePnl } from "./market";
 import { freshState } from "./seed";
 import { accountBase, computeStats } from "./stats";
-import type { AgentConfig, AppState, BacktestSession, DayPlan, Filters, Note, Playbook, Side, Trade, User } from "./types";
+import type { Account, AgentConfig, AppState, BacktestSession, DayPlan, Filters, Note, Permission, Playbook, Side, Trade, User } from "./types";
 
 const KEY = "folio-state-v1";
 const BAK = "folio-state-v1-backup";
@@ -39,10 +39,13 @@ function parseState(raw: string | null): AppState | null {
   try {
     const parsed = JSON.parse(raw) as AppState;
     if (parsed.version !== 1 || !Array.isArray(parsed.trades)) return null;
+    const fresh = freshState();
     return withoutDemoBook({
-      ...freshState(),
+      ...fresh,
       ...parsed,
-      playbooks: parsed.playbooks?.length ? parsed.playbooks : freshState().playbooks,
+      playbooks: parsed.playbooks?.length ? parsed.playbooks : fresh.playbooks,
+      accounts: parsed.accounts?.length ? parsed.accounts : fresh.accounts,
+      permissions: parsed.permissions?.length ? parsed.permissions : fresh.permissions,
     });
   } catch {
     return null;
@@ -90,6 +93,10 @@ interface Store extends AppState {
   completeLesson: (id: string) => void;
   setPlan: (plan: User["plan"]) => void;
   resetDemo: () => void;
+  addAccount: (account: Account) => void;
+  removeAccount: (id: string) => void;
+  addPermission: (permission: Permission) => void;
+  removePermission: (id: string) => void;
   replaceState: (s: AppState) => void;
   toast: (text: string) => void;
   toasts: { id: string; text: string }[];
@@ -123,11 +130,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
     };
     const filtered = applyFilters(state.trades, state.filters);
-    const base = accountBase([state.filters.account]);
+    const base = accountBase([state.filters.account], state.accounts);
     return {
       ...state,
       filtered,
-      stats: computeStats(filtered, base),
+      stats: computeStats(filtered, base, state.accounts),
       base,
       toasts,
       savedAt,
@@ -147,7 +154,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         toast("Trade deleted");
       },
       importCsv: (text) => {
-        const added = parseCsv(text);
+        const added = parseCsv(text, state.accounts);
         if (!added.length) {
           toast("No rows imported. Check the header.");
           return 0;
@@ -184,16 +191,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       completeLesson: (id) => commit((s) => ({ ...s, lessonsDone: s.lessonsDone.includes(id) ? s.lessonsDone : [...s.lessonsDone, id] })),
       setPlan: (plan) => commit((s) => ({ ...s, user: s.user ? { ...s.user, plan } : s.user })),
       resetDemo: () => {
-        const user = state.user;
-        const theme = state.theme;
         const next = freshState();
-        next.user = user;
-        next.theme = theme;
+        next.user = state.user;
+        next.theme = state.theme;
+        next.accounts = state.accounts;
+        next.permissions = state.permissions;
         writeState(next);
         setState(next);
         setSavedAt(new Date().toISOString());
         toast("Journal cleared");
       },
+      addAccount: (account) => {
+        commit((s) => ({ ...s, accounts: [...s.accounts, account] }));
+        toast(`${account.name} added`);
+      },
+      removeAccount: (id) => {
+        commit((s) => ({
+          ...s,
+          accounts: s.accounts.filter((a) => a.id !== id),
+          filters: s.filters.account === id ? { ...s.filters, account: "all" } : s.filters,
+        }));
+        toast("Account removed");
+      },
+      addPermission: (permission) => commit((s) => ({ ...s, permissions: [...s.permissions, permission] })),
+      removePermission: (id) => commit((s) => ({ ...s, permissions: s.permissions.filter((p) => p.id !== id) })),
       replaceState: (s) => {
         writeState(s);
         setState(s);
@@ -229,7 +250,7 @@ export function applyFilters(trades: Trade[], f: Filters) {
   });
 }
 
-function parseCsv(text: string): Trade[] {
+function parseCsv(text: string, accounts: Account[]): Trade[] {
   const lines = text.trim().split(/\r?\n/).filter(Boolean);
   if (lines.length < 2) return [];
   const header = lines[0].split(",").map((h) => h.trim().toLowerCase());
@@ -253,7 +274,7 @@ function parseCsv(text: string): Trade[] {
     const openedAt = date.includes("T") ? date : `${date}T14:30:00Z`;
     out.push({
       id: uid("csv"),
-      accountId: (["ibkr", "ftmo", "apex", "topstep"].includes(get("account")) ? get("account") : "ibkr") as Trade["accountId"],
+      accountId: accounts.find((a) => a.id === get("account") || a.name.toLowerCase() === get("account").toLowerCase())?.id ?? accounts[0]?.id ?? "ibkr",
       symbol,
       market: spec.market,
       side,

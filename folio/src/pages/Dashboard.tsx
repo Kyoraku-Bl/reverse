@@ -133,7 +133,7 @@ export function Dashboard() {
           {w.prop && (
             <div className="card">
               <div className="between"><h3>Prop firm sync</h3><Link to="/app/prop">Open desk</Link></div>
-              <div className="grid-3" style={{ marginTop: 8 }}>
+              <div className="account-cards" style={{ marginTop: 8 }}>
                 {props.map((p) => (
                   <div key={p.accountId}>
                     <b>{p.firm}</b>

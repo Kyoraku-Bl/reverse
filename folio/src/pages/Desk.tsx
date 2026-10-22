@@ -5,6 +5,7 @@ import { answerQuestion, insightCards } from "../lib/ai";
 import { money, pct, signedMoney, uid } from "../lib/format";
 import { propSnapshots } from "../lib/stats";
 import { useStore } from "../lib/store";
+import { AddAccountModal, deskLabel } from "../components/AddAccount";
 import { Field } from "../components/Ui";
 
 export function AIPage() {
@@ -15,7 +16,7 @@ export function AIPage() {
   ]);
   const cards = insightCards(store.stats);
   const ask = (q: string) => {
-    const reply = answerQuestion(q, store.stats, store.filtered);
+    const reply = answerQuestion(q, store.stats, store.filtered, store.accounts);
     store.spendCredit();
     setLog((l) => [...l, { role: "you", text: q }, { role: "ai", title: reply.title, text: reply.body }]);
     setInput("");
@@ -224,15 +225,24 @@ export function Spaces() {
 
 export function PropFirm() {
   const store = useStore();
-  const snaps = propSnapshots(store.trades);
-  const [id, setId] = useState(snaps[0]?.accountId ?? "ftmo");
+  const snaps = propSnapshots(store.trades, store.accounts);
+  const [id, setId] = useState(snaps[0]?.accountId ?? "");
+  const [adding, setAdding] = useState(false);
   const snap = snaps.find((s) => s.accountId === id) ?? snaps[0];
-  if (!snap) return null;
   return (
     <div className="stack">
-      <div className="grid-3">
+      <div className="between">
+        <div>
+          <h2 style={{ fontSize: 20 }}>Prop accounts</h2>
+          <p className="muted">Futures, CFDs, and Forex. Add as many firms as you run.</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setAdding(true)}>+ Add account</button>
+      </div>
+      {adding && <AddAccountModal preset="prop" onClose={() => setAdding(false)} />}
+      {!snap && <div className="card muted">No prop account yet. Add a Futures, CFD, or Forex evaluation.</div>}
+      <div className="account-cards">
         {snaps.map((s) => (
-          <button key={s.accountId} className="card" style={{ textAlign: "left", borderColor: s.accountId === id ? "var(--accent)" : undefined }} onClick={() => setId(s.accountId)}>
+          <button key={s.accountId} className="card" style={{ textAlign: "left", borderColor: s.accountId === snap?.accountId ? "var(--accent)" : undefined }} onClick={() => setId(s.accountId)}>
             <div className="between"><b>{s.name}</b><span className="badge">{s.firm}</span></div>
             <div className="num" style={{ fontSize: 22 }}>{signedMoney(s.net)}</div>
             <div className="progress"><span style={{ width: `${Math.max(0, Math.min(100, s.progress * 100))}%` }} /></div>
@@ -240,13 +250,13 @@ export function PropFirm() {
           </button>
         ))}
       </div>
-      <div className="grid-4">
+      {snap && <div className="grid-4">
         <GaugeCard label="Profit target" value={Math.max(0, snap.progress)} text={`${money(snap.net)} / ${money(snap.target)}`} />
-        <GaugeCard label="Daily loss room" value={Math.max(0, snap.dailyRoom / 5000)} text={money(snap.dailyRoom)} bad={snap.breachedDaily} />
-        <GaugeCard label={snap.trailRoom < 0 ? "Max loss" : "Loss room left"} value={Math.max(0, Math.min(1, snap.trailRoom / 2500))} text={money(snap.trailRoom)} bad={snap.breachedMax} />
+        <GaugeCard label="Daily loss room" value={snap.dailyLimit ? Math.max(0, snap.dailyRoom / snap.dailyLimit) : 0} text={money(snap.dailyRoom)} bad={snap.breachedDaily} />
+        <GaugeCard label={snap.trailRoom < 0 ? "Max loss" : "Loss room left"} value={snap.lossLimit ? Math.max(0, Math.min(1, snap.trailRoom / snap.lossLimit)) : 0} text={money(snap.trailRoom)} bad={snap.breachedMax} />
         <GaugeCard label="Consistency" value={snap.consistencyOk ? 0.8 : 0.3} text={snap.net > 0 ? pct(snap.consistency) : "n/a"} bad={!snap.consistencyOk} />
-      </div>
-      <div className="product-grid">
+      </div>}
+      {snap && <div className="product-grid">
         <div className="card">
           <h3>Warnings</h3>
           {snap.warnings.map((w) => <p key={w}>{w}</p>)}
@@ -259,7 +269,7 @@ export function PropFirm() {
           <p className="muted">A rough read from progress, rule breaches, and consistency. Not a probability from the firm, and not a suggestion to size up.</p>
           <Link to="/app/trades" className="btn btn-ghost btn-sm">Review this account’s fills</Link>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -277,9 +287,29 @@ function GaugeCard({ label, value, text, bad }: { label: string; value: number; 
 export function Accounts() {
   const store = useStore();
   const [csv, setCsv] = useState(SAMPLE_CSV);
+  const [adding, setAdding] = useState(false);
   const groups = [...new Set(BROKERS.map((b) => b.group))];
   return (
     <div className="stack">
+      <div className="between">
+        <div>
+          <h2 style={{ fontSize: 20 }}>Trading accounts</h2>
+          <p className="muted">Prop Futures, CFDs, Forex, and broker accounts. Add as many as you run.</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setAdding(true)}>+ Add account</button>
+      </div>
+      {adding && <AddAccountModal onClose={() => setAdding(false)} />}
+      <div className="account-cards">
+        {store.accounts.map((a) => (
+          <div key={a.id} className="card">
+            <div className="between"><b>{a.name}</b><span className="badge">{deskLabel(a)}</span></div>
+            <div className="faint">{a.firm || a.broker} · {a.kind === "prop" ? "Prop" : "Broker"}</div>
+            <div className="num" style={{ marginTop: 6 }}>${a.balance0.toLocaleString()}</div>
+            {a.rules && <div className="faint">Target ${a.rules.profitTarget.toLocaleString()} · daily loss ${a.rules.dailyLoss.toLocaleString()}</div>}
+            <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => store.removeAccount(a.id)}>Remove</button>
+          </div>
+        ))}
+      </div>
       <div className="card">
         <h3>Connected in this browser</h3>
         <p className="muted">Connect is a simulation. It does not authenticate with a broker. CSV import is real and stays local.</p>

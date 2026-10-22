@@ -1,6 +1,7 @@
 export type Side = "long" | "short";
 export type Market = "futures" | "forex" | "stocks" | "crypto";
-export type AccountId = "ibkr" | "ftmo" | "apex" | "topstep";
+export type AccountId = string;
+export type AccountDesk = "futures" | "cfd" | "forex" | "stocks" | "crypto";
 export type ViewMode = "dollar" | "percent" | "r" | "privacy";
 export type RangeKey = "month" | "30d" | "90d" | "ytd" | "all" | "custom";
 export type PlanId = "essential" | "pro" | "ultra";
@@ -10,9 +11,15 @@ export interface Account {
   name: string;
   broker: string;
   kind: "live" | "prop";
+  desk: AccountDesk;
   balance0: number;
   firm?: string;
   rules?: PropRules;
+}
+
+export interface Permission {
+  id: string;
+  label: string;
 }
 
 export interface PropRules {
@@ -188,4 +195,6 @@ export interface AppState {
   lastImport: string;
   aiCredits: number;
   lessonsDone: string[];
+  accounts: Account[];
+  permissions: Permission[];
 }
