@@ -19,7 +19,8 @@
     votes: "fxr-mentor-votes",
     notif: "fxr-notif-read",
     usage: "fxr-mentor-usage",
-    plan: "fxr-review-plan"
+    plan: "fxr-review-plan",
+    auto: "fxr-auto"
   };
 
   function read(key, fallback) {
@@ -57,6 +58,17 @@
   function money(n) {
     return "$" + Math.round(n).toLocaleString("en-US");
   }
+  function ago(ms) {
+    if (!ms) return "just now";
+    var d = Date.now() - ms;
+    if (d < 60e3) return "just now";
+    if (d < 3600e3) return Math.round(d / 60e3) + " min ago";
+    if (d < 86400e3) return Math.round(d / 3600e3) + " h ago";
+    if (d < 172800e3) return "yesterday";
+    var t = new Date(ms);
+    return t.getDate() + " " + MONTHS[t.getMonth()] + " " + t.getFullYear();
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -285,7 +297,12 @@
     var t = $("#viewTitle"); if (t) t.textContent = meta[0];
     var s = $("#viewSub");
     if (s) {
-      if (name === "sessions") s.textContent = state.sessions.length + " saved sessions · 1 in progress";
+      if (name === "sessions") {
+        var liveCount = state.sessions.filter(function (x) { return x.state === "live"; }).length;
+        var doneCount = state.sessions.length - liveCount;
+        s.textContent = doneCount + (doneCount === 1 ? " saved session" : " saved sessions") +
+          (liveCount ? " · 1 in progress" : "");
+      }
       else if (name === "journal") s.textContent = state.trades.length + " trades · " + computeStats(state.trades).wins + " wins";
       else if (name === "mentor") s.textContent = "Insights from " + state.trades.length + " logged trades";
       else s.textContent = meta[1];
@@ -877,7 +894,7 @@
           '<div><small>Net R</small><b class="' + (s.netR >= 0 ? "mint" : "rose") + '">' + signed(s.netR) + "</b></div>" +
           "<div><small>Win rate</small><b>" + s.win + "%</b></div></div>" +
           '<div class="sc-bar-wrap"><div class="bar"><i style="width:' + s.progress + '%"></i></div><span>' + s.progress + "%</span></div>" +
-          '<div class="sc-foot"><a class="btn btn-primary btn-sm" href="index.html#terminal">' + (s.state === "live" ? "Resume" : "Replay again") + "</a>" +
+          '<div class="sc-foot"><a class="btn btn-primary btn-sm" href="' + escapeHtml(s.resume || "index.html#terminal") + '">' + (s.state === "live" ? "Resume" : "Replay again") + "</a>" +
           '<button class="btn btn-ghost btn-sm sc-del" data-del="' + s.id + '" aria-label="Delete session">' +
           '<svg class="ic"><use href="#i-trash"/></svg></button></div>' +
           '<p class="card-sub" style="margin-top:9px">Saved ' + escapeHtml(s.when) + "</p>" +
@@ -932,7 +949,7 @@
             '<td><span class="sym-cell">' + marketBadge(t.sym) + escapeHtml(t.sym) + "</span></td>" +
             "<td>" + escapeHtml(t.market) + "</td>" +
             '<td><span class="dir-pill dir-pill--' + (t.dir > 0 ? "long" : "short") + '">' + (t.dir > 0 ? "Long" : "Short") + "</span></td>" +
-            "<td>" + escapeHtml(t.setup) + "</td>" +
+            "<td>" + escapeHtml(t.setup) + (t.note ? ' <span class="note-flag" title="' + escapeHtml(t.note) + '">✎</span>' : "") + "</td>" +
             "<td>" + escapeHtml(t.session) + "</td>" +
             '<td class="ta-end"><span class="res ' + (t.r > 0 ? "up" : t.r < 0 ? "down" : "be") + '">' + signed(t.r) + "</span></td>" +
             '<td class="ta-end mono ' + (t.r >= 0 ? "mint" : "rose") + '">' + (t.r >= 0 ? "+" : "−") + money(Math.abs(t.r * RISK_PER_R)).slice(1) + "</td>" +
@@ -1304,7 +1321,9 @@
         netR: 0,
         win: 0,
         state: "live",
-        when: "just now"
+        when: "just now",
+        resume: "replay.html?sym=" + encodeURIComponent(sym) + "&tf=" + encodeURIComponent($("#sTf") ? $("#sTf").value : "15m") + "&new=1",
+        updatedAt: Date.now()
       });
       write(KEY.sessions, state.sessions);
       renderSessions();
@@ -1493,10 +1512,19 @@
     document.addEventListener("click", function (e) {
       if (e.target.closest("[data-open-trade]")) openTradeModal();
     });
+    /* "New session" starts a clean ticket: the in-progress record is dropped
+       (the dashboard keeps its stats) and the terminal opens fresh. */
+    function startFresh() {
+      state.sessions = state.sessions.filter(function (x) { return x.id !== "live"; });
+      write(KEY.sessions, state.sessions);
+      var auto = read(KEY.auto, null);
+      if (auto) { delete auto.live; write(KEY.auto, auto); }
+      location.href = "replay.html?new=1";
+    }
     var newSession = $("#newSessionBtn");
-    if (newSession) newSession.addEventListener("click", function () {
-      location.href = "replay.html";
-    });
+    if (newSession) newSession.addEventListener("click", startFresh);
+    var newReplay = $("#newReplayBtn");
+    if (newReplay) newReplay.addEventListener("click", startFresh);
 
     // sessions
     var grid = $("#sessionGrid");
@@ -1825,6 +1853,32 @@
     state.trades = read(KEY.trades, null) || seedTrades();
     if (!read(KEY.trades, null)) write(KEY.trades, state.trades);
     state.sessions = read(KEY.sessions, null) || seedSessions();
+    /* The terminal keeps an in-progress session in fxr-auto; mirror its
+       freshness here so the dashboard never shows a stale "Resume". */
+    var auto = read(KEY.auto, null);
+    if (auto && auto.live && auto.live.sym) {
+      var live = auto.live;
+      var rec = state.sessions.filter(function (x) { return x.id === "live"; })[0];
+      var doc = rec || { id: "live", startedAt: auto.live.startedAt || live.updatedAt };
+      doc.sym = live.label || live.sym;
+      doc.symbolId = live.sym;
+      doc.market = live.market;
+      doc.tf = live.tf;
+      doc.session = live.session || doc.session || "—";
+      doc.setup = live.setup || doc.setup || "—";
+      doc.trades = Array.isArray(live.trades) ? live.trades.length : doc.trades || 0;
+      doc.netR = typeof live.netR === "number" ? live.netR : doc.netR || 0;
+      doc.win = typeof live.win === "number" ? live.win : doc.win || 0;
+      doc.progress = typeof live.progress === "number" ? live.progress : doc.progress || 0;
+      doc.state = "live";
+      doc.updatedAt = live.updatedAt || Date.now();
+      doc.when = ago(doc.updatedAt);
+      doc.notes = live.notes || "";
+      doc.resume = "replay.html?sym=" + encodeURIComponent(live.sym) + "&tf=" + encodeURIComponent(live.tf || "1m");
+      state.sessions = [doc].concat(state.sessions.filter(function (x) { return x.id !== "live"; }));
+    } else {
+      state.sessions = state.sessions.filter(function (x) { return x.id !== "live"; });
+    }
     if (!read(KEY.sessions, null)) write(KEY.sessions, state.sessions);
     state.votes = read(KEY.votes, {}) || {};
     state.plan = read(KEY.plan, null) || [0];

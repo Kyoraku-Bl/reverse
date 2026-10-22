@@ -1,0 +1,11 @@
+{
+ "at": "2026-10-22T23:08:21.481Z",
+ "node": "v22.22.3",
+ "deadline": 60,
+ "perInstrument": 45,
+ "requested": 5,
+ "ok": 5,
+ "done": true,
+ "failed": [],
+ "partial": {}
+}

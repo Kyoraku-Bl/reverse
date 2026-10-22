@@ -116,6 +116,10 @@
       </div>
     </div>
 
+    <button class="save-chip" id="saveChip" title="Everything is saved automatically in this browser" aria-live="polite">
+      <span class="save-dot"></span><span id="saveChipText">Auto-save</span>
+    </button>
+
     <button class="src-toggle" id="dataMode" aria-label="Market data mode" title="Switch between live market data and the offline engine">
       <span class="src-dot"></span><span id="dataModeLabel">Live data</span>
     </button>
@@ -167,7 +171,12 @@
         <i>O</i><b id="lgO">—</b><i>H</i><b id="lgH">—</b><i>L</i><b id="lgL">—</b><i>C</i><b id="lgC">—</b>
       </span>
       <span class="lg-chg" id="lgChg">—</span>
-      <span class="lg-ind">EMA 21 · EMA 50 · VWAP</span>
+      <span class="lg-ind" id="indGroup">
+        <button type="button" class="lg-ind-btn on" data-ind="ema1" title="Toggle EMA 21"><i style="background:#a78bfa"></i>EMA 21</button>
+        <button type="button" class="lg-ind-btn on" data-ind="ema2" title="Toggle EMA 50"><i style="background:#5d8bff"></i>EMA 50</button>
+        <button type="button" class="lg-ind-btn on" data-ind="vwap" title="Toggle VWAP"><i style="background:#ffc861"></i>VWAP</button>
+      </span>
+      <button type="button" class="lg-type" id="typeBtn" title="Chart type — candles, line or area (C)">Candles</button>
       <span class="src-badge" id="srcBadge" hidden></span>
     </div>
     <div class="rp-loading" id="loadingBadge" hidden><span class="spinner"></span> Loading market data…</div>
@@ -218,6 +227,11 @@
       </div>
       <div class="pos-foot"><span>P&amp;L <b id="posPnl">$0.00</b></span><button class="btn-rp btn-rp--ghost btn-rp--sm" id="closePos">Close position</button></div>
     </div>
+
+    <label class="side-field side-notes">
+      <span>Session notes <em id="notesState">saved</em></span>
+      <textarea id="notesInput" rows="3" maxlength="2000" placeholder="Bias, plan, what you see — saved as you type…"></textarea>
+    </label>
 
     <div class="side-stats">
       <div><small>Trades</small><b id="sTrades">0</b></div>

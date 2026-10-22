@@ -69,6 +69,10 @@
     timer: null,
     pos: null,
     trades: [],
+    notes: "",
+    show: { ema1: true, ema2: true, vwap: true },
+    chartType: "candles",
+    liveId: "",
     risk: 100,
     start: Date.now(),
     W: 1,
@@ -439,6 +443,7 @@
     syncSourceBadge();
     renderSrcPanel();
     scheduleDraw();
+    scheduleAutoSave();
   }
 
   /* Loads real candles when the data layer can reach a public source,
@@ -719,10 +724,38 @@
     ctx.lineTo(g.x1 + 0.5, g.y1);
     ctx.stroke();
 
-    /* ---- candles ---- */
+    /* ---- price series: candles, line or area ---- */
     var from = Math.max(0, Math.floor(r.left) - 1);
     var to = Math.min(S.cursor, Math.ceil(r.right) + 1);
-    for (var c = from; c <= to; c++) {
+    if (S.chartType === "line" || S.chartType === "area") {
+      var pts = [];
+      for (var lc = from; lc <= to; lc++) {
+        var lb = S.data[lc];
+        if (!lb) continue;
+        pts.push([xAt(lc), yPrice(lb.c, sc)]);
+      }
+      if (pts.length > 1) {
+        var stroke = isLight() ? "#5b47c9" : "#a78bfa";
+        if (S.chartType === "area") {
+          var grad = ctx.createLinearGradient(0, g.y0, 0, g.y1);
+          grad.addColorStop(0, isLight() ? "rgba(91,71,201,.26)" : "rgba(167,139,250,.28)");
+          grad.addColorStop(1, isLight() ? "rgba(91,71,201,.02)" : "rgba(167,139,250,.02)");
+          ctx.beginPath();
+          ctx.moveTo(pts[0][0], g.y1);
+          pts.forEach(function (pt) { ctx.lineTo(pt[0], pt[1]); });
+          ctx.lineTo(pts[pts.length - 1][0], g.y1);
+          ctx.closePath();
+          ctx.fillStyle = grad;
+          ctx.fill();
+        }
+        ctx.beginPath();
+        pts.forEach(function (pt, i) { i ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1]); });
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1.7;
+        ctx.lineJoin = "round";
+        ctx.stroke();
+      }
+    } else for (var c = from; c <= to; c++) {
       var bar = S.data[c];
       if (!bar) continue;
       var cx = xAt(c);
@@ -770,9 +803,9 @@
       ctx.stroke();
       ctx.restore();
     }
-    line(S.series.ema21, pal.ema1, 1.4);
-    line(S.series.ema50, pal.ema2, 1.4);
-    line(S.series.vwap, pal.vwap, 1.2, [4, 4]);
+    if (S.show.ema1) line(S.series.ema21, pal.ema1, 1.4);
+    if (S.show.ema2) line(S.series.ema50, pal.ema2, 1.4);
+    if (S.show.vwap) line(S.series.vwap, pal.vwap, 1.2, [4, 4]);
 
     /* ---- position overlay ---- */
     if (S.pos) drawPosition(pal, sc);
@@ -1607,6 +1640,7 @@
     toast((dir > 0 ? "Long" : "Short") + " " + fmtQty(qty) + " " + a.label + " @ " + fmtP(entry));
     syncUI();
     scheduleDraw();
+    autoSaveNow();
   }
 
   function closePosition(reason, price) {
@@ -1629,18 +1663,21 @@
       exitReason: reason,
       entry: p.entry,
       exit: exit,
-      qty: p.qty
+      qty: p.qty,
+      note: (S.notes || "").trim()
     };
     S.trades.unshift(trade);
     var journal = store.get("fxr-trades", []);
     if (!Array.isArray(journal)) journal = [];
     journal.push({
       id: trade.id, date: trade.date, sym: trade.sym, market: trade.market,
-      dir: trade.dir, setup: trade.setup, session: trade.session, r: trade.r
+      dir: trade.dir, setup: trade.setup, session: trade.session, r: trade.r,
+      note: trade.note
     });
     store.set("fxr-trades", journal);
 
     S.pos = null;
+    autoSaveNow();
     renderFeed();
     toast(reason + " · " + signed(r, 2) + "R · " + money(pnl), r < 0);
     syncUI();
@@ -1715,6 +1752,178 @@
     return "Asia";
   }
 
+  /* ---------------- auto-save ----------------
+     Everything the trader changes — instrument, timeframe, replay position,
+     drawings, trades, notes, indicator choices — is written to localStorage
+     a moment after it changes, and an in-progress session is kept in the
+     dashboard's session list so a reload (or a closed tab) never loses work. */
+  var AUTO_KEY = "fxr-auto";
+  var LIVE_ID = "live";
+  var autoReady = false;
+  var autoTimer = null;
+  var autoSavedAt = 0;
+
+  function autoDoc() {
+    var d = store.get(AUTO_KEY, null);
+    return d && typeof d === "object" ? d : {};
+  }
+
+  function autoPay() {
+    if (!S.series || !S.n) return null;
+    var a = asset();
+    var wins = S.trades.filter(function (t) { return t.r > 0; }).length;
+    var net = S.trades.reduce(function (sum, t) { return sum + t.r; }, 0);
+    return {
+      sym: S.symbolId,
+      label: a.label,
+      market: a.market,
+      tf: S.tf,
+      cursor: S.cursor,
+      bars: S.n,
+      progress: Math.round((S.cursor / Math.max(1, S.n - 1)) * 100),
+      trades: S.trades,
+      notes: S.notes || "",
+      show: S.show,
+      chartType: S.chartType,
+      setup: $("#setupSelect") ? $("#setupSelect").value : "",
+      session: sessionName(),
+      netR: Math.round(net * 10) / 10,
+      win: S.trades.length ? Math.round((wins / S.trades.length) * 100) : 0,
+      updatedAt: Date.now()
+    };
+  }
+
+  function paintSaveChip(mode) {
+    var chip = $("#saveChip"), txt = $("#saveChipText");
+    if (!chip || !txt) return;
+    if (mode === "saving") {
+      chip.classList.add("saving");
+      txt.textContent = "Saving…";
+      return;
+    }
+    chip.classList.remove("saving");
+    var t = new Date(autoSavedAt || Date.now());
+    txt.textContent = "Saved " + pad2(t.getHours()) + ":" + pad2(t.getMinutes());
+    var ns = $("#notesState");
+    if (ns) ns.textContent = "saved";
+    chip.title = "Auto-save is on — drawings, trades, notes and your replay position are stored in this browser";
+  }
+
+  function upsertLiveSession(snap) {
+    var sessions = store.get("fxr-sessions", []);
+    if (!Array.isArray(sessions)) sessions = [];
+    var prev = sessions.filter(function (x) { return x.id === LIVE_ID; })[0];
+    var rec = {
+      id: LIVE_ID,
+      sym: snap.label,
+      symbolId: snap.sym,
+      market: snap.market,
+      tf: snap.tf,
+      session: snap.session,
+      setup: snap.setup || "—",
+      progress: snap.progress,
+      trades: snap.trades.length,
+      netR: snap.netR,
+      win: snap.win,
+      state: "live",
+      when: "just now",
+      notes: snap.notes,
+      startedAt: prev && prev.startedAt ? prev.startedAt : Date.now(),
+      updatedAt: Date.now(),
+      resume: "replay.html?sym=" + encodeURIComponent(snap.sym) + "&tf=" + encodeURIComponent(snap.tf)
+    };
+    sessions = sessions.filter(function (x) { return x.id !== LIVE_ID; });
+    sessions.unshift(rec);
+    store.set("fxr-sessions", sessions.slice(0, 40));
+  }
+
+  function writeAuto() {
+    if (!autoReady) return;
+    var snap = autoPay();
+    if (!snap) return;
+    var doc = autoDoc();
+    doc.v = 1;
+    doc.at = snap.updatedAt;
+    doc.live = snap;
+    store.set(AUTO_KEY, doc);
+    upsertLiveSession(snap);
+    autoSavedAt = Date.now();
+    paintSaveChip("saved");
+  }
+
+  function scheduleAutoSave(ms) {
+    if (!autoReady) return;
+    paintSaveChip("saving");
+    if (autoTimer) clearTimeout(autoTimer);
+    autoTimer = setTimeout(function () { autoTimer = null; writeAuto(); }, ms === undefined ? 600 : ms);
+  }
+  function autoSaveNow() {
+    if (!autoReady) return;
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+    writeAuto();
+  }
+
+  /* Restores what the trader had open when they last left the terminal. */
+  function restoreAuto() {
+    var doc = autoDoc();
+    var live = doc.live;
+    if (!live || !live.sym) return null;
+    if (live.tf && K.TF_LIST.indexOf(live.tf) === -1) live.tf = "1m";
+    return live;
+  }
+
+  function applyAutoView(live) {
+    if (!live) return;
+    if (live.sym && live.sym !== S.symbolId) return;
+    if (live.tf && live.tf !== S.tf) return;
+    if (Array.isArray(live.trades) && live.trades.length) {
+      S.trades = live.trades.filter(function (t) { return t && t.sym; });
+      renderFeed();
+      updateStats();
+    }
+    if (typeof live.notes === "string") S.notes = live.notes;
+    if (live.show && typeof live.show === "object") {
+      S.show = {
+        ema1: live.show.ema1 !== false,
+        ema2: live.show.ema2 !== false,
+        vwap: live.show.vwap !== false
+      };
+    }
+    if (live.chartType === "line" || live.chartType === "area") S.chartType = live.chartType;
+    if (live.setup && $("#setupSelect")) {
+      var found = $$("#setupSelect option").filter(function (o) { return o.value === live.setup; })[0];
+      if (found) $("#setupSelect").value = live.setup;
+    }
+    if (typeof live.cursor === "number" && live.bars === S.n) {
+      S.cursor = clamp(live.cursor, 20, S.n - 2);
+      S.right = S.cursor;
+      S.follow = true;
+    }
+    paintIndicators();
+    paintTypeBtn();
+    if ($("#notesInput")) $("#notesInput").value = S.notes;
+    syncUI();
+    scheduleDraw();
+  }
+
+  function paintIndicators() {
+    $$("#indGroup [data-ind]").forEach(function (b) {
+      b.classList.toggle("on", S.show[b.dataset.ind] !== false);
+      b.setAttribute("aria-pressed", S.show[b.dataset.ind] !== false ? "true" : "false");
+    });
+  }
+  function paintTypeBtn() {
+    var btn = $("#typeBtn");
+    if (!btn) return;
+    btn.textContent = S.chartType === "line" ? "Line" : S.chartType === "area" ? "Area" : "Candles";
+  }
+  function cycleChartType() {
+    S.chartType = S.chartType === "candles" ? "line" : S.chartType === "line" ? "area" : "candles";
+    paintTypeBtn();
+    scheduleDraw();
+    autoSaveNow();
+  }
+
   /* ---------------- playback ---------------- */
   function play() {
     if (S.playing) return;
@@ -1742,6 +1951,7 @@
     checkPosition();
     syncUI();
     scheduleDraw();
+    scheduleAutoSave(900);
   }
   function setPlayUI() {
     var btn = $("#playBtn");
@@ -1760,6 +1970,7 @@
     if (S.follow) S.right = S.cursor;
     syncUI();
     scheduleDraw();
+    scheduleAutoSave(700);
   }
 
   /* ---------------- clock ---------------- */
@@ -2109,6 +2320,7 @@
     if (hints[tool]) { hint.textContent = hints[tool]; hint.hidden = false; }
     else hint.hidden = true;
     scheduleDraw();
+    scheduleAutoSave();
   }
 
   function selectSymbol(id) {
@@ -2116,6 +2328,7 @@
     var a = K.get(id);
     setSeries(a.id, S.tf);
     $("#symModal").close();
+    autoSaveNow();
   }
 
   function setTF(tf) {
@@ -2131,6 +2344,7 @@
       S.right = S.cursor;
       syncUI();
       scheduleDraw();
+      autoSaveNow();
       setLoading(false);
     });
     syncSymbolUI();
@@ -2204,6 +2418,7 @@
       else hi = mid - 1;
     }
     setCursor(clamp(idx, 20, S.n - 2));
+    autoSaveNow();
     toast("Replay moved to " + fmtFull(S.data[S.cursor].t));
   }
   function parseJump(value) {
@@ -2258,12 +2473,24 @@
       win: S.trades.length ? Math.round((wins / S.trades.length) * 100) : 0,
       state: "done",
       when: "Just now",
-      createdAt: new Date().toISOString()
+      notes: S.notes || "",
+      createdAt: new Date().toISOString(),
+      updatedAt: Date.now()
     };
     var sessions = store.get("fxr-sessions", []);
     if (!Array.isArray(sessions)) sessions = [];
+    sessions = sessions.filter(function (x) { return x.id !== LIVE_ID; });
     sessions.unshift(session);
     store.set("fxr-sessions", sessions.slice(0, 30));
+
+    /* The in-progress record becomes this finished session, so a fresh
+       visit starts a clean ticket. The instrument is remembered. */
+    autoReady = false;
+    var doc = autoDoc();
+    doc.live = { sym: S.symbolId, tf: S.tf, cursor: S.cursor, bars: S.n, updatedAt: Date.now() };
+    store.set(AUTO_KEY, doc);
+    S.trades = [];
+    S.notes = "";
     toast("Session saved — opening your dashboard");
     setTimeout(function () { location.href = "dashboard.html#sessions"; }, 650);
   }
@@ -2284,9 +2511,13 @@
 
   /* ---------------- boot ---------------- */
   function boot() {
-    var initial = K.ASSETS.filter(function (a) { return a.id === (params.get("sym") || ""); })[0] ||
+    var fresh = params.get("new") === "1";
+    var live = fresh ? null : restoreAuto();
+    var wantedSym = params.get("sym") || (live && live.sym) || "";
+    var initial = K.ASSETS.filter(function (a) { return a.id === wantedSym; })[0] ||
       K.ASSETS.filter(function (a) { return a.id === "ES"; })[0];
-    var tf = K.TF_LIST.indexOf(params.get("tf")) !== -1 ? params.get("tf") : "1m";
+    var wantedTf = params.get("tf") || (live && live.tf) || "1m";
+    var tf = K.TF_LIST.indexOf(wantedTf) !== -1 ? wantedTf : "1m";
 
     applyTheme(root.dataset.theme === "light" ? "light" : "dark");
     resize();
@@ -2310,6 +2541,13 @@
       setLoading(false);
       syncUI();
       syncDataMode();
+      if (live && live.sym === initial.id && live.tf === tf) {
+        applyAutoView(live);
+        if (live.updatedAt) toast("Resumed where you left off — " + fmtFull(live.updatedAt));
+      }
+      autoReady = true;
+      paintSaveChip("saved");
+      scheduleAutoSave(1200);
     }).catch(function () {
       setLoading(false);
       syncDataMode();
@@ -2319,6 +2557,42 @@
     setPlayUI();
     setTool("cursor");
     startClock();
+
+    /* ---- auto-save controls ---- */
+    autoSavedAt = Date.now();
+    paintSaveChip("saved");
+    paintIndicators();
+    paintTypeBtn();
+    $("#saveChip").addEventListener("click", function () {
+      autoSaveNow();
+      toast("Saved — instrument, position, drawings, trades and notes");
+    });
+    var notesEl = $("#notesInput");
+    if (notesEl) {
+      notesEl.addEventListener("input", function (e) {
+        S.notes = e.target.value;
+        var st = $("#notesState");
+        if (st) st.textContent = "saving…";
+        scheduleAutoSave(450);
+        setTimeout(function () { if (st && !autoTimer) st.textContent = "saved"; }, 900);
+      });
+    }
+    var indWrap = $("#indGroup");
+    if (indWrap) {
+      indWrap.addEventListener("click", function (e) {
+        var b = e.target.closest("[data-ind]");
+        if (!b) return;
+        S.show[b.dataset.ind] = S.show[b.dataset.ind] === false;
+        paintIndicators();
+        scheduleDraw();
+        autoSaveNow();
+      });
+    }
+    if ($("#typeBtn")) $("#typeBtn").addEventListener("click", cycleChartType);
+    if ($("#setupSelect")) $("#setupSelect").addEventListener("change", function () { scheduleAutoSave(200); });
+    window.addEventListener("beforeunload", function () {
+      if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; writeAuto(); }
+    });
 
     /* theme */
     $("#themeToggle").addEventListener("click", function () {
@@ -2583,6 +2857,7 @@
       if (!mod && e.shiftKey && key === "a") { setTool("avprofile"); return; }
       if (!mod && key === "a") { setTool("avwap"); return; }
       if (!mod && keys[key]) { setTool(keys[key]); return; }
+      if (!mod && key === "c") { cycleChartType(); return; }
       if (!mod && e.key.toLowerCase() === "b") { openPosition(1); return; }
       if (!mod && e.key.toLowerCase() === "s") { openPosition(-1); return; }
     });

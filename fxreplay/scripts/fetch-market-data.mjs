@@ -37,7 +37,7 @@ const CONCURRENCY = Number(opt("concurrency", "4"));
 const DEADLINE = Number(opt("deadline", "0"));
 /* A single instrument may not stall the queue: once it has spent this long,
    it keeps whatever timeframes it already has. */
-const PER_INSTRUMENT = Number(opt("per-instrument", "90"));
+const PER_INSTRUMENT = Number(opt("per-instrument", "45"));
 const STARTED = Date.now();
 
 const UA =
@@ -96,7 +96,7 @@ function jparse(text) {
   return JSON.parse(text.slice(from, to + 1));
 }
 
-async function getOnce(url, ms = 9000) {
+async function getOnce(url, ms = 7000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
@@ -111,29 +111,48 @@ async function getOnce(url, ms = 9000) {
   }
 }
 
-/* Tries every direct host, then the relays, one after the other. Bounded by
-   tries × urls × 12 s so a blocked provider can never eat the whole job. */
-async function getAny(urls, tries = 1) {
-  let last;
-  for (let attempt = 0; attempt < tries; attempt++) {
-    for (const url of urls) {
-      try {
-        return await getOnce(url);
-      } catch (e) {
-        last = e;
-      }
-    }
-    if (attempt < tries - 1) await sleep(800 * (attempt + 1));
+/* A tiny semaphore keeps the whole job inside a polite number of sockets,
+   even though a single instrument now requests its timeframes at once. */
+const MAX_SOCKETS = Number(process.env.KR_SOCKETS || 8);
+let live = 0;
+const waiting = [];
+async function withSocket(fn) {
+  if (live >= MAX_SOCKETS) await new Promise((r) => waiting.push(r));
+  live++;
+  try {
+    return await fn();
+  } finally {
+    live--;
+    const next = waiting.shift();
+    if (next) next();
   }
-  throw last || new Error("unreachable");
+}
+
+/* One wave of URLs raced with Promise.any: the fastest mirror that answers
+   wins, and a dead one costs only its own timeout, not the whole chain. */
+function race(urls, ms) {
+  return Promise.any(urls.map((u) => withSocket(() => getOnce(u, ms))));
+}
+
+/* Direct mirrors first, then the public relays. Worst case is two waves of
+   `ms`, so a blocked provider can never eat the whole job. */
+async function getAny(direct, relayed, ms = 6500) {
+  try {
+    return await race(direct, ms);
+  } catch (e) {
+    if (!relayed || !relayed.length) throw e;
+    return race(relayed, ms);
+  }
 }
 
 async function yahoo(symbol, cfg) {
   const q = `?interval=${cfg.interval}&range=${cfg.range}&includePrePost=false&events=div%2Csplit`;
   const path = "/v8/finance/chart/" + encodeURIComponent(symbol) + q;
+  /* Direct mirrors first (fast when the runner is allowed), then the text
+     relay, which keeps serving Yahoo JSON from datacentre IPs. */
   const direct = YAHOO_HOSTS.map((h) => h + path);
-  const urls = direct.concat(RELAYS.map((wrap) => wrap(direct[0])));
-  const body = await getAny(urls, 1);
+  const relayed = RELAYS.map((wrap) => wrap(direct[0]));
+  const body = await getAny(direct, relayed);
   const json = jparse(body);
   const res = json?.chart?.result?.[0];
   if (!res || !res.timestamp) throw new Error("no result");
@@ -153,21 +172,17 @@ function parseYahoo(res) {
 }
 
 async function binance(symbol, interval, limit) {
-  let last;
-  for (const host of BINANCE_HOSTS) {
-    try {
-      const rows = JSON.parse(await getOnce(`${host}/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`));
-      if (!Array.isArray(rows)) throw new Error("not an array");
-      return rows.map((k) => {
-        let t = Number(k[0]);
-        if (t > 1e12) t = Math.floor(t / 1000);
-        return [t, round(+k[1]), round(+k[2]), round(+k[3]), round(+k[4]), Math.round(+k[5])];
-      });
-    } catch (e) {
-      last = e;
-    }
-  }
-  throw last || new Error("binance failed");
+  const urls = BINANCE_HOSTS.map(
+    (h) => `${h}/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`
+  );
+  const body = await race(urls, 6500);
+  const rows = JSON.parse(body);
+  if (!Array.isArray(rows)) throw new Error("not an array");
+  return rows.map((k) => {
+    let t = Number(k[0]);
+    if (t > 1e12) t = Math.floor(t / 1000);
+    return [t, round(+k[1]), round(+k[2]), round(+k[3]), round(+k[4]), Math.round(+k[5])];
+  });
 }
 
 /* keep six significant digits: enough for every instrument, a third of the bytes */
@@ -260,24 +275,16 @@ async function buildInstrument(id) {
 }
 
 async function fillYahoo(doc, c) {
-  const t0 = Date.now();
-  for (const tf of Object.keys(YAHOO_TF)) {
-    if (Date.now() - t0 > PER_INSTRUMENT * 1000) {
-      doc.errors = (doc.errors || []).concat(`${c.symbol} ${tf}: skipped (time budget)`);
-      continue;
-    }
+  /* Every timeframe at once (bounded by the socket semaphore), so one slow
+     interval cannot starve the rest. A single failure only drops that
+     interval. */
+  const jobs = Object.keys(YAHOO_TF).map(async (tf) => {
     const cfg = YAHOO_TF[tf];
-    let res;
-    try {
-      res = await yahoo(c.symbol, cfg);
-    } catch (e) {
-      doc.errors = (doc.errors || []).concat(`${c.symbol} ${tf}: ${e.message}`);
-      continue;                             /* keep the timeframes that worked */
-    }
+    const res = await yahoo(c.symbol, cfg);
     let bars = res.bars;
     if (cfg.aggregate) bars = aggregate(bars, cfg.aggregate);
     bars = dedupe(bars).slice(-(BAR_LIMIT[tf] || 900));
-    if (bars.length < 30) continue;
+    if (bars.length < 30) throw new Error("only " + bars.length + " bars");
     doc.tf[tf] = {
       interval: tf,
       provider: "yahoo",
@@ -286,27 +293,23 @@ async function fillYahoo(doc, c) {
       currency: res.meta.currency || null,
       bars,
     };
-    await sleep(120);                       /* stay polite with Yahoo */
+  });
+  const settled = await Promise.allSettled(jobs);
+  settled.forEach((r, i) => {
+    if (r.status === "rejected") {
+      doc.errors = (doc.errors || []).concat(`${c.symbol} ${Object.keys(YAHOO_TF)[i]}: ${r.reason && r.reason.message}`);
+    }
+  });
+  if (!Object.keys(doc.tf).length) {
+    throw new Error((doc.errors && doc.errors[0]) || "no timeframes");
   }
-  if (!Object.keys(doc.tf).length) throw new Error("no timeframes");
 }
 
 async function fillBinance(doc, c) {
-  const t0 = Date.now();
-  for (const tf of Object.keys(BINANCE_TF)) {
-    if (Date.now() - t0 > PER_INSTRUMENT * 1000) {
-      doc.errors = (doc.errors || []).concat(`${c.symbol} ${tf}: skipped (time budget)`);
-      continue;
-    }
-    let raw;
-    try {
-      raw = await binance(c.symbol, BINANCE_TF[tf], BAR_LIMIT[tf] || 1000);
-    } catch (e) {
-      doc.errors = (doc.errors || []).concat(`${c.symbol} ${tf}: ${e.message}`);
-      continue;
-    }
+  const jobs = Object.keys(BINANCE_TF).map(async (tf) => {
+    const raw = await binance(c.symbol, BINANCE_TF[tf], BAR_LIMIT[tf] || 1000);
     const bars = dedupe(raw).slice(-(BAR_LIMIT[tf] || 900));
-    if (bars.length < 30) continue;
+    if (bars.length < 30) throw new Error("only " + bars.length + " bars");
     doc.tf[tf] = {
       interval: tf,
       provider: "binance",
@@ -315,9 +318,16 @@ async function fillBinance(doc, c) {
       currency: null,
       bars,
     };
-    await sleep(80);
+  });
+  const settled = await Promise.allSettled(jobs);
+  settled.forEach((r, i) => {
+    if (r.status === "rejected") {
+      doc.errors = (doc.errors || []).concat(`${c.symbol} ${Object.keys(BINANCE_TF)[i]}: ${r.reason && r.reason.message}`);
+    }
+  });
+  if (!Object.keys(doc.tf).length) {
+    throw new Error((doc.errors && doc.errors[0]) || "no timeframes");
   }
-  if (!Object.keys(doc.tf).length) throw new Error("no timeframes");
 }
 
 /* ---------- run ---------- */
@@ -336,6 +346,30 @@ async function main() {
   const failed = [];
   const PARTIAL = {};
   let cursor = 0;
+  let phase = "starting";
+
+  /* Written after every instrument, so a killed job still leaves a report. */
+  async function writeStatus(done) {
+    const report = {
+      phase,
+      at: new Date().toISOString(),
+      node: process.version,
+      deadline: DEADLINE,
+      perInstrument: PER_INSTRUMENT,
+      requested: ids.length,
+      ok: ok.length,
+      done: done === true,
+      failed,
+      partial: PARTIAL,
+    };
+    try {
+      await fs.writeFile(path.join(path.dirname(OUT), "data-status.json"), JSON.stringify(report, null, 1));
+    } catch (e) { /* the site still deploys without the report */ }
+    return report;
+  }
+
+  await writeStatus(false);
+  phase = "running";
 
   async function worker() {
     while (cursor < ids.length) {
@@ -350,6 +384,7 @@ async function main() {
         await fs.writeFile(path.join(OUT, id + ".json"), JSON.stringify(doc));
         ok.push(id);
         if (doc.errors) PARTIAL[id] = doc.errors;
+        await writeStatus(false);
         process.stdout.write(`✓ ${id} ${Object.keys(doc.tf).join("/")} (${doc.symbol})\n`);
       } catch (e) {
         failed.push(id + ": " + e.message);
@@ -364,17 +399,8 @@ async function main() {
   /* A machine-readable report travels with the site, so a failed run can be
      diagnosed from the deployment itself (runner logs are not always
      reachable from the agent that reads them). */
-  const report = {
-    at: new Date().toISOString(),
-    node: process.version,
-    deadline: DEADLINE,
-    perInstrument: PER_INSTRUMENT,
-    requested: ids.length,
-    ok: ok.length,
-    failed,
-    partial: PARTIAL,
-  };
-  await fs.writeFile(path.join(path.dirname(OUT), "data-status.json"), JSON.stringify(report, null, 1));
+  phase = "done";
+  await writeStatus(true);
 
   if (!ok.length) {
     console.error("No instrument could be fetched — leaving the previous snapshot untouched.");
@@ -393,7 +419,19 @@ async function main() {
   console.log(`\n${ok.length} instruments written to ${path.relative(ROOT, OUT)}${failed.length ? `, ${failed.length} failed` : ""}`);
 }
 
-main().catch((e) => {
-  console.error(e);
+main().catch(async (e) => {
+  /* Anything unexpected still leaves a machine-readable report behind. */
+  try {
+    await fs.mkdir(path.dirname(OUT), { recursive: true });
+    await fs.writeFile(
+      path.join(path.dirname(OUT), "data-status.json"),
+      JSON.stringify(
+        { at: new Date().toISOString(), phase: "crashed", ok: 0, requested: 0, failed: [String((e && e.stack) || e)] },
+        null,
+        1
+      )
+    );
+  } catch (e2) { /* nothing else we can do */ }
+  console.error("snapshot job crashed:", e);
   process.exit(1);
 });

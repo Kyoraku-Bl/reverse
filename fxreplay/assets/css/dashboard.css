@@ -899,3 +899,6 @@ html[data-theme="light"] .mentor-empty .me-icon{color:#4b32b8}
   .continue-empty .btn{width:100%}
   .continue-empty .ce-icon{width:44px;height:44px;border-radius:12px}
 }
+
+/* journal note marker */
+.note-flag{display:inline-block;margin-left:3px;font-size:.72rem;color:var(--violet-2);cursor:help}

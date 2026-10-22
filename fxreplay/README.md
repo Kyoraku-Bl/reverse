@@ -55,13 +55,44 @@ This is the real product surface: a full-viewport chart, not a marketing mock.
 - Every contract carries its real tick size and point value, so P&L is contract-accurate
 - Searchable picker with market tabs; `?sym=NQ&tf=5m` deep-links straight to an instrument
 
-**Keyboard**: `Space` play/pause · `←` `→` step · `V T H L R F` tools · `B` / `S` buy / sell · `Del` delete drawing · `Esc` cancel · `Ctrl+Z` undo · `Ctrl+Shift+Z` redo
+**Keyboard**: `Space` play/pause · `←` `→` step · `V T H L R F` lines · `P O Y G` forecasting · `A` anchored VWAP · `Shift+A` anchored profile · `Z` volume profile · `M` measure · `C` chart type · `B` / `S` buy / sell · `Alt+H` hide drawings · `Alt+L` lock · `Del` delete drawing · `Esc` cancel · `Ctrl+Z` undo · `Ctrl+Shift+Z` redo
 
-### Deploying (Vercel)
+### Auto-save
 
-1. Import the repository, set **Root Directory** to `fxreplay` (the site lives in this folder).
-2. Framework preset: *Other* · build command: none · output directory: `.`
-3. Deploy. `api/yahoo.js` and `api/binance.js` are picked up as serverless functions, so the deployed site streams live prices with no key and no extra configuration. Any static host works too (GitHub Pages, Netlify, S3) — the terminal then simply falls back to the labelled simulated series, since `/api` will not exist.
+Nothing in the terminal is a scratch pad. Every change is written to
+`localStorage` about half a second after you make it, and the header chip shows
+`Saved 14:32` (it flashes `Saving…` while a write is pending):
+
+- **Replay position**, instrument and timeframe — reload or reopen tomorrow and
+  the chart resumes at the same candle, with a `Resumed where you left off`
+  toast. `?new=1` starts a clean session instead.
+- **Drawings** — per instrument and timeframe, with undo/redo history.
+- **Paper trades** — the open ticket and every closed trade, which also land in
+  the dashboard journal (`fxr-trades`).
+- **Session notes** — a free-text box in the ticket panel, stamped onto every
+  trade you close while it is written.
+- **Chart preferences** — EMA 21 / EMA 50 / VWAP visibility and the chart type
+  (candles / line / area).
+- **An in-progress session card** appears on the dashboard with a **Resume**
+  link straight back to the same instrument and timeframe. **Save & end** turns
+  it into a completed session; **New session** starts a clean ticket.
+
+Storage keys: `fxr-auto` (the live session snapshot), `fxr-sessions`
+(dashboard cards, the in-progress one has `id: "live"`), `fxr-trades`,
+`fxr-draw:<symbol>:<tf>`, `fxr-tz`, `fxr-theme`.
+
+### Deploying
+
+**GitHub Pages (the live deployment)** — `.github/workflows/kyorakureplay-pages.yml`
+stages `fxreplay/` into `_site`, runs `scripts/fetch-market-data.mjs` to write a
+real market snapshot into `_site/data`, and publishes to Pages. Because the
+snapshot ships with the site, the terminal always has real candles even when a
+visitor's browser cannot reach a public feed.
+
+**Any other static host** — copy the `fxreplay/` folder. Without `/api` the
+terminal falls back to the public relays, then to the last cached prices, then
+to the clearly labelled simulated series (`api/yahoo.js` and `api/binance.js`
+are optional serverless proxies for hosts that support them).
 
 ## Everything is free
 

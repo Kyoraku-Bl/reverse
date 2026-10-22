@@ -67,6 +67,16 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Keep the previous market snapshot
+        # A fresh run that cannot reach a provider must not blank the chart:
+        # the newest snapshot is restored first and only overwritten per file.
+        uses: actions/cache@v4
+        with:
+          path: _site/data
+          key: market-data-${{ github.run_id }}
+          restore-keys: |
+            market-data-
+
       - name: Probe upstream reachability
         continue-on-error: true
         run: |
@@ -108,15 +118,21 @@ jobs:
         # after 10 minutes, keeping everything it already fetched, and NAS100 /
         # NQ futures are fetched first.
         continue-on-error: true
-        timeout-minutes: 14
+        timeout-minutes: 11
         env:
           ONLY: ${{ inputs.only }}
-          DEADLINE: ${{ inputs.deadline || '600' }}
+          DEADLINE: ${{ inputs.deadline || '420' }}
         run: |
+          set +e
           node fxreplay/scripts/fetch-market-data.mjs \
-            --out _site/data --concurrency 6 --deadline "${DEADLINE:-300}" ${ONLY:+--only "$ONLY"}
-          du -sh _site/data || true
-          ls _site/data | head -5 || true
+            --out _site/data --concurrency 8 --deadline "${DEADLINE:-420}" ${ONLY:+--only "$ONLY"}
+          code=$?
+          echo "snapshot exit code: $code"
+          du -sh _site/data 2>/dev/null || true
+          ls _site/data 2>/dev/null | head -5 || true
+          echo "--- snapshot report ---"
+          head -c 1200 _site/data-status.json 2>/dev/null || echo "no report written"
+          exit 0
 
       - name: Publish the snapshot status
         # Runner logs are not always reachable, so the job also commits a tiny

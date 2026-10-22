@@ -540,6 +540,11 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;bac
 .fc-monte{flex-direction:row;align-items:flex-end;gap:5px;padding:10px 12px;min-height:82px}
 .fc-monte span{flex:1;height:var(--h,40px);border-radius:3px 3px 0 0;background:linear-gradient(180deg,#8b6bff,rgba(139,107,255,.18))}
 .fc-monte span:nth-child(n+5){background:linear-gradient(180deg,#38e2a0,rgba(56,226,160,.15))}
+.fc-save{flex-direction:column;align-items:flex-start;gap:5px;padding:12px;min-height:82px;justify-content:center}
+.fc-save .fs-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:.58rem;color:#38e2a0;padding:2px 8px;border-radius:100px;background:rgba(56,226,160,.1);border:1px solid rgba(56,226,160,.28)}
+.fc-save .fs-chip i{width:6px;height:6px;border-radius:50%;background:#38e2a0}
+.fc-save .fs-line{font-family:var(--font-mono);font-size:.58rem;color:var(--txt-2)}
+.fc-save .fs-line--dim{color:var(--muted)}
 .fc-tf{flex-direction:row;flex-wrap:wrap;gap:4px;padding:10px;align-content:center}
 .fc-tf span{font-family:var(--font-mono);font-size:.54rem;padding:3px 7px;border-radius:4px;background:rgba(255,255,255,.05);color:var(--muted)}
 .fc-tf span.on{background:rgba(139,107,255,.28);color:#fff}
