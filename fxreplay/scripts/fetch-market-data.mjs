@@ -262,8 +262,15 @@ async function fillBinance(doc, c) {
 }
 
 /* ---------- run ---------- */
+/* Headline instruments first: if the runner runs out of time, the two tickers
+   the terminal opens by default (NAS100 and NQ futures) are always present. */
+const PRIORITY = ["NAS100", "NQ", "SPX500", "US30", "GER40", "XAUUSD", "BTCUSD", "ETHUSD"];
+
 async function main() {
-  const ids = ONLY.length ? ONLY : Object.keys(LIVE);
+  const ids = ONLY.length ? ONLY : Object.keys(LIVE).sort((a, b) => {
+    const pa = PRIORITY.indexOf(a), pb = PRIORITY.indexOf(b);
+    return (pa < 0 ? 99 : pa) - (pb < 0 ? 99 : pb);
+  });
   await fs.mkdir(OUT, { recursive: true });
 
   const ok = [];

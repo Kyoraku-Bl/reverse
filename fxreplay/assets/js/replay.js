@@ -437,6 +437,7 @@
     syncSymbolUI();
     syncUI();
     syncSourceBadge();
+    renderSrcPanel();
     scheduleDraw();
   }
 
@@ -499,11 +500,13 @@
     el.innerHTML = live
       ? '<span class="src-dot"></span>' + (stale ? "CACHED" : "LIVE") + " · " + (src && src.label ? src.label : "feed")
       : '<span class="src-dot"></span>SIMULATED';
-    var how = src && src.transport === "relay" ? " · via public relay"
+    var how = src && src.transport === "snapshot" ? " · site snapshot"
+      : src && src.transport === "relay" ? " · via public relay"
       : src && src.transport === "direct" ? " · direct from the exchange" : "";
+    var when = src && src.fetchedAt ? fmtFull(src.fetchedAt) : "just now";
     el.title = live
-      ? (stale ? "Last saved real prices from " : "Real market prices from ") +
-        (src && src.symbol ? src.symbol + how + " · " + fmtFull(src.fetchedAt || Date.now()) + " UTC" : "a public feed")
+      ? (stale ? "Last saved real prices" : "Real market prices") +
+        " from " + (src && src.symbol ? src.symbol : "a public feed") + how + " · " + when
       : "Public feed unavailable for this instrument — using the built-in synthetic engine";
     if (live && src && src.symbol) {
       var sym = $("#srcSymbol");
@@ -515,7 +518,7 @@
       note.textContent = "Live feed unavailable — these candles are simulated, not market prices.";
       if (stale) {
         note.hidden = false;
-        note.textContent = "Offline — showing the last real prices saved for this instrument (" + fmtFull(src.fetchedAt || Date.now()) + " UTC).";
+        note.textContent = "Offline — showing the last real prices saved for this instrument (" + fmtFull(src.fetchedAt || Date.now()) + ").";
       }
     }
   }
@@ -554,12 +557,22 @@
       copy.innerHTML += " This preview has no network access, so every instrument falls back to the offline engine.";
     }
     var via = st.transport === "proxy" ? "same-origin proxy"
+      : st.transport === "snapshot" ? "same-origin snapshot (CI)"
       : st.transport === "relay" ? "public relay (no proxy on this host)"
       : st.direct ? "direct from the exchange" : "checked on first load";
+    var ser = S.series;
+    var snapRow;
+    if (ser && ser.snapshot) {
+      var mins = Math.max(0, Math.round((Date.now() - ((ser.source && ser.source.fetchedAt) || Date.now())) / 60000));
+      snapRow = (ser.stale ? "older copy — fallback" : "fresh") + " · saved " + mins + " min ago";
+    } else {
+      snapRow = "not used for this chart";
+    }
     var rows = [
       ["Yahoo Finance", st.yahoo === true ? "reachable" : st.yahoo === false ? "unavailable" : "unchecked"],
       ["Binance", st.binance === true ? "reachable" : st.binance === false ? "unavailable" : "unchecked"],
       ["Transport", via],
+      ["Saved snapshot", snapRow],
       ["Simulated fallback", st.mode === "synthetic" ? "forced on" : "labelled only"]
     ];
     list.innerHTML = rows.map(function (r) {
