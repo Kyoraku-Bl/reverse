@@ -1,0 +1,1289 @@
+.video-studio {
+  padding-top: 16px;
+  min-height: 70vh;
+}
+.video-studio > .section-heading {
+  margin: 10px 0 30px;
+}
+.video-studio h1 {
+  font-family: Manrope, sans-serif;
+  font-size: 32px;
+  letter-spacing: -1.3px;
+  margin-top: 12px;
+}
+.video-studio > .section-heading p {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.video-empty {
+  border: 1px dashed #d8dfd0;
+  background: linear-gradient(120deg, #f4f7ef, #f7f2fa);
+  border-radius: 16px;
+  padding: 65px 25px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+  gap: 20px;
+}
+.video-empty > span {
+  background: #eae0f4;
+  color: #9b73be;
+  width: 85px;
+  height: 85px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  margin-bottom: 5px;
+}
+.video-empty h2 {
+  font-size: 25px;
+}
+.video-empty p {
+  max-width: 430px;
+  font-size: 12px;
+  color: #929d83;
+  line-height: 1.9;
+}
+.video-empty > small {
+  color: #a3ad95;
+  font-size: 10px;
+  margin-top: 6px;
+}
+.vs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+.vs-grid > article {
+  border: 1px solid #e5eadd;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  padding-bottom: 17px;
+}
+.vs-thumbnail {
+  width: 100%;
+  height: 170px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: linear-gradient(145deg, #e3ead9, #ded1ee);
+  color: #a08cb2;
+}
+.vs-thumbnail > span {
+  position: absolute;
+  bottom: 13px;
+  left: 15px;
+  font-size: 10px;
+  color: #728260;
+  background: #ffffffe0;
+  border-radius: 4px;
+  padding: 5px 7px;
+}
+.vs-thumbnail > b {
+  position: absolute;
+  right: 13px;
+  bottom: 16px;
+  font-size: 9px;
+  font-weight: 400;
+  color: #82946f;
+}
+.vs-grid > article > div:not(.vs-actions) {
+  padding: 15px 16px 0;
+}
+.vs-grid h3 {
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: left;
+}
+.vs-grid small {
+  font-size: 10px;
+  color: #a1ac93;
+  display: block;
+  margin: 6px 5px 0;
+}
+.vs-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-right: 15px;
+  margin-top: 12px;
+  color: #a394b1;
+}
+.vs-actions > button {
+  display: flex;
+  padding: 4px;
+}
+.vs-loading {
+  padding: 30px;
+  color: #9cab88;
+  font-size: 13px;
+}
+.video-editor {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  background: #f1f3ed;
+  color: #3d4a35;
+}
+.ve-header {
+  height: 67px;
+  flex-shrink: 0;
+  background: #fff;
+  border-bottom: 1px solid #e3e8da;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 21px;
+}
+.ve-back {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #9780ab;
+  white-space: nowrap;
+}
+.ve-back b {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  font-size: 25px;
+  letter-spacing: -1px;
+  color: #8150b6;
+}
+.ve-back > span {
+  font-size: 8px;
+  letter-spacing: 1px;
+  border: 1px solid #e3d8ee;
+  background: #f6f1fb;
+  border-radius: 4px;
+  padding: 5px 6px;
+}
+.ve-header > input {
+  border: 0;
+  background: none;
+  border-left: 1px solid #e2e7d7;
+  color: #748564;
+  padding: 8px 14px;
+  font-size: 12px;
+  flex: 1;
+  min-width: 60px;
+  max-width: 450px;
+}
+.ve-header > small {
+  margin-left: auto;
+  color: #a4af95;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.ve-header > .ve-save {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dfe6d4;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #7d8e6b;
+}
+.ve-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid #8245d3;
+  background: #8245d3;
+  color: #fff !important;
+  padding: 11px 15px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.ve-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.ve-nav {
+  background: #fff;
+  border-right: 1px solid #e4e9dc;
+  display: flex;
+  flex-direction: column;
+  width: 70px;
+  flex-shrink: 0;
+  margin: 0;
+  padding-top: 15px;
+  gap: 5px;
+}
+.ve-nav > button {
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 0;
+  font-size: 9px;
+  color: #9ba78b;
+  gap: 8px;
+}
+.ve-nav > button.active {
+  background: #eee6f7;
+  color: #9c72ba;
+  font-weight: 400;
+}
+.ve-nav > button.active:before {
+  display: none;
+}
+.ve-panel {
+  background: #fff;
+  width: 272px;
+  flex-shrink: 0;
+  border-right: 1px solid #e1e7d7;
+  padding: 23px 19px;
+  overflow: auto;
+}
+.ve-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 8px;
+}
+.ve-panel h2 {
+  font-size: 17px;
+  letter-spacing: -0.6px;
+}
+.ve-panel p {
+  font-size: 11px;
+  line-height: 1.9;
+  color: #97a286;
+  margin-bottom: 18px;
+}
+.ve-wide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid #dce5d1;
+  padding: 12px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #9877ae;
+  margin: 15px 0;
+}
+.ve-wide.ve-primary {
+  border-color: #8245d3;
+}
+.ve-hint {
+  font-size: 9px;
+  line-height: 1.9;
+  display: block;
+  color: #a3ac97;
+  margin: 10px 0 20px;
+}
+.ve-media-list {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-top: 24px;
+}
+.ve-media-list > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #e3e9da;
+  border-radius: 7px;
+  padding: 11px 8px;
+}
+.ve-media-icon {
+  width: 34px;
+  height: 38px;
+  border-radius: 6px;
+  background: #f2edf7;
+  color: #a087b5;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.ve-media-list > div > div {
+  flex: 1;
+  min-width: 0;
+}
+.ve-media-list b {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #758966;
+}
+.ve-media-list small {
+  font-size: 9px;
+  color: #a9b29e;
+  display: block;
+  margin-top: 5px;
+}
+.ve-media-list button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  color: #9e80b2;
+  background: #f6f0fa;
+}
+.ve-empty-library {
+  padding: 45px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  color: #c0b0cd;
+  text-align: center;
+}
+.ve-panel label {
+  display: block;
+  font-size: 10px;
+  color: #91a07f;
+  margin: 17px 0;
+}
+.ve-panel input,
+.ve-panel select,
+.ve-panel textarea {
+  display: block;
+  width: 100%;
+  border: 1px solid #dde5d2;
+  border-radius: 5px;
+  background: #fdfefa;
+  font-size: 11px;
+  color: #788968;
+  padding: 10px;
+  margin-top: 7px;
+  min-width: 0;
+}
+.ve-panel textarea {
+  resize: vertical;
+  min-height: 70px;
+  line-height: 1.6;
+}
+.ve-panel input[type="color"] {
+  height: 36px;
+  padding: 3px;
+  cursor: pointer;
+}
+.ve-panel input[type="range"] {
+  padding: 0;
+  accent-color: #a17ac1;
+}
+.ve-fields {
+  display: flex;
+  gap: 11px;
+}
+.ve-fields > label {
+  flex: 1;
+  width: 0;
+  margin: 9px 0;
+}
+.ve-source-name {
+  font-size: 12px;
+  color: #7b8d69;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 13px;
+}
+.ve-clip-tools {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+.ve-clip-tools > button {
+  border: 1px solid #e1e7d7;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  border-radius: 5px;
+  color: #a089b1;
+  flex: 1;
+}
+.ve-caption-card {
+  border: 1px solid #e1e7d6;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 18px 0;
+}
+.ve-caption-card > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #a889bc;
+}
+.ve-caption-card b {
+  font-size: 10px;
+  font-weight: 500;
+  color: #94a482;
+}
+.ve-caption-card > div:first-child > button {
+  display: flex;
+  padding: 0;
+}
+.ve-caption-card input,
+.ve-caption-card select {
+  font-size: 10px;
+  padding: 8px;
+}
+.ve-caption-card input[type="color"] {
+  padding: 2px;
+}
+.ve-caption-card > label {
+  margin: 12px 0;
+}
+.ve-job {
+  padding: 17px 13px;
+  border: 1px solid #e1d9ed;
+  background: #f8f4fb;
+  border-radius: 8px;
+  margin-top: 25px;
+}
+.ve-job > b {
+  display: block;
+  font-size: 12px;
+  color: #9474ad;
+  line-height: 1.6;
+}
+.ve-job p {
+  margin-top: 12px;
+  word-break: break-word;
+  font-size: 10px;
+}
+.ve-job progress {
+  width: 100%;
+  accent-color: #a27bc4;
+  height: 7px;
+  border-radius: 3px;
+  margin-top: 19px;
+}
+.ve-job a {
+  margin-top: 18px;
+  font-size: 10px;
+}
+.ve-job.failed,
+.ve-job.cancelled {
+  background: #fff5ed;
+  border-color: #ebddcf;
+}
+.ve-job.failed > b {
+  color: #b4886e;
+}
+.ve-workspace {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ve-preview-info {
+  height: 41px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 0 22px;
+  color: #a3ad95;
+  font-size: 9px;
+  background: #fafcf6;
+  border-bottom: 1px solid #e4e9da;
+}
+.ve-preview-info > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ve-preview-info > span:last-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ve-stage {
+  flex: 1;
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+}
+.ve-preview-frame {
+  flex-shrink: 0;
+  position: relative;
+  background: #111912;
+  box-shadow: 0 6px 25px #384f2220;
+  overflow: hidden;
+}
+.ve-preview-frame > video {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+.ve-preview-caption {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.15em 0.28em;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 400;
+  white-space: pre;
+  line-height: 1.15;
+  background: #0006;
+  pointer-events: none;
+  text-align: center;
+  max-width: none;
+}
+.ve-preview-caption.top {
+  top: 8%;
+}
+.ve-preview-caption.center {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.ve-preview-caption.bottom {
+  bottom: 8%;
+}
+.ve-start {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  color: #d9e1cf;
+  padding: 20px;
+  text-align: center;
+}
+.ve-start > svg {
+  color: #718765;
+}
+.ve-start > b {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  font-size: 27px;
+}
+.ve-start > span {
+  font-size: 10px;
+  color: #8e9f81;
+}
+.ve-start button {
+  color: #c4b2d4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #6d775b;
+  padding: 10px 14px;
+  border-radius: 5px;
+  font-size: 10px;
+  margin-top: 6px;
+}
+.ve-playback {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  padding: 12px 22px;
+  border-top: 1px solid #e2e8d7;
+  flex-shrink: 0;
+  background: #fafcf6;
+}
+.ve-playback > button {
+  display: flex;
+  padding: 7px;
+  color: #9a78b4;
+  border-radius: 5px;
+}
+.ve-playback > button:first-child {
+  border: 1px solid #e3d8ef;
+  background: #f2eaf9;
+  padding: 9px;
+}
+.ve-playback > span {
+  font-size: 10px;
+  white-space: nowrap;
+  color: #91a17d;
+  font-variant-numeric: tabular-nums;
+}
+.ve-playback i {
+  color: #c3ccb8;
+  font-style: normal;
+  margin: 0 4px;
+}
+.ve-playback > input {
+  width: 80px;
+  flex: 1;
+  accent-color: #a582c2;
+  height: 4px;
+  cursor: pointer;
+}
+.ve-timeline-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 21px;
+  border-top: 1px solid #e2e7d7;
+  border-bottom: 1px solid #e6eadd;
+  background: #fff;
+  flex-shrink: 0;
+  gap: 10px;
+}
+.ve-timeline-tools > span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 10px;
+  color: #8b9b78;
+}
+.ve-timeline-tools small {
+  font-size: 9px;
+  color: #b0baa3;
+  margin-left: 9px;
+}
+.ve-timeline-tools > div {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 9px;
+  color: #a1ae90;
+}
+.ve-timeline-tools button {
+  padding: 0;
+  display: flex;
+  color: #a996b9;
+}
+.ve-timeline-scroll {
+  height: 200px;
+  flex-shrink: 0;
+  overflow: auto;
+  background: #f9fbf5;
+  padding-left: 20px;
+}
+.ve-timeline-track {
+  position: relative;
+  min-height: 180px;
+  padding-top: 35px;
+  padding-bottom: 15px;
+}
+.ve-ruler {
+  height: 30px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  border-bottom: 1px solid #e6ebdc;
+  cursor: crosshair;
+}
+.ve-ruler > span {
+  position: absolute;
+  top: 9px;
+  font-size: 8px;
+  color: #a9b59b;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.ve-ruler > span:after {
+  content: "";
+  position: absolute;
+  height: 6px;
+  width: 1px;
+  background: #d8e1cb;
+  bottom: -11px;
+  left: 0;
+}
+.ve-clips-lane {
+  height: 65px;
+  position: relative;
+}
+.ve-timeline-clip {
+  position: absolute;
+  top: 0;
+  height: 62px;
+  border: 1px solid #dacde8;
+  background: repeating-linear-gradient(
+    115deg,
+    #ede5f5,
+    #ede5f5 12px,
+    #eae0f3 12px,
+    #eae0f3 24px
+  );
+  border-radius: 5px;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
+  padding: 7px 9px;
+  overflow: hidden;
+  cursor: grab;
+  text-align: left;
+  color: #a188b4;
+  gap: 5px;
+}
+.ve-timeline-clip > svg {
+  position: absolute;
+  right: 9px;
+  bottom: 8px;
+  opacity: 0.6;
+}
+.ve-timeline-clip > span {
+  font-size: 10px;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #8e6daa;
+  display: block;
+}
+.ve-timeline-clip small {
+  font-size: 8px;
+  color: #ac97bb;
+  white-space: nowrap;
+}
+.ve-timeline-clip.selected {
+  border: 2px solid #a07bc0;
+  background: repeating-linear-gradient(
+    115deg,
+    #e9ddf4,
+    #e9ddf4 12px,
+    #e5d7f2 12px,
+    #e5d7f2 24px
+  );
+  padding: 6px 8px;
+}
+.ve-timeline-empty {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: #ab9cba;
+  padding: 23px 14px;
+  border: 1px dashed #cfc2dd;
+  border-radius: 5px;
+  min-width: 350px;
+  background: #f6f1fa;
+}
+.ve-audio-lane {
+  height: 34px;
+  margin-top: 8px;
+}
+.ve-audio-lane > span {
+  height: 28px;
+  border: 1px solid #d3dfc2;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    #e5edda,
+    #e5edda 4px,
+    #e1e9d3 4px,
+    #e1e9d3 7px
+  );
+  padding: 6px 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #8c9e71;
+  font-size: 9px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ve-audio-lane > button {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  color: #a5b394;
+  font-size: 9px;
+  border: 1px dashed #d9e3cd;
+  border-radius: 4px;
+  min-width: 250px;
+}
+.ve-captions-lane {
+  height: 28px;
+  position: relative;
+  margin-top: 5px;
+}
+.ve-captions-lane > button {
+  position: absolute;
+  height: 23px;
+  background: #f2e7d5;
+  border: 1px solid #e2d2b6;
+  border-radius: 4px;
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #ad9976;
+  padding: 4px 7px;
+}
+.ve-playhead-line {
+  position: absolute;
+  top: 0;
+  bottom: 4px;
+  width: 1px;
+  background: #966fba;
+  pointer-events: none;
+  z-index: 2;
+}
+.ve-playhead-line > i {
+  position: absolute;
+  top: 0;
+  left: -4px;
+  width: 9px;
+  height: 10px;
+  background: #966fba;
+  clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
+}
+.ve-status {
+  font-size: 9px;
+  color: #99a989;
+  background: #fff;
+  border-top: 1px solid #e4e9da;
+  padding: 12px 20px;
+  min-height: 36px;
+  flex-shrink: 0;
+  line-height: 1.5;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.video-editor button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+body:has(.video-editor) {
+  overflow: hidden;
+}
+body:has(.video-editor) .main,
+body:has(.video-editor) .sidebar {
+  visibility: hidden;
+}
+body:has(.video-editor) .video-editor {
+  visibility: visible;
+}
+@media (max-width: 1100px) {
+  .ve-panel {
+    width: 245px;
+    padding: 20px 15px;
+  }
+  .ve-nav {
+    width: 62px;
+  }
+  .ve-header {
+    gap: 10px;
+    padding: 0 14px;
+  }
+  .ve-header > small {
+    display: none;
+  }
+  .ve-header > input {
+    max-width: 300px;
+  }
+  .vs-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .video-studio h1 {
+    font-size: 27px;
+  }
+  .video-studio .section-heading {
+    gap: 15px;
+  }
+  .video-studio .primary-button {
+    font-size: 10px;
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
+}
+@media (max-width: 700px) {
+  .video-studio {
+    padding-top: 4px;
+  }
+  .video-studio > .section-heading {
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 23px;
+  }
+  .video-studio h1 {
+    font-size: 27px;
+    line-height: 1.3;
+  }
+  .video-studio > .section-heading p {
+    font-size: 11px;
+  }
+  .video-empty {
+    padding: 40px 18px;
+    gap: 18px;
+  }
+  .video-empty h2 {
+    font-size: 23px;
+  }
+  .video-empty p {
+    font-size: 11px;
+  }
+  .video-empty > small {
+    font-size: 9px;
+  }
+  .vs-grid {
+    grid-template-columns: 1fr;
+  }
+  .ve-header {
+    height: 57px;
+    padding: 0 10px;
+    gap: 6px;
+  }
+  .ve-back {
+    gap: 6px;
+  }
+  .ve-back b {
+    font-size: 19px;
+  }
+  .ve-back > svg {
+    width: 16px;
+  }
+  .ve-back > span {
+    display: none;
+  }
+  .ve-header > input {
+    font-size: 10px;
+    padding: 6px 8px;
+    min-width: 35px;
+  }
+  .ve-header > .ve-save {
+    padding: 8px;
+  }
+  .ve-save > span {
+    display: none;
+  }
+  .ve-header > .ve-primary {
+    padding: 8px 10px;
+    font-size: 9px;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .ve-header > .ve-primary svg {
+    width: 13px;
+  }
+  .ve-body {
+    position: relative;
+  }
+  .ve-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 56px;
+    border-top: 1px solid #e2e8d6;
+    border-right: 0;
+    z-index: 4;
+    flex-direction: row;
+    padding: 0;
+    gap: 0;
+    justify-content: space-around;
+  }
+  .ve-nav > button {
+    font-size: 8px;
+    gap: 5px;
+    padding: 8px 17px;
+  }
+  .ve-nav svg {
+    width: 18px;
+    height: 18px;
+  }
+  .ve-panel {
+    position: absolute;
+    bottom: 56px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 218px;
+    border-top: 1px solid #e3e9d9;
+    padding: 12px 17px;
+    z-index: 3;
+  }
+  .ve-panel-title {
+    margin-bottom: 7px;
+  }
+  .ve-panel h2 {
+    font-size: 14px;
+  }
+  .ve-panel p {
+    font-size: 9px;
+    line-height: 1.7;
+    margin-bottom: 9px;
+  }
+  .ve-wide {
+    font-size: 10px;
+    padding: 9px;
+    margin: 10px 0;
+    max-width: 380px;
+  }
+  .ve-hint {
+    font-size: 8px;
+    margin: 8px 0 12px;
+  }
+  .ve-media-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .ve-media-list > div {
+    padding: 7px;
+    gap: 6px;
+    min-width: 0;
+  }
+  .ve-media-list b {
+    font-size: 9px;
+  }
+  .ve-media-list small {
+    font-size: 8px;
+  }
+  .ve-media-icon {
+    width: 25px;
+    height: 30px;
+  }
+  .ve-media-icon svg {
+    width: 17px;
+  }
+  .ve-media-list button {
+    width: 21px;
+    height: 25px;
+  }
+  .ve-empty-library {
+    padding: 15px 0;
+    gap: 10px;
+  }
+  .ve-empty-library > svg {
+    width: 22px;
+    height: 22px;
+  }
+  .ve-empty-library p {
+    font-size: 10px;
+  }
+  .ve-workspace {
+    padding-bottom: 274px;
+    width: 100%;
+  }
+  .ve-preview-info {
+    height: 30px;
+    font-size: 8px;
+    padding: 0 13px;
+    gap: 10px;
+  }
+  .ve-preview-info > span > svg {
+    height: 12px;
+    width: 12px;
+  }
+  .ve-stage {
+    min-height: 100px;
+    padding: 12px;
+  }
+  .ve-start {
+    gap: 9px;
+    padding: 10px;
+  }
+  .ve-start > svg {
+    width: 25px;
+    height: 25px;
+  }
+  .ve-start > b {
+    font-size: 19px;
+  }
+  .ve-start > span {
+    font-size: 8px;
+  }
+  .ve-start button {
+    font-size: 8px;
+    padding: 7px 10px;
+    margin-top: 2px;
+  }
+  .ve-playback {
+    padding: 7px 12px;
+    gap: 9px;
+  }
+  .ve-playback > button {
+    padding: 4px;
+  }
+  .ve-playback > button:first-child {
+    padding: 5px;
+  }
+  .ve-playback > button > svg {
+    width: 15px;
+    height: 15px;
+  }
+  .ve-playback > span {
+    font-size: 8px;
+  }
+  .ve-playback i {
+    margin: 0 2px;
+  }
+  .ve-timeline-tools {
+    padding: 8px 12px;
+  }
+  .ve-timeline-tools > span {
+    font-size: 9px;
+    gap: 6px;
+  }
+  .ve-timeline-tools small {
+    display: none;
+  }
+  .ve-timeline-tools > div {
+    font-size: 8px;
+    gap: 8px;
+  }
+  .ve-timeline-scroll {
+    height: 139px;
+    padding-left: 12px;
+  }
+  .ve-timeline-track {
+    min-height: 125px;
+    padding-top: 26px;
+  }
+  .ve-ruler {
+    height: 23px;
+  }
+  .ve-ruler > span {
+    top: 6px;
+    font-size: 7px;
+  }
+  .ve-ruler > span:after {
+    bottom: -8px;
+    height: 4px;
+  }
+  .ve-clips-lane {
+    height: 49px;
+  }
+  .ve-timeline-clip {
+    height: 46px;
+    padding: 5px 7px;
+    gap: 4px;
+  }
+  .ve-timeline-clip.selected {
+    padding: 4px 6px;
+  }
+  .ve-timeline-clip > span {
+    font-size: 9px;
+  }
+  .ve-timeline-clip small {
+    font-size: 7px;
+  }
+  .ve-timeline-clip > svg {
+    width: 12px;
+    height: 12px;
+    bottom: 5px;
+  }
+  .ve-timeline-empty {
+    padding: 16px 10px;
+    font-size: 9px;
+    min-width: 310px;
+  }
+  .ve-audio-lane {
+    height: 24px;
+    margin-top: 5px;
+  }
+  .ve-audio-lane > span,
+  .ve-audio-lane > button {
+    height: 23px;
+    padding: 4px 7px;
+    font-size: 8px;
+  }
+  .ve-captions-lane {
+    height: 22px;
+    margin-top: 4px;
+  }
+  .ve-captions-lane > button {
+    height: 19px;
+    padding: 3px 5px;
+    font-size: 7px;
+  }
+  .ve-status {
+    padding: 8px 12px;
+    font-size: 8px;
+    min-height: 29px;
+  }
+  .ve-panel label {
+    margin: 10px 0;
+    font-size: 9px;
+  }
+  .ve-panel input,
+  .ve-panel select,
+  .ve-panel textarea {
+    padding: 8px;
+    margin-top: 5px;
+    font-size: 10px;
+  }
+  .ve-fields > label {
+    margin: 6px 0;
+  }
+  .ve-panel .ve-caption-card {
+    margin: 13px 0;
+  }
+  .ve-panel .ve-clip-tools {
+    margin-top: 12px;
+  }
+  .ve-clip-tools button {
+    padding: 8px;
+  }
+  .ve-source-name {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+  .ve-job {
+    margin-top: 14px;
+    padding: 12px;
+  }
+  .ve-job > b {
+    font-size: 11px;
+  }
+  .ve-job a {
+    padding: 9px;
+    font-size: 10px;
+  }
+  .ve-panel .free-badge {
+    font-size: 7px;
+    padding: 3px 5px;
+  }
+}
+@media (max-height: 680px) and (max-width: 700px) {
+  .ve-panel {
+    height: 170px;
+  }
+  .ve-workspace {
+    padding-bottom: 226px;
+  }
+  .ve-timeline-scroll {
+    height: 110px;
+  }
+  .ve-preview-info {
+    display: none;
+  }
+  .ve-stage {
+    min-height: 80px;
+  }
+  .ve-start > b {
+    font-size: 16px;
+  }
+  .ve-start > span {
+    display: none;
+  }
+  .ve-start > svg {
+    display: none;
+  }
+}
