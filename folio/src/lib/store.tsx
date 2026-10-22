@@ -8,6 +8,7 @@ import type { Account, AgentConfig, AppState, BacktestSession, DayPlan, Filters,
 
 const KEY = "folio-state-v1";
 const BAK = "folio-state-v1-backup";
+const VAULT = "folio-vault-v1";
 
 const SEED_NOTES = new Set(["n1", "n2", "n3", "n4", "n5", "n6"]);
 const SEED_MESSAGES = new Set(["m1", "m2", "m3", "m4", "m5", "m6"]);
@@ -56,11 +57,60 @@ function load(): AppState {
   return parseState(localStorage.getItem(KEY)) ?? parseState(localStorage.getItem(BAK)) ?? freshState();
 }
 
+type VaultEntry = { salt: string; hash: string; state: AppState };
+
+export function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function loadVault(): Record<string, VaultEntry> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(VAULT) || "{}") as Record<string, VaultEntry>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveVault(vault: Record<string, VaultEntry>) {
+  localStorage.setItem(VAULT, JSON.stringify(vault));
+}
+
+function rememberBook(next: AppState) {
+  const email = next.user?.email ? normalizeEmail(next.user.email) : "";
+  if (!email) return;
+  const vault = loadVault();
+  const prev = vault[email];
+  vault[email] = prev ? { ...prev, state: next } : { salt: "", hash: "", state: next };
+  saveVault(vault);
+}
+
+async function hashPassword(email: string, password: string, salt: string) {
+  const data = new TextEncoder().encode(`${salt}:${normalizeEmail(email)}:${password}`);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function randomSalt() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function userFrom(email: string): User {
+  return { name: "Trader", email, plan: "pro", city: "Salé", timezone: "Africa/Casablanca" };
+}
+
 export function writeState(next: AppState) {
   const raw = JSON.stringify(next);
   localStorage.setItem(KEY, raw);
   localStorage.setItem(BAK, raw);
   localStorage.setItem("folio-saved-at", new Date().toISOString());
+  try {
+    rememberBook(next);
+  } catch {
+    /* A full disk quota should not block the primary save. */
+  }
 }
 
 interface Store extends AppState {
@@ -69,6 +119,10 @@ interface Store extends AppState {
   base: number;
   savedAt: string;
   login: (user: User) => void;
+  signup: (user: User, password: string) => Promise<string>;
+  loginAccount: (email: string, password: string) => Promise<string>;
+  setPassword: (password: string) => Promise<string>;
+  hasPassword: boolean;
   logout: () => void;
   setTheme: (theme: "dark" | "light") => void;
   setFilters: (patch: Partial<Filters>) => void;
@@ -131,6 +185,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
     const filtered = applyFilters(state.trades, state.filters);
     const base = accountBase([state.filters.account], state.accounts);
+    const bindBook = async (user: User, password: string, claim: boolean) => {
+      const email = normalizeEmail(user.email);
+      if (!email.includes("@") || !email.split("@")[1]?.includes(".")) return "Enter a real email.";
+      if (password.trim().length < 4) return "Password needs at least 4 characters.";
+      const vault = loadVault();
+      const current = state.user?.email ? normalizeEmail(state.user.email) : "";
+      if (!claim && vault[email]?.hash && email !== current) return "This email already has a desk on this browser. Log in with it.";
+      const salt = randomSalt();
+      const hash = await hashPassword(email, password, salt);
+      const next: AppState = {
+        ...state,
+        user: { ...user, email, name: user.name.trim() || state.user?.name || "Trader" },
+      };
+      if (current && current !== email) delete vault[current];
+      vault[email] = { salt, hash, state: next };
+      saveVault(vault);
+      writeState(next);
+      setState(next);
+      setSavedAt(new Date().toISOString());
+      return "";
+    };
     return {
       ...state,
       filtered,
@@ -139,7 +214,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       toasts,
       savedAt,
       toast,
-      login: (user) => commit((s) => ({ ...s, user })),
+      login: (user) => commit((s) => ({ ...s, user: { ...user, email: normalizeEmail(user.email) } })),
+      signup: (user, password) => bindBook(user, password, false),
+      loginAccount: async (email, password) => {
+        const key = normalizeEmail(email);
+        const entry = loadVault()[key];
+        if (!entry) return "No saved desk for this email on this browser. Create one, and the journal will stay under it.";
+        if (password.trim().length < 4) return "Password needs at least 4 characters.";
+        if (!entry.hash) {
+          const salt = randomSalt();
+          const hash = await hashPassword(key, password, salt);
+          const restored = parseState(JSON.stringify(entry.state)) ?? entry.state;
+          const next = { ...restored, user: { ...(restored.user ?? userFrom(key)), email: key } };
+          const vault = loadVault();
+          vault[key] = { salt, hash, state: next };
+          saveVault(vault);
+          writeState(next);
+          setState(next);
+          setSavedAt(new Date().toISOString());
+          return "";
+        }
+        const hash = await hashPassword(key, password, entry.salt);
+        if (hash !== entry.hash) return "Wrong password for this email.";
+        const next = parseState(JSON.stringify(entry.state)) ?? entry.state;
+        writeState(next);
+        setState(next);
+        setSavedAt(new Date().toISOString());
+        return "";
+      },
+      setPassword: (password) => {
+        if (!state.user?.email) return Promise.resolve("Log in first.");
+        return bindBook(state.user, password, true);
+      },
+      hasPassword: Boolean(state.user?.email && loadVault()[normalizeEmail(state.user.email)]?.hash),
       logout: () => commit((s) => ({ ...s, user: null })),
       setTheme: (theme) => commit((s) => ({ ...s, theme })),
       setFilters: (patch) => commit((s) => ({ ...s, filters: { ...s.filters, ...patch } })),

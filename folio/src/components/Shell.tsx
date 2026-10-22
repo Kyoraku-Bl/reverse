@@ -102,7 +102,7 @@ export function AppShell() {
         <header className="topbar">
           <h1>{title}</h1>
           <span className="faint" style={{ fontSize: 12 }}>{now} Casablanca</span>
-          <span className="badge good" title="Saved in this browser. Refresh keeps your trades, notes, and settings.">
+          <span className="badge good" title={store.user?.email ? `Autosaved in this browser under ${store.user.email}. Refresh keeps your trades.` : "Autosaved in this browser. Refresh keeps your trades."}>
             <Check size={12} /> {store.savedAt ? `Saved ${new Date(store.savedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Autosave on"}
           </span>
           <div className="grow" />

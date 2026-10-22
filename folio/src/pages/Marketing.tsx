@@ -331,7 +331,7 @@ export function Legal({ kind }: { kind: "privacy" | "terms" }) {
     <section className="section" style={{ maxWidth: 760 }}>
       <h2>{kind === "privacy" ? "Privacy" : "Terms"}</h2>
       {kind === "privacy" ? (
-        <p className="lede" style={{ marginTop: 12 }}>This demo stores your journal in local storage on this browser. It is not sent to a server. Export a backup from Settings. Clearing site data deletes it. Do not paste live account credentials into the broker connect screen — that control is a simulation.</p>
+        <p className="lede" style={{ marginTop: 12 }}>Your journal autosaves in this browser under the email you log in with. It is not sent to a server, so the same email on another computer does not bring it back. Export a JSON backup from Settings for that. Clearing site data deletes the copy in this browser. Do not paste live account credentials into the broker connect screen — that control is a simulation.</p>
       ) : (
         <p className="lede" style={{ marginTop: 12 }}>Folio is a demonstration product. It does not execute live orders, custody funds, or provide investment advice. Prop rules shown are sample sheets and may not match a firm’s current program. You are responsible for confirming every rule with the firm before you trade.</p>
       )}
@@ -342,12 +342,23 @@ export function Legal({ kind }: { kind: "privacy" | "terms" }) {
 export function AuthPage({ mode }: { mode: "login" | "signup" }) {
   const store = useStore();
   const navigate = useNavigate();
-  const [name, setName] = useState("Amine El Idrissi");
-  const [email, setEmail] = useState("amine@folio.demo");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [plan, setPlan] = useState<"essential" | "pro" | "ultra">("pro");
-  const go = () => {
-    const user = { name: name || "Amine El Idrissi", email, plan, city: "Salé", timezone: "Africa/Casablanca" };
-    store.login(user);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    setBusy(true);
+    setError("");
+    const result = mode === "login"
+      ? await store.loginAccount(email, password)
+      : await store.signup({ name: name || "Trader", email, plan, city: "Salé", timezone: "Africa/Casablanca" }, password);
+    setBusy(false);
+    if (result) {
+      setError(result);
+      return;
+    }
     navigate("/app");
   };
   return (
@@ -355,11 +366,11 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
       <div className="auth-card">
         <Link to="/" className="brand"><Logo /> Folio</Link>
         <h2 style={{ margin: "14px 0 6px" }}>{mode === "login" ? "Welcome back" : "Open your desk"}</h2>
-        <p className="muted">The journal starts empty. Nothing is sent to a server.</p>
+        <p className="muted">Trades and notes autosave in this browser under your email. Nothing is sent to a server.</p>
         <div className="stack" style={{ marginTop: 14 }}>
-          {mode === "signup" && <Field label="Name"><input value={name} onChange={(e) => setName(e.target.value)} /></Field>}
-          <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
-          <Field label="Password"><input type="password" defaultValue="demo-only" /></Field>
+          {mode === "signup" && <Field label="Name"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" /></Field>}
+          <Field label="Email"><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" autoComplete="email" /></Field>
+          <Field label="Password"><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" autoComplete={mode === "login" ? "current-password" : "new-password"} /></Field>
           {mode === "signup" && (
             <Field label="Plan">
               <select value={plan} onChange={(e) => setPlan(e.target.value as never)}>
@@ -369,8 +380,8 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
               </select>
             </Field>
           )}
-          <button className="btn btn-primary" onClick={go}>{mode === "login" ? "Log in" : "Create the desk"}</button>
-          <button className="btn btn-ghost" onClick={go}>Continue as Amine in Salé</button>
+          {error && <p className="red">{error}</p>}
+          <button className="btn btn-primary" disabled={busy} onClick={go}>{mode === "login" ? "Log in" : "Save this desk under my email"}</button>
           <p className="faint">{mode === "login" ? <Link to="/signup">Need an account?</Link> : <Link to="/login">Already have a desk?</Link>}</p>
         </div>
       </div>

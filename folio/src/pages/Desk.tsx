@@ -351,6 +351,17 @@ export function Accounts() {
 
 export function Settings() {
   const store = useStore();
+  const [email, setEmail] = useState(store.user?.email && store.user.email !== "amine@folio.demo" ? store.user.email : "");
+  const [password, setPassword] = useState("");
+  const [note, setNote] = useState("");
+  const saveEmail = async () => {
+    const result = await store.signup(
+      { name: store.user?.name || "Trader", email, plan: store.user?.plan || "pro", city: store.user?.city || "Salé", timezone: store.user?.timezone || "Africa/Casablanca" },
+      password,
+    );
+    setNote(result || `This journal now autosaves under ${email.trim().toLowerCase()}.`);
+    if (!result) setPassword("");
+  };
   return (
     <div className="stack" style={{ maxWidth: 720 }}>
       <div className="card">
@@ -369,10 +380,39 @@ export function Settings() {
         <button className="btn btn-ghost" onClick={() => store.setTheme(store.theme === "dark" ? "light" : "dark")}>Theme: {store.theme}</button>
       </div>
       <div className="card">
+        <h3>Autosave</h3>
+        <p className="muted">Every trade, note, account, and permission is saved in this browser as you type. Log in with the same email and password on this computer to open the same desk. It is not stored on a server, so another phone needs the JSON file below.</p>
+        <div className="stack" style={{ marginTop: 12 }}>
+          <Field label="Email"><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" /></Field>
+          <Field label={store.hasPassword ? "New password" : "Password"}><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" /></Field>
+          <button className="btn btn-primary" onClick={saveEmail}>{store.hasPassword ? "Update email lock" : "Save this desk under my email"}</button>
+          {note && <p className={note.startsWith("This journal") ? "green" : "red"}>{note}</p>}
+        </div>
+      </div>
+      <div className="card">
         <h3>Backup</h3>
         <div className="row">
           <button className="btn btn-primary" onClick={() => {
-            const blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
+            const blob = new Blob([JSON.stringify({
+              version: store.version,
+              user: store.user,
+              theme: store.theme,
+              trades: store.trades,
+              playbooks: store.playbooks,
+              notes: store.notes,
+              messages: store.messages,
+              agents: store.agents,
+              checklists: store.checklists,
+              backtests: store.backtests,
+              connected: store.connected,
+              filters: store.filters,
+              widgets: store.widgets,
+              lastImport: store.lastImport,
+              aiCredits: store.aiCredits,
+              lessonsDone: store.lessonsDone,
+              accounts: store.accounts,
+              permissions: store.permissions,
+            }, null, 2)], { type: "application/json" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
             a.download = "folio-backup.json";
@@ -395,7 +435,7 @@ export function Settings() {
           <button className="btn btn-ghost" onClick={() => { store.logout(); window.location.assign(`${import.meta.env.BASE_URL}#/`); }}>Log out</button>
         </div>
       </div>
-      <p className="faint">Data lives in this browser only. Folio does not place live orders.</p>
+      <p className="faint">Saved under {store.user?.email || "this browser"} · {store.hasPassword ? "password lock on" : "set a password above so login can open this desk"}. Folio does not place live orders.</p>
     </div>
   );
 }
