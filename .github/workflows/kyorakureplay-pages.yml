@@ -67,6 +67,41 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Probe upstream reachability
+        continue-on-error: true
+        run: |
+          node - <<'JS'
+          const fs = require("fs");
+          const y = "https://query1.finance.yahoo.com/v8/finance/chart/%5ENDX?interval=1d&range=5d";
+          const targets = {
+            yahoo_query1: y,
+            yahoo_query2: y.replace("query1", "query2"),
+            binance_vision: "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=5",
+            relay_jina: "https://r.jina.ai/" + y,
+            relay_allorigins: "https://api.allorigins.win/raw?url=" + encodeURIComponent(y),
+            relay_codetabs: "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(y),
+          };
+          (async () => {
+            const out = {};
+            for (const [name, url] of Object.entries(targets)) {
+              const t0 = Date.now();
+              try {
+                const ctrl = new AbortController();
+                const timer = setTimeout(() => ctrl.abort(), 15000);
+                const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0", Accept: "*/*" } });
+                clearTimeout(timer);
+                const body = await r.text();
+                out[name] = { status: r.status, ms: Date.now() - t0, bytes: body.length,
+                              json: body.trim().startsWith("{") || body.includes('"chart"') };
+              } catch (e) {
+                out[name] = { error: String(e && e.message || e).slice(0, 120), ms: Date.now() - t0 };
+              }
+            }
+            fs.writeFileSync("_site/data-probe.json", JSON.stringify({ at: new Date().toISOString(), targets: out }, null, 1));
+            console.log(JSON.stringify(out));
+          })();
+          JS
+
       - name: Fetch real market data (Yahoo Finance + Binance)
         # A provider outage must never block a deploy: the site keeps working
         # with the live feed or the labelled fallback. The script stops itself
@@ -79,7 +114,7 @@ jobs:
           DEADLINE: ${{ inputs.deadline || '600' }}
         run: |
           node fxreplay/scripts/fetch-market-data.mjs \
-            --out _site/data --concurrency 5 --deadline "$DEADLINE" ${ONLY:+--only "$ONLY"}
+            --out _site/data --concurrency 6 --deadline "${DEADLINE:-300}" ${ONLY:+--only "$ONLY"}
           du -sh _site/data || true
           ls _site/data | head -5 || true
 
@@ -90,12 +125,18 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          test -f _site/data-status.json || exit 0
           python3 - <<'PY'
           import json, pathlib
           src = pathlib.Path("_site/data-status.json")
-          doc = json.loads(src.read_text())
+          doc = json.loads(src.read_text()) if src.exists() else {
+              "ok": 0, "requested": 0, "failed": ["the snapshot script wrote no report"], "partial": {}
+          }
           doc.pop("at", None)
+          probe = pathlib.Path("_site/data-probe.json")
+          if probe.exists():
+              pd = json.loads(probe.read_text())
+              pd.pop("at", None)
+              doc["probe"] = pd.get("targets", {})
           if doc.get("failed") == [] and doc.get("ok", 0) == doc.get("requested"):
               pass
           dst = pathlib.Path("market-data-status.json")
