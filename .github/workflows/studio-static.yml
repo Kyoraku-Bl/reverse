@@ -11,8 +11,8 @@ on:
 permissions:
   contents: read
 
-# Shares the existing website publisher's lock. Publication is opt-in because
-# a repository can have only one Pages site, and this repo already has one.
+# Shares the existing website publisher's lock. The owner explicitly approved
+# publishing Open Studio to the existing Pages site from this session branch.
 concurrency:
   group: website-pages
   cancel-in-progress: false
@@ -51,9 +51,8 @@ jobs:
         with:
           path: design-studio/dist
   publish:
-    # No billing changes, hosting settings changes, or replacement of an
-    # existing public site unless its owner explicitly enables publication.
-    if: vars.STUDIO_PAGES_ENABLED == 'true'
+    # Pages source and environment policies must be enabled by the repository owner.
+    if: github.ref == 'refs/heads/arena/2af71eea-reverse'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10

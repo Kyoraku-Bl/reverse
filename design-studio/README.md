@@ -96,23 +96,18 @@ Click **On this device → Backup** (bottom-right on the workspace).
 
 ## Publish on GitHub Pages
 
-**This repository already has a Pages site from a different branch. Nothing here changes that site automatically.** GitHub allows one Pages site per repository; publishing this application at its root would replace what is currently served there (not delete the source files). Use a separate static hosting project if you need both sites independently.
+The repository owner explicitly approved publishing Open Studio in place of the existing Pages site. GitHub supports one Pages site per repository. This changes what is served, **not** the old website's source files. Other publishing workflows remain unchanged.
 
-The new `.github/workflows/studio-static.yml`:
+The new `.github/workflows/studio-static.yml` tests/builds this application on pushes to **`arena/2af71eea-reverse`**, generates the correct `/<repository>/` asset prefix, uploads a Pages artifact, then publishes through the **github-pages** environment. No hosting environment variables, card, database or API keys are required.
 
-1. Builds/tests only this application on pushes to `arena/2af71eea-reverse`.
-2. Generates the correct `/<repository>/` asset prefix and uploads a Pages artifact.
-3. **Does not publish** unless the repository owner deliberately sets `STUDIO_PAGES_ENABLED=true`.
+The GitHub connection used by this agent cannot change repository Pages settings or deployment policies (the settings API returns HTTP 403). The repository owner must enable these two settings in GitHub:
 
-If replacing the existing Pages site with Open Studio is what you want:
+1. **Settings → Pages → Build and deployment → Source → GitHub Actions**.
+2. **Settings → Environments → github-pages → Deployment branches and tags**: add a **Branch** rule named exactly `arena/2af71eea-reverse`. Keep existing rules; no other branch needs to be renamed, switched or removed.
+3. Open **Actions → Open Studio static build**, select the latest run on this branch, and **Re-run all jobs** if the initial publish attempt was blocked. Both build and publish must succeed.
+4. Use the URL returned by the successful **publish** job / Settings → Pages. A build artifact alone is not a deployed public website.
 
-1. Repository **Settings → Pages → Build and deployment → Source → GitHub Actions**.
-2. **Settings → Secrets and variables → Actions → Variables → New repository variable**:
-   - Name: `STUDIO_PAGES_ENABLED`
-   - Value: `true`
-3. Open **Actions → Open Studio static build**, select the latest run on this branch, and **Re-run all jobs** (or push another change on this branch). The build and publish jobs must both succeed.
-4. If the `github-pages` environment restricts deployment branches, allow `arena/2af71eea-reverse` in its deployment policy. Do not switch or rename this session's branch.
-5. Use the URL returned by the successful **publish** job / Settings → Pages. A build artifact by itself is not a deployed public website.
+After those owner-controlled settings are enabled, future changes pushed to this session branch deploy automatically. If you do not want this site published, disable the new workflow before changing those settings.
 
 Do not run the old `Publish REA website` workflow expecting it to deploy Open Studio; it publishes the unrelated original website.
 
