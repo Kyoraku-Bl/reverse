@@ -189,7 +189,9 @@
     ],
     relays: [
       function (u) { return "https://api.allorigins.win/raw?url=" + encodeURIComponent(u); },
-      function (u) { return "https://corsproxy.io/?url=" + encodeURIComponent(u); }
+      function (u) { return "https://corsproxy.io/?url=" + encodeURIComponent(u); },
+      function (u) { return "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u); },
+      function (u) { return "https://cors.eu.org/" + u; }
     ]
   };
 
@@ -214,6 +216,46 @@
       }), ms || 9000);
   }
 
+  /* Resolves with the first relay that returns a real chart payload.
+     Two relays are raced at a time so a slow or blocked one cannot stall
+     the chart; the winner is remembered for the rest of the session. */
+  function anyOf(promises) {
+    return new Promise(function (resolve, reject) {
+      var left = promises.length;
+      if (!left) return reject(new Error("no relay"));
+      promises.forEach(function (p) {
+        p.then(resolve, function () {
+          if (--left === 0) reject(new Error("no relay answered"));
+        });
+      });
+    });
+  }
+
+  var relayPref = parseInt(readPref("fxr-relay", "-1"), 10);
+  function raceRelays(target) {
+    var n = DIRECT.relays.length;
+    var start = relayPref >= 0 && relayPref < n ? relayPref : 0;
+    var order = [];
+    for (var i = 0; i < n; i++) order.push((start + i) % n);
+
+    function wave(indexes, ms) {
+      return anyOf(indexes.map(function (i) {
+        return jsonAbs(DIRECT.relays[i](target), ms).then(function (p) {
+          if (!p || !p.chart || !p.chart.result || !p.chart.result.length) {
+            throw new Error("relay payload");
+          }
+          relayPref = i;
+          writePref("fxr-relay", String(i));
+          return p;
+        });
+      }));
+    }
+    return wave(order.slice(0, 2), 9000).catch(function () {
+      if (order.length <= 2) throw new Error("no relay answered");
+      return wave(order.slice(2), 9000);
+    });
+  }
+
   /* last-resort transport chain for one candidate symbol */
   function offlineFetch(c, tf) {
     if (c.provider === "binance") {
@@ -225,18 +267,8 @@
             .then(function (p) { return { payload: p, transport: "direct" }; });
         });
     }
-    var target = yahooDirect(c.symbol, tf);
-    var relays = DIRECT.relays;
-    function viaRelay(i) {
-      if (i >= relays.length) return Promise.reject(new Error("no relay"));
-      return jsonAbs(relays[i](target), 11000)
-        .then(function (p) {
-          if (!p || !p.chart) throw new Error("relay payload");
-          return { payload: p, transport: "relay" };
-        })
-        .catch(function () { return viaRelay(i + 1); });
-    }
-    return viaRelay(0);
+    return raceRelays(yahooDirect(c.symbol, tf))
+      .then(function (p) { return { payload: p, transport: "relay" }; });
   }
 
   /* ---------------------------------------------------------
@@ -345,16 +377,12 @@
   function probe() {
     if (status.checked) return Promise.resolve(status);
     status.checked = true;
-    var relay = DIRECT.relays[0];
     var checks = [
       json(API + "/yahoo?symbol=" + encodeURIComponent("ES=F") + "&interval=5m&range=5d&probe=1")
         .then(function (d) { status.transport = "proxy"; return !!(d && d.chart && d.chart.result); })
         .catch(function () {
-          return jsonAbs(relay(yahooDirect("ES=F", "5m")), 11000)
-            .then(function (d) {
-              if (d && d.chart && d.chart.result) { status.transport = "relay"; return true; }
-              return false;
-            })
+          return raceRelays(yahooDirect("ES=F", "5m"))
+            .then(function () { status.transport = "relay"; return true; })
             .catch(function () { return false; });
         }),
       json(API + "/binance?symbol=BTCUSDT&interval=5m&limit=5&probe=1")
