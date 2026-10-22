@@ -22,6 +22,15 @@ on:
     # when this branch is the repository default; manual runs always work.
     - cron: "*/30 * * * *"
   workflow_dispatch:
+    inputs:
+      only:
+        description: "Comma-separated instruments (empty = all 103)"
+        required: false
+        default: ""
+      deadline:
+        description: "Seconds before the snapshot job stops starting new instruments"
+        required: false
+        default: "600"
 
 permissions:
   contents: read
@@ -65,8 +74,12 @@ jobs:
         # NQ futures are fetched first.
         continue-on-error: true
         timeout-minutes: 14
+        env:
+          ONLY: ${{ inputs.only }}
+          DEADLINE: ${{ inputs.deadline || '600' }}
         run: |
-          node fxreplay/scripts/fetch-market-data.mjs --out _site/data --concurrency 5 --deadline 600
+          node fxreplay/scripts/fetch-market-data.mjs \
+            --out _site/data --concurrency 5 --deadline "$DEADLINE" ${ONLY:+--only "$ONLY"}
           du -sh _site/data || true
           ls _site/data | head -5 || true
 

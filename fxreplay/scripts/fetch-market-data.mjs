@@ -73,44 +73,68 @@ const hosts = (env, fallback) =>
 const YAHOO_HOSTS = hosts("YAHOO_BASE", ["https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com"]);
 const BINANCE_HOSTS = hosts("BINANCE_BASE", ["https://data-api.binance.vision", "https://api.binance.com"]);
 
+/* Public CORS/JSON relays, used only when the runners cannot reach Yahoo
+   directly (the free endpoint throttles datacentre IPs). Same list, same
+   order as the browser's data provider. */
+const RELAYS = [
+  (u) => "https://r.jina.ai/" + u,
+  (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+  (u) => "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u),
+];
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function get(url, tries = 3) {
-  for (let attempt = 0; attempt < tries; attempt++) {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 15000);
-      const r = await fetch(url, {
-        signal: ctrl.signal,
-        headers: { "User-Agent": UA, Accept: "application/json,text/plain,*/*", Referer: "https://finance.yahoo.com/" },
-      });
-      clearTimeout(timer);
-      if (r.status === 429) { await sleep(1500 * (attempt + 1)); continue; }
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return await r.text();
-    } catch (e) {
-      if (attempt === tries - 1) throw e;
-      await sleep(600 * (attempt + 1));
-    }
+/* Some relays wrap the JSON in a text preamble or an HTML shell. */
+function jparse(text) {
+  if (typeof text !== "string") return text;
+  const from = text.indexOf("{");
+  const to = text.lastIndexOf("}");
+  if (from === -1 || to <= from) throw new Error("no JSON in response");
+  return JSON.parse(text.slice(from, to + 1));
+}
+
+async function getOnce(url, ms = 12000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": UA, Accept: "application/json,text/plain,*/*", Referer: "https://finance.yahoo.com/" },
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return await r.text();
+  } finally {
+    clearTimeout(timer);
   }
-  throw new Error("unreachable");
+}
+
+/* Tries every direct host, then the relays, one after the other. Bounded by
+   tries × urls × 12 s so a blocked provider can never eat the whole job. */
+async function getAny(urls, tries = 1) {
+  let last;
+  for (let attempt = 0; attempt < tries; attempt++) {
+    for (const url of urls) {
+      try {
+        return await getOnce(url);
+      } catch (e) {
+        last = e;
+      }
+    }
+    if (attempt < tries - 1) await sleep(800 * (attempt + 1));
+  }
+  throw last || new Error("unreachable");
 }
 
 async function yahoo(symbol, cfg) {
   const q = `?interval=${cfg.interval}&range=${cfg.range}&includePrePost=false&events=div%2Csplit`;
-  let last;
-  for (const host of YAHOO_HOSTS) {
-    try {
-      const body = await get(host + "/v8/finance/chart/" + encodeURIComponent(symbol) + q);
-      const json = JSON.parse(body);
-      const res = json?.chart?.result?.[0];
-      if (!res || !res.timestamp) throw new Error("no result");
-      return { bars: parseYahoo(res), meta: res.meta || {} };
-    } catch (e) {
-      last = e;
-    }
-  }
-  throw last || new Error("yahoo failed");
+  const path = "/v8/finance/chart/" + encodeURIComponent(symbol) + q;
+  const direct = YAHOO_HOSTS.map((h) => h + path);
+  const urls = direct.concat(RELAYS.map((wrap) => wrap(direct[0])));
+  const body = await getAny(urls, 2);
+  const json = jparse(body);
+  const res = json?.chart?.result?.[0];
+  if (!res || !res.timestamp) throw new Error("no result");
+  return { bars: parseYahoo(res), meta: res.meta || {} };
 }
 
 function parseYahoo(res) {
@@ -129,7 +153,7 @@ async function binance(symbol, interval, limit) {
   let last;
   for (const host of BINANCE_HOSTS) {
     try {
-      const rows = JSON.parse(await get(`${host}/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`));
+      const rows = JSON.parse(await getOnce(`${host}/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`));
       if (!Array.isArray(rows)) throw new Error("not an array");
       return rows.map((k) => {
         let t = Number(k[0]);
@@ -218,9 +242,13 @@ async function buildInstrument(id) {
       } else {
         await fillYahoo(doc, c);
       }
-      doc.symbol = c.symbol;
-      doc.provider = c.provider;
-      break;
+      /* keep whatever worked; only fall through to the next ticker when this
+         one produced nothing at all */
+      if (Object.keys(doc.tf).length) {
+        doc.symbol = c.symbol;
+        doc.provider = c.provider;
+        break;
+      }
     } catch (e) {
       doc.errors = (doc.errors || []).concat(`${c.symbol}: ${e.message}`);
     }
