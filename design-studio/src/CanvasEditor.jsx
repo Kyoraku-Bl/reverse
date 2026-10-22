@@ -1,7 +1,19 @@
+import SelectionEditor from "./SelectionEditor";
+import TemplatePreview from "./TemplatePreview";
+import ShortcutHelp from "./ShortcutHelp";
+import { isTyping, canvasShortcuts } from "./shortcuts";
+import {
+  imageSettings,
+  cropSettings,
+  setImageAdjustment,
+  applyImagePreset,
+  setImageCrop,
+} from "./image-editing";
 import { IS_STATIC, assetUrl } from "./config";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Canvas,
+  Shadow,
   Textbox,
   Rect,
   Circle,
@@ -101,9 +113,13 @@ export default function CanvasEditor({
     saveRef = useRef(),
     clipboard = useRef(),
     fileRef = useRef(),
-    jsonRef = useRef();
+    jsonRef = useRef(),
+    replaceRef = useRef();
   const [ready, setReady] = useState(false),
-    [tab, setTab] = useState(readOnly ? "Export" : "Design"),
+    [shortcutHelp, setShortcutHelp] = useState(false),
+    [tab, setTab] = useState(
+      readOnly ? "Export" : project.style === "photo" ? "Edit" : "Design",
+    ),
     [page, setPage] = useState(0),
     [pages, setPages] = useState(project.document?.pages || []),
     [title, setTitle] = useState(project.title),
@@ -140,6 +156,24 @@ export default function CanvasEditor({
             angle: o.angle || 0,
             left: Math.round(o.left),
             top: Math.round(o.top),
+            text: o.text || "",
+            charSpacing: o.charSpacing || 0,
+            lineHeight: o.lineHeight || 1.16,
+            underline: !!o.underline,
+            linethrough: !!o.linethrough,
+            width: o.width * Math.abs(o.scaleX),
+            height: o.height * Math.abs(o.scaleY),
+            nativeWidth: o.width || 1,
+            nativeHeight: o.height || 1,
+            flipX: !!o.flipX,
+            flipY: !!o.flipY,
+            stroke: o.stroke,
+            strokeWidth: o.strokeWidth || 0,
+            shadow: !!o.shadow,
+            rx: o.rx || 0,
+            ...(o instanceof FabricImage
+              ? { image: imageSettings(o), crop: cropSettings(o) }
+              : {}),
             locked: !!o.lockMovementX,
           }
         : null,
@@ -231,6 +265,10 @@ export default function CanvasEditor({
         if (cancelled) return;
         setReady(true);
         fit();
+        if (project.style === "photo" && !readOnly) {
+          c.setActiveObject(c.getObjects()[0]);
+          refreshSelection();
+        }
       } catch (e) {
         feedback("Could not load this design: " + e.message);
       }
@@ -304,44 +342,151 @@ export default function CanvasEditor({
   useEffect(() => {
     if (readOnly) return;
     const handler = (e) => {
-      if (busy || loading.current) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (!busy && !loading.current && ready && !shortcutHelp) {
+          const active = fabric.current?.getActiveObject();
+          if (active?.isEditing) active.exitEditing();
+          saveRef.current?.();
+        }
+        return;
+      }
       if (
-        e.target.closest('input,textarea,select,[contenteditable="true"]') ||
+        busy ||
+        loading.current ||
+        !ready ||
+        shortcutHelp ||
+        isTyping(e.target) ||
         fabric.current?.getActiveObject()?.isEditing
       )
         return;
-      const mod = e.ctrlKey || e.metaKey;
-      if (
-        mod &&
-        ["s", "z", "y", "d", "c", "v", "a"].includes(e.key.toLowerCase())
-      )
-        e.preventDefault();
-      if (mod && e.key === "s") saveRef.current?.();
-      if (mod && e.key === "z") undo(e.shiftKey ? 1 : -1);
-      if (mod && e.key === "y") undo(1);
-      if (mod && e.key === "d") duplicate();
-      if (mod && e.key === "c") copy();
-      if (mod && e.key === "v") paste();
-      if (mod && e.key === "a") {
-        const c = fabric.current;
-        c?.setActiveObject(
-          new ActiveSelection(
-            c.getObjects().filter((o) => !o.lockMovementX),
-            { canvas: c },
+      const mod = e.ctrlKey || e.metaKey,
+        key = e.key.toLowerCase(),
+        c = fabric.current;
+      const actions = {
+        s: () => saveRef.current?.(),
+        z: () => undo(e.shiftKey ? 1 : -1),
+        y: () => undo(1),
+        d: duplicate,
+        c: copy,
+        x: cut,
+        v: paste,
+        g: group,
+        b: () =>
+          update({ fontWeight: selected?.fontWeight === 700 ? "normal" : 700 }),
+        i: () =>
+          update({
+            fontStyle: selected?.fontStyle === "italic" ? "normal" : "italic",
+          }),
+        u: () => update({ underline: !selected?.underline }),
+        l: () =>
+          mutate((c) =>
+            c.getActiveObjects().forEach((o) =>
+              o.set({
+                lockMovementX: !o.lockMovementX,
+                lockMovementY: !o.lockMovementX,
+                lockScalingX: !o.lockMovementX,
+                lockScalingY: !o.lockMovementX,
+                lockRotation: !o.lockMovementX,
+              }),
+            ),
           ),
-        );
-        c?.requestRenderAll();
-        refreshSelection();
+        a: () => {
+          c.discardActiveObject();
+          const all = c.getObjects().filter((o) => !o.lockMovementX);
+          if (all.length)
+            c.setActiveObject(new ActiveSelection(all, { canvas: c }));
+          c.requestRenderAll();
+          refreshSelection();
+        },
+        "]": () =>
+          mutate((c) =>
+            c.getActiveObjects().forEach((o) => c.bringObjectForward(o)),
+          ),
+        "[": () =>
+          mutate((c) =>
+            c.getActiveObjects().forEach((o) => c.sendObjectBackwards(o)),
+          ),
+      };
+      if (mod) {
+        if (key === "v" && !clipboard.current) return;
+        if (actions[key]) {
+          e.preventDefault();
+          Promise.resolve(actions[key]()).catch((e) => feedback(e.message));
+        }
+        return;
       }
-      if (e.key === "Delete" || e.key === "Backspace") remove();
-      if (e.key === "Escape") {
-        fabric.current?.discardActiveObject();
-        fabric.current?.requestRenderAll();
+      if (e.altKey) return;
+      if (["Delete", "Backspace"].includes(e.key)) {
+        e.preventDefault();
+        remove();
+      } else if (e.key.startsWith("Arrow")) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        mutate((c) => {
+          const o = c.getActiveObject();
+          if (o && !o.lockMovementX) {
+            o.set({
+              left:
+                o.left +
+                (e.key === "ArrowRight"
+                  ? step
+                  : e.key === "ArrowLeft"
+                    ? -step
+                    : 0),
+              top:
+                o.top +
+                (e.key === "ArrowDown"
+                  ? step
+                  : e.key === "ArrowUp"
+                    ? -step
+                    : 0),
+            });
+            o.setCoords();
+          }
+        });
+      } else if (key === "escape") {
+        c.discardActiveObject();
+        c.isDrawingMode = false;
+        setDrawing(false);
+        c.requestRenderAll();
         refreshSelection();
+      } else if (["t", "r", "o"].includes(key)) {
+        e.preventDefault();
+        add({ t: "text", r: "rectangle", o: "circle" }[key]);
+      } else if (["+", "=", "-", "0"].includes(key)) {
+        e.preventDefault();
+        if (key === "0") fit();
+        else
+          setZoom((z) =>
+            Math.max(0.04, Math.min(2, z + (key === "-" ? -0.1 : 0.1))),
+          );
+      } else if (key === "?") setShortcutHelp(true);
+    };
+    const pasted = (e) => {
+      if (
+        busy ||
+        loading.current ||
+        !ready ||
+        shortcutHelp ||
+        isTyping(e.target) ||
+        fabric.current?.getActiveObject()?.isEditing
+      )
+        return;
+      const file = [...(e.clipboardData?.files || [])].find((f) =>
+        ["image/png", "image/jpeg", "image/webp"].includes(f.type),
+      );
+      if (file) {
+        e.preventDefault();
+        void upload({ target: { files: [file], value: "" } });
       }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("paste", pasted);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener("paste", pasted);
+    };
   });
   async function save(automatic = false) {
     if (savingRef.current || loading.current || !ready) return null;
@@ -451,7 +596,28 @@ export default function CanvasEditor({
     });
   }
   function update(props) {
-    mutate((c) => c.getActiveObjects().forEach((o) => o.set(props)));
+    mutate((c) => {
+      const active = c.getActiveObject();
+      if (!active || active.lockMovementX) return;
+      const geometry = [
+        "left",
+        "top",
+        "scaleX",
+        "scaleY",
+        "angle",
+        "flipX",
+        "flipY",
+      ];
+      const targets = Object.keys(props).some((key) => geometry.includes(key))
+        ? [active]
+        : c.getActiveObjects();
+      targets
+        .filter((o) => !o.lockMovementX)
+        .forEach((o) => {
+          o.set(props);
+          o.setCoords();
+        });
+    });
   }
   function remove() {
     mutate((c) => {
@@ -461,14 +627,32 @@ export default function CanvasEditor({
       c.discardActiveObject();
     });
   }
-  async function copy() {
-    if (fabric.current?.getActiveObject())
-      clipboard.current = await fabric.current.getActiveObject().clone();
+  function copy() {
+    const o = fabric.current?.getActiveObject();
+    if (o) clipboard.current = o.clone();
+  }
+  function cut() {
+    if (!fabric.current?.getActiveObject()) return;
+    if (fabric.current?.getActiveObjects().some((o) => o.lockMovementX)) {
+      feedback("Unlock selected layers before cutting.");
+      return;
+    }
+    copy();
+    remove();
   }
   async function paste() {
     if (!clipboard.current) return;
-    const clone = await clipboard.current.clone();
+    const source = await clipboard.current;
+    const clone = await source.clone();
     mutate((c) => {
+      if (
+        c.getObjects().length +
+          (clone instanceof ActiveSelection ? clone.size() : 1) >
+        300
+      ) {
+        feedback("A page supports up to 300 objects.");
+        return;
+      }
       clone.set({ left: clone.left + 25, top: clone.top + 25 });
       c.discardActiveObject();
       if (clone instanceof ActiveSelection) {
@@ -476,12 +660,122 @@ export default function CanvasEditor({
         clone.forEachObject((o) => c.add(o));
       } else c.add(clone);
       c.setActiveObject(clone);
+      clone.setCoords();
     });
-    clipboard.current = await clone.clone();
+    clipboard.current = clone.clone();
   }
   async function duplicate() {
-    await copy();
+    if (!fabric.current?.getActiveObject()) return;
+    copy();
     await paste();
+  }
+  function alignObject(direction) {
+    mutate((c) =>
+      c
+        .getActiveObjects()
+        .filter((o) => !o.lockMovementX)
+        .forEach((o) => {
+          const b = o.getBoundingRect();
+          const dx =
+            direction === "left"
+              ? -b.left
+              : direction === "center"
+                ? (doc.current.width - b.width) / 2 - b.left
+                : direction === "right"
+                  ? doc.current.width - b.left - b.width
+                  : 0;
+          const dy =
+            direction === "top"
+              ? -b.top
+              : direction === "middle"
+                ? (doc.current.height - b.height) / 2 - b.top
+                : direction === "bottom"
+                  ? doc.current.height - b.top - b.height
+                  : 0;
+          o.set({ left: o.left + dx, top: o.top + dy });
+          o.setCoords();
+        }),
+    );
+  }
+  function editImage(key, value) {
+    mutate((c) => {
+      const o = c.getActiveObject();
+      if (!(o instanceof FabricImage) || o.lockMovementX) return;
+      if (key === "preset") applyImagePreset(o, value);
+      else setImageAdjustment(o, key, value);
+    });
+  }
+  function cropImage(patch) {
+    try {
+      mutate((c) => {
+        const o = c.getActiveObject();
+        if (o instanceof FabricImage && !o.lockMovementX)
+          setImageCrop(o, patch);
+      });
+    } catch (e) {
+      feedback(e.message);
+    }
+  }
+  function downloadPhoto() {
+    const o = fabric.current?.getActiveObject();
+    if (!(o instanceof FabricImage)) return;
+    try {
+      const bounds = o.getBoundingRect();
+      const data = o.toDataURL({
+        format: "png",
+        multiplier: Math.min(1, 4096 / Math.max(bounds.width, bounds.height)),
+      });
+      const a = document.createElement("a");
+      a.href = data;
+      a.download =
+        (title || "Photo").replace(/[\\/:*?"<>|]/g, "-") + "-edited.png";
+      a.click();
+      feedback(
+        "Edited photo downloaded — crop and filters included, without the page margins.",
+      );
+    } catch (e) {
+      feedback(e.message);
+    }
+  }
+  async function replaceImage(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    const o = fabric.current?.getActiveObject();
+    if (!file || !(o instanceof FabricImage) || o.lockMovementX || busy) return;
+    const old = {
+      src: o.getSrc(),
+      width: o.width,
+      height: o.height,
+      cropX: o.cropX,
+      cropY: o.cropY,
+      scaleX: o.scaleX,
+      scaleY: o.scaleY,
+    };
+    setBusy(true);
+    loading.current = true;
+    try {
+      const asset = await uploadAsset(file);
+      await o.setSrc(asset.url);
+      if (o.width * o.height > 40000000)
+        throw new Error("Image dimensions are too large");
+      o.set({
+        cropX: 0,
+        cropY: 0,
+        scaleX: (old.width * old.scaleX) / o.width,
+        scaleY: (old.height * old.scaleY) / o.height,
+      });
+      o.setCoords();
+      o.applyFilters();
+    } catch (error) {
+      await o.setSrc(old.src);
+      o.set(old);
+      feedback(error.message);
+    } finally {
+      loading.current = false;
+      setBusy(false);
+      fabric.current?.requestRenderAll();
+      commit();
+    }
   }
   async function undo(direction) {
     const p = doc.current?.pages[pageRef.current];
@@ -888,6 +1182,7 @@ export default function CanvasEditor({
     <div className={`real-editor ${readOnly ? "is-readonly" : ""}`}>
       <input
         ref={fileRef}
+        aria-label="Upload design image"
         type="file"
         accept="image/png,image/jpeg,image/webp"
         hidden
@@ -900,6 +1195,20 @@ export default function CanvasEditor({
         hidden
         onChange={importJson}
       />
+      <input
+        ref={replaceRef}
+        aria-label="Replace image file"
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        hidden
+        onChange={replaceImage}
+      />
+      {shortcutHelp && (
+        <ShortcutHelp
+          shortcuts={canvasShortcuts}
+          onClose={() => setShortcutHelp(false)}
+        />
+      )}
       <header className="re-header">
         <button className="re-home" onClick={close} title="Back to workspace">
           <ArrowLeft size={19} />
@@ -916,6 +1225,12 @@ export default function CanvasEditor({
           }}
           maxLength={150}
         />
+        <button
+          title="Keyboard shortcuts (?)"
+          onClick={() => setShortcutHelp(true)}
+        >
+          Shortcuts
+        </button>
         <span className="re-save-state">
           {busy ? "Working…" : dirty ? "Unsaved changes" : "All changes saved"}
         </span>
@@ -949,6 +1264,7 @@ export default function CanvasEditor({
           <nav className="re-rail">
             {[
               { label: "Design", icon: Shapes },
+              { label: "Edit", icon: Pencil },
               { label: "Text", icon: Type },
               { label: "Elements", icon: Shapes },
               { label: "Uploads", icon: Image },
@@ -991,7 +1307,11 @@ export default function CanvasEditor({
                         style={{ background: t.color }}
                         onClick={() => applyTemplate(t)}
                       >
-                        <span>{t.text}</span>
+                        {t.style === "original" ? (
+                          <TemplatePreview item={t} />
+                        ) : (
+                          <span>{t.text}</span>
+                        )}
                         <small>{t.title}</small>
                       </button>
                     ))}
@@ -1004,6 +1324,32 @@ export default function CanvasEditor({
                     Import design JSON
                   </button>
                 </>
+              )}
+              {tab === "Edit" && !readOnly && (
+                <SelectionEditor
+                  selected={selected}
+                  update={update}
+                  align={alignObject}
+                  imageEdit={editImage}
+                  crop={cropImage}
+                  replaceImage={() => replaceRef.current.click()}
+                  resetImage={() => editImage("preset", "original")}
+                  downloadPhoto={downloadPhoto}
+                  shadow={(value) =>
+                    update({
+                      shadow:
+                        value === "none"
+                          ? null
+                          : new Shadow({
+                              color: "rgba(0,0,0,0.25)",
+                              blur: 18,
+                              offsetX: 6,
+                              offsetY: 8,
+                            }),
+                    })
+                  }
+                  group={group}
+                />
               )}
               {tab === "Text" && !readOnly && (
                 <>
@@ -1142,44 +1488,12 @@ export default function CanvasEditor({
                     ))}
                   </div>
                   {selected?.type === "image" && (
-                    <div className="re-image-tools">
-                      <h3>Image adjustments</h3>
-                      <button
-                        className="re-wide"
-                        onClick={() =>
-                          mutate((c) => {
-                            const o = c.getActiveObject();
-                            o.filters = o.filters?.length
-                              ? []
-                              : [new filters.Grayscale()];
-                            o.applyFilters();
-                          })
-                        }
-                      >
-                        Toggle grayscale
-                      </button>
-                      <label>
-                        Brightness
-                        <input
-                          type="range"
-                          min={-1}
-                          max={1}
-                          step={0.05}
-                          defaultValue={0}
-                          onChange={(e) =>
-                            mutate((c) => {
-                              const o = c.getActiveObject();
-                              o.filters = [
-                                new filters.Brightness({
-                                  brightness: Number(e.target.value),
-                                }),
-                              ];
-                              o.applyFilters();
-                            })
-                          }
-                        />
-                      </label>
-                    </div>
+                    <button
+                      className="re-primary re-wide"
+                      onClick={() => setTab("Edit")}
+                    >
+                      Edit selected photo
+                    </button>
                   )}
                 </>
               )}
@@ -1472,6 +1786,25 @@ export default function CanvasEditor({
                   <Redo2 size={17} />
                 </button>
                 <span className="re-separator" />
+                <button disabled={!selected} onClick={() => setTab("Edit")}>
+                  Edit selection
+                </button>
+                <button title="Cut (Ctrl X)" disabled={!selected} onClick={cut}>
+                  Cut
+                </button>
+                <button
+                  title="Copy (Ctrl C)"
+                  disabled={!selected}
+                  onClick={copy}
+                >
+                  Copy
+                </button>
+                <button
+                  title="Paste (Ctrl V)"
+                  onClick={() => paste().catch((e) => feedback(e.message))}
+                >
+                  Paste
+                </button>
                 <button
                   title="Duplicate (Ctrl D)"
                   disabled={!selected}

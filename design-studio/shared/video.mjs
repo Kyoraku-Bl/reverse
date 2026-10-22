@@ -1,3 +1,4 @@
+import { lookIds, effectIds } from "./effect-catalog.mjs";
 import { z } from "zod";
 const seconds = z.number().finite().min(0).max(1800);
 export const videoDocumentSchema = z
@@ -48,9 +49,9 @@ export const videoDocumentSchema = z
                 z.literal(270),
               ])
               .default(0),
-            filter: z
-              .enum(["none", "mono", "warm", "cool", "vintage"])
-              .default("none"),
+            filter: z.enum(lookIds).default("none"),
+            effect: z.enum(effectIds).default("none"),
+            hue: z.number().min(-180).max(180).default(0),
             brightness: z.number().min(-0.5).max(0.5).default(0),
             contrast: z.number().min(0.5).max(2).default(1),
             saturation: z.number().min(0).max(2).default(1),

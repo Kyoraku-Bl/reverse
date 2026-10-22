@@ -1,3 +1,5 @@
+import ShortcutHelp from "./ShortcutHelp";
+import { isTyping, videoShortcuts } from "./shortcuts";
 import { IS_STATIC } from "./config";
 import { previewFilter } from "../shared/video-effects.mjs";
 import {
@@ -201,6 +203,8 @@ function VideoEditor({ initial, onClose }) {
     [renderBusy, setRenderBusy] = useState(false),
     [pixels, setPixels] = useState(65),
     [frameSize, setFrameSize] = useState({ width: 640, height: 360 });
+  const clipboard = useRef(null);
+  const [shortcutHelp, setShortcutHelp] = useState(false);
   const history = useRef({ past: [], future: [] });
   const [historyTick, setHistoryTick] = useState(0);
   const extraAudio = useRef(new Map()),
@@ -525,26 +529,62 @@ function VideoEditor({ initial, onClose }) {
     const keys = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        saveRef.current?.();
+        if (!shortcutHelp && !uploading && !saving && !renderBusy)
+          saveRef.current?.();
         return;
       }
-      if (e.target.closest('input,textarea,select,[contenteditable="true"]'))
+      if (
+        shortcutHelp ||
+        uploading ||
+        saving ||
+        renderBusy ||
+        isTyping(e.target)
+      )
         return;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        travel(e.shiftKey ? "redo" : "undo");
+      const key = e.key.toLowerCase(),
+        mod = e.ctrlKey || e.metaKey;
+      if (mod) {
+        const actions = {
+          s: () => saveRef.current?.(),
+          z: () => travel(e.shiftKey ? "redo" : "undo"),
+          y: () => travel("redo"),
+          d: duplicate,
+          c: copyClip,
+          x: () => {
+            copyClip();
+            if (selected) removeClip(selected);
+          },
+          v: pasteClip,
+        };
+        if (actions[key]) {
+          e.preventDefault();
+          actions[key]();
+        }
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
-        e.preventDefault();
-        travel("redo");
-        return;
-      }
+      if (e.altKey) return;
       if (e.code === "Space") {
         e.preventDefault();
         togglePlay();
-      }
-      if (e.key === "Delete" && selected) removeClip(selected);
+      } else if (["Delete", "Backspace"].includes(e.key)) {
+        e.preventDefault();
+        if (selected) removeClip(selected);
+      } else if (key === "s") {
+        e.preventDefault();
+        split();
+      } else if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+        e.preventDefault();
+        setPlaying(false);
+        seek(
+          playhead +
+            (e.key === "ArrowRight" ? 1 : -1) *
+              (e.shiftKey ? 1 : 1 / document.fps),
+        );
+      } else if (e.key === "Home" || e.key === "End") {
+        e.preventDefault();
+        setPlaying(false);
+        seek(e.key === "Home" ? 0 : total);
+      } else if (key === "?") setShortcutHelp(true);
     };
     window.addEventListener("keydown", keys);
     return () => window.removeEventListener("keydown", keys);
@@ -723,6 +763,26 @@ function VideoEditor({ initial, onClose }) {
     setPlaying(false);
     change((d) => ({ ...d, clips: list }));
   }
+  function copyClip() {
+    if (selectedClip) {
+      clipboard.current = structuredClone(selectedClip);
+      setMessage("Clip copied. Paste inserts after the selected clip.");
+    }
+  }
+  function pasteClip() {
+    if (!clipboard.current) return;
+    const next = { ...structuredClone(clipboard.current), id: uid() },
+      list = [...docRef.current.clips];
+    if (list.length >= 30 || duration({ clips: [...list, next] }) > 600) {
+      setMessage("Keep the montage within 30 clips / 10 minutes.");
+      return;
+    }
+    const index = list.findIndex((c) => c.id === selected);
+    list.splice(index < 0 ? list.length : index + 1, 0, next);
+    setPlaying(false);
+    change((d) => ({ ...d, clips: list }));
+    setSelected(next.id);
+  }
   function duplicate() {
     if (!selectedClip || document.clips.length >= 30) return;
     const list = [...document.clips],
@@ -832,7 +892,19 @@ function VideoEditor({ initial, onClose }) {
         hidden
         onChange={upload}
       />
+      {shortcutHelp && (
+        <ShortcutHelp
+          shortcuts={videoShortcuts}
+          onClose={() => setShortcutHelp(false)}
+        />
+      )}
       <header className="ve-header">
+        <button
+          onClick={() => setShortcutHelp(true)}
+          title="Keyboard shortcuts (?)"
+        >
+          Shortcuts
+        </button>
         <button
           className="ve-back"
           onClick={close}

@@ -1,3 +1,5 @@
+import { originalTemplates, templateCategories } from "./template-catalog";
+import TemplatePreview from "./TemplatePreview";
 import { IS_STATIC, assetUrl } from "./config";
 import React, { useState, useRef, useEffect } from "react";
 import { createRoot } from "react-dom/client";
@@ -118,6 +120,7 @@ const templates = [
     sub: "THE FUTURE IS YOURS.",
     color: "#b9c8ff",
   },
+  ...originalTemplates,
 ];
 function Artwork({ item, large = false }) {
   if (item.meta?.thumbnail)
@@ -128,6 +131,7 @@ function Artwork({ item, large = false }) {
         alt={item.title}
       />
     );
+  if (item.style === "original") return <TemplatePreview item={item} />;
   return (
     <div
       className={`artwork ${item.style} ${large ? "large" : ""}`}
@@ -616,6 +620,44 @@ function App() {
                   ))}
                 </div>
               </section>
+              <section
+                className="model-browser"
+                aria-label="Template categories"
+              >
+                <div className="section-heading">
+                  <div>
+                    <h2>Parcourez les catégories de modèles</h2>
+                    <p>
+                      Original layouts. Every text, shape and color is editable.
+                    </p>
+                  </div>
+                  <button
+                    className="text-button"
+                    onClick={() => uploadRef.current.click()}
+                  >
+                    Photo editor <ArrowUpRight size={16} />
+                  </button>
+                </div>
+                <div className="model-categories">
+                  {templateCategories.map(([name, label, color, size]) => (
+                    <button
+                      key={name}
+                      aria-pressed={category === name}
+                      style={{ background: color }}
+                      onClick={() => {
+                        setCategory(name);
+                        setQuery("");
+                      }}
+                    >
+                      <b>{label}</b>
+                      <span>{size}</span>
+                      <span className="model-mini-sheet" aria-hidden="true">
+                        {name === "CV" ? "Aa" : name === "Logos" ? "AV" : "✦"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
               <section className="templates-section">
                 <div className="section-heading">
                   <div>
@@ -930,6 +972,16 @@ function App() {
                 <h2>Big idea? Start here.</h2>
                 <p>Choose a canvas and make it your own.</p>
                 <div className="create-options">
+                  <button onClick={() => uploadRef.current.click()}>
+                    <span className="category-icon pink">
+                      <Image size={23} />
+                    </span>
+                    <span>
+                      <b>Photo editor</b>
+                      <small>Import · crop · filters · retouch · export</small>
+                    </span>
+                    <ChevronRight size={18} />
+                  </button>
                   <button
                     onClick={() => {
                       setModal(null);
@@ -945,6 +997,38 @@ function App() {
                     </span>
                     <ChevronRight size={18} />
                   </button>
+                  {templateCategories
+                    .filter(
+                      ([name]) =>
+                        ![
+                          "Presentations",
+                          "Social media",
+                          "Web mockups",
+                          "Print products",
+                        ].includes(name),
+                    )
+                    .map(([name, label, color, size]) => (
+                      <button
+                        key={name}
+                        onClick={() =>
+                          openEditor(
+                            originalTemplates.find((t) => t.type === name),
+                          )
+                        }
+                      >
+                        <span
+                          className="category-icon"
+                          style={{ background: color }}
+                        >
+                          <Shapes size={23} />
+                        </span>
+                        <span>
+                          <b>{label}</b>
+                          <small>{size} · editable template</small>
+                        </span>
+                        <ChevronRight size={18} />
+                      </button>
+                    ))}
                   {categories.slice(1, 6).map(({ name, icon: Icon, color }) => (
                     <button
                       key={name}
@@ -1260,6 +1344,21 @@ function App() {
                   }
                 >
                   Use in a design <ArrowUpRight size={17} />
+                </button>
+                <button
+                  className="primary-button"
+                  onClick={() =>
+                    openEditor({
+                      id: crypto.randomUUID(),
+                      title: modal.name.replace(/\.[^.]+$/, ""),
+                      style: "photo",
+                      type: "Photo",
+                      detail: "Photo editor",
+                      upload: modal.src,
+                    })
+                  }
+                >
+                  Edit photo <ArrowUpRight size={17} />
                 </button>
               </>
             ) : null}

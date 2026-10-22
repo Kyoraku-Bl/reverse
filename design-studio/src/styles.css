@@ -3500,3 +3500,107 @@ body.editor-active .sidebar {
     left: 0;
   }
 }
+
+/* Original model catalogue */
+.model-browser {
+  margin: 32px 0 38px;
+}
+.model-browser h2 {
+  font-family: Manrope, sans-serif;
+  font-size: 21px;
+  letter-spacing: -0.7px;
+}
+.model-browser .section-heading p {
+  font-size: 12px;
+  margin-top: 8px;
+  color: #7b7d75;
+}
+.model-categories {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+}
+.model-categories > button {
+  min-height: 90px;
+  border: 2px solid transparent;
+  border-radius: 15px;
+  text-align: left;
+  padding: 17px 13px;
+  position: relative;
+  overflow: hidden;
+  color: #27243a;
+}
+.model-categories > button[aria-pressed="true"] {
+  border-color: #8c55cb;
+}
+.model-categories b {
+  display: block;
+  font-size: 12px;
+  position: relative;
+  z-index: 1;
+  max-width: 75%;
+}
+.model-categories > button > span:not(.model-mini-sheet) {
+  display: block;
+  font-size: 10px;
+  margin-top: 6px;
+  color: #6c6278;
+}
+.model-mini-sheet {
+  position: absolute;
+  right: 8px;
+  bottom: -9px;
+  width: 46px;
+  height: 65px;
+  background: #ffffffc9;
+  box-shadow:
+    -7px 3px 0 #ffffff60,
+    0 1px 8px #72608320;
+  border-radius: 4px;
+  transform: rotate(10deg);
+  display: grid;
+  place-items: center;
+  font:
+    22px Georgia,
+    serif;
+  color: #6d4c9a;
+}
+.original-preview {
+  height: 100%;
+  min-height: 180px;
+  width: 100%;
+  background: #f1f0f3;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.original-preview > svg {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(2px 3px 3px #25233020);
+}
+.art-button > .original-preview {
+  height: 225px;
+}
+@media (max-width: 1100px) {
+  .model-categories {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .model-categories {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .model-browser .section-heading {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .re-header > button {
+    font-size: 10px;
+  }
+}

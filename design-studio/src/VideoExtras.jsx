@@ -1,3 +1,4 @@
+import { videoLooks, videoEffects } from "../shared/effect-catalog.mjs";
 import React, { useState, useRef, useEffect } from "react";
 import {
   Download,
@@ -30,24 +31,38 @@ export function Effects({ clip, updateClip }) {
           value={clip.filter || "none"}
           onChange={(e) => updateClip({ filter: e.target.value })}
         >
-          {[
-            ["none", "Original"],
-            ["mono", "Black & white"],
-            ["warm", "Warm"],
-            ["cool", "Cool"],
-            ["vintage", "Vintage sepia"],
-          ].map(([id, name]) => (
+          {videoLooks.map(({ id, name }) => (
             <option key={id} value={id}>
               {name}
             </option>
           ))}
         </select>
       </label>
+      <label>
+        Extra effect
+        <select
+          aria-label="Clip effect"
+          value={clip.effect || "none"}
+          onChange={(e) => updateClip({ effect: e.target.value })}
+        >
+          {videoEffects.map(({ id, name }) => (
+            <option key={id} value={id}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p>
+        20 looks + 10 extra effects. Combine a look with an effect and the
+        adjustments below. Not the CapCut proprietary/AI library. Some effects
+        are visible only in the exported MP4.
+      </p>
       {[
         ["brightness", "Brightness", -0.5, 0.5, 0.05, 0],
         ["contrast", "Contrast", 0.5, 2, 0.05, 1],
         ["saturation", "Saturation", 0, 2, 0.05, 1],
         ["blur", "Blur", 0, 10, 1, 0],
+        ["hue", "Hue rotation", -180, 180, 1, 0],
       ].map(([key, title, min, max, step, fallback]) => (
         <label key={key}>
           {title} · {(clip[key] ?? fallback).toFixed(2)}
@@ -121,6 +136,8 @@ export function Effects({ clip, updateClip }) {
         onClick={() =>
           updateClip({
             filter: "none",
+            effect: "none",
+            hue: 0,
             brightness: 0,
             contrast: 1,
             saturation: 1,

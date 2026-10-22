@@ -1,3 +1,4 @@
+import { templateRecipe } from "./template-catalog";
 import { IS_STATIC, assetUrl } from "./config";
 import { validateCanvasTree } from "../shared/design-validation.mjs";
 import { Textbox, Rect, Circle, FabricImage } from "fabric";
@@ -26,7 +27,82 @@ const base = { originX: "left", originY: "top" };
 export async function documentFromTemplate(item) {
   const width = item.width || 1200,
     height = item.height || 800;
+  if (item.style === "photo" && item.upload) {
+    const img = await FabricImage.fromURL(item.upload);
+    if (img.width * img.height > 40000000)
+      throw new Error("Image dimensions are too large");
+    const scale = Math.min(1, 4096 / Math.max(img.width, img.height));
+    const w = Math.max(64, Math.round(img.width * scale)),
+      h = Math.max(64, Math.round(img.height * scale));
+    img.set({
+      ...base,
+      left: 0,
+      top: 0,
+      scaleX: w / img.width,
+      scaleY: h / img.height,
+    });
+    return {
+      version: 1,
+      width: w,
+      height: h,
+      pages: [
+        {
+          id: uid(),
+          canvas: serializeCanvas({
+            version: "7.4.0",
+            background: "#ffffff",
+            objects: [img.toObject()],
+          }),
+        },
+      ],
+    };
+  }
   const objects = [];
+  if (item.style === "original") {
+    for (const n of templateRecipe(item)) {
+      const common = {
+        ...base,
+        left: n.x * width,
+        top: n.y * height,
+        fill: n.fill,
+      };
+      if (n.kind === "rect")
+        objects.push(
+          new Rect({ ...common, width: n.w * width, height: n.h * height }),
+        );
+      if (n.kind === "circle")
+        objects.push(new Circle({ ...common, radius: n.r * width }));
+      if (n.kind === "text")
+        objects.push(
+          new Textbox(n.text, {
+            ...common,
+            width: n.w * width,
+            fontSize: n.size * width,
+            fontFamily: n.fontFamily,
+            fontWeight: n.fontWeight || 400,
+            fontStyle: n.fontStyle || "normal",
+            textAlign: n.textAlign || "left",
+            lineHeight: n.lineHeight || 1.16,
+            charSpacing: n.charSpacing || 0,
+          }),
+        );
+    }
+    return {
+      version: 1,
+      width,
+      height,
+      pages: [
+        {
+          id: uid(),
+          canvas: serializeCanvas({
+            version: "7.4.0",
+            background: item.color,
+            objects: objects.map((o) => o.toObject()),
+          }),
+        },
+      ],
+    };
+  }
   const text = (value, x, y, size, options = {}) =>
     objects.push(
       new Textbox(value, {

@@ -37,7 +37,12 @@ Vite rewrites fonts, photos, chunks, and worker paths. Changing the hosting orig
 ### Design editor
 
 - Fabric object-based canvas: text, shapes, drawing, images, layers, grouping, locking, transforms, undo/redo, alignment and multiple pages.
-- Templates, image library, favorites, workspace naming and brand kits.
+- **29 new original editable templates** across 12 categories inspired by the supplied category/editor references: CV, presentation, letter, poster, flyer, logo, document/report/certificate, Instagram, Facebook, story, website mockup, business card/menu. These are not copied Canva assets. The six earlier templates remain available. Text, color blocks and illustrations are real selectable objects, not flattened images. Portrait circles are editable placeholders, not supplied headshots. Website templates are canvas mockups, not published functional websites.
+- Category browser, image library, favorites, workspace naming and brand kits.
+- **Edit selection** inspector for position, size, rotation, opacity, alignment, flip, border, shadow and shape corners. Text content, letter spacing, line height, underline and strike-through are editable; use Text for fonts/bold/italic. Ungroup layouts to edit individual group members.
+- **Photo editor**: choose Photo editor on the home page or Create menu, upload a raster image and choose Edit photo. The canvas starts with just your photo at its native aspect ratio (maximum side 4096 px), not stock text over it. The same controls work on any selected project image through Edit selection.
+- Reversible crop margins, replace source while preserving displayed size, 12 photo presets, composable brightness/contrast/saturation/hue/blur/pixelation, grayscale/sepia/invert toggles and sharpen preset. Native Fabric filters/crops round-trip through saves, JSON and backups. Presets replace adjustments; individual sliders preserve the other adjustments. Original library sources remain unchanged.
+- **Download edited photo PNG** exports the selected photo with its crop/filters/transforms without page margins. Normal Export still exports the entire design page. Raster photos are not decomposed into their original text/objects; there is no OCR, AI segmentation or background removal.
 - Local save and 15-second autosave; atomic revision checks against stale saves from other tabs; latest 30 design revisions with restore.
 - PNG, JPG, embedded-font/image vector SVG, multipage PDF and editable JSON downloads.
 - Local image uploads are embedded as raster data URLs in designs, so they survive reloads and design JSON transfers. No arbitrary remote image URLs or SVG uploads.
@@ -48,25 +53,34 @@ Vite rewrites fonts, photos, chunks, and worker paths. Changing the hosting orig
 
 Open **Video studio → New video**. Import files in **Media**, then add clips with the plus buttons.
 
-| Area         | Working tools                                                                                                                                                     |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Timeline     | Video and still-image clips, scrubbing/playback, trim, split, reorder/drag, duplicate/delete, fit/fill, zoomable timeline, document undo/redo                     |
-| Speed        | 0.25×, 0.5×, 0.75×, 1×, 1.25×, 1.5×, 2×, 3×, 4×; chained audio tempo filters                                                                                      |
-| Effects      | Original, monochrome, warm, cool, vintage sepia; brightness, contrast, saturation, blur, 90/180/270° rotation, horizontal/vertical flips, reset                   |
-| Crop/motion  | 1–2× start/end zoom and two-point X/Y pan, interpolated over each clip; use identical endpoints for a fixed crop                                                  |
-| Clip tools   | Volume/mute, fade in/out to black/silence; source frame PNG; freeze-frame copy appended as an editable still; source audio extraction to WAV; reversed video copy |
-| Text         | Timed multiline captions, color/size/top/center/bottom placement, import/export plain-text SRT, browser-rasterized captions with Arabic fallback                  |
-| Image layers | Up to 10 timed logos/stickers/photos from your own PNG/JPEG/WebP files, position, width and opacity                                                               |
-| Audio        | Original clip audio, looping background music/offset/volume, up to 5 timed voiceover/SFX layers with trim, placement, volume and fades                            |
-| Recording    | Real microphone recording using MediaRecorder (permission required); recorded sources and timed voiceover layers save locally                                     |
-| Layer lanes  | Separate caption/image/audio rows; click to edit, drag to reposition, Left/Right to nudge 0.1s, Shift+Left/Right to nudge 1s                                      |
-| Export       | Real H.264 + AAC MP4 from FFmpeg.wasm, landscape/portrait/square presets, 24/25/30/60fps, draft/balanced/high quality, progress/cancel/download                   |
+| Area         | Working tools                                                                                                                                                                                                                           |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Timeline     | Video and still-image clips, scrubbing/playback, trim, split, reorder/drag, duplicate/delete, fit/fill, zoomable timeline, document undo/redo                                                                                           |
+| Speed        | 0.25×, 0.5×, 0.75×, 1×, 1.25×, 1.5×, 2×, 3×, 4×; chained audio tempo filters                                                                                                                                                            |
+| Effects      | 20 look choices (including Original) + 10 extra effects: vignette, sharpen, grain, negative, neon edges, emboss, soft focus, pixel mosaic, scan lines, RGB split; brightness, contrast, saturation, hue, blur, rotation/flips and reset |
+| Crop/motion  | 1–2× start/end zoom and two-point X/Y pan, interpolated over each clip; use identical endpoints for a fixed crop                                                                                                                        |
+| Clip tools   | Volume/mute, fade in/out to black/silence; source frame PNG; freeze-frame copy appended as an editable still; source audio extraction to WAV; reversed video copy                                                                       |
+| Text         | Timed multiline captions, color/size/top/center/bottom placement, import/export plain-text SRT, browser-rasterized captions with Arabic fallback                                                                                        |
+| Image layers | Up to 10 timed logos/stickers/photos from your own PNG/JPEG/WebP files, position, width and opacity                                                                                                                                     |
+| Audio        | Original clip audio, looping background music/offset/volume, up to 5 timed voiceover/SFX layers with trim, placement, volume and fades                                                                                                  |
+| Recording    | Real microphone recording using MediaRecorder (permission required); recorded sources and timed voiceover layers save locally                                                                                                           |
+| Layer lanes  | Separate caption/image/audio rows; click to edit, drag to reposition, Left/Right to nudge 0.1s, Shift+Left/Right to nudge 1s                                                                                                            |
+| Export       | Real H.264 + AAC MP4 from FFmpeg.wasm, landscape/portrait/square presets, 24/25/30/60fps, draft/balanced/high quality, progress/cancel/download                                                                                         |
 
 Reverse creates a separate, correctly playable media file rather than pretending native video supports negative playback rates. Reverse copies are restricted to **10 seconds and 640 px** to bound the reverse filter's frame buffer. Freeze frames and reversed copies are appended to the timeline; drag to reposition. Source-frame downloads and freeze captures intentionally omit montage effects and captions. Audio extraction exports the selected source range before its timeline speed/effects, capped at 2 minutes per WAV file.
 
 Microphone recording requires HTTPS (or localhost) and browser permission. Stay in the Audio tab while recording; leaving it stops/discards an unfinished recording. Recording stops after 2 minutes or 25 MB. Recordings with missing WebM duration headers are measured from FFprobe packet timestamps.
 
-Color/blur preview is approximate; export uses FFmpeg filters. Preview clamps gains above 100%. Audio mixes use equal-input averaging, not mastering/loudness normalization. Fades are **not overlapping crossfade transitions**. Captions on the same position/time can overlap: adjust their timing or position. Caption text is plain text, not HTML. Advanced typography/shaping beyond the installed/bundled fonts is not guaranteed.
+Appearance preview is approximate; export uses FFmpeg filters. Vignette, grain, pixel mosaic, scan lines and RGB split do not have a faithful live CSS preview; judge those effects in the MP4 export. This is a finite independent preset library, not the entire proprietary CapCut effect catalogue. One look and one extra effect can be combined with the sliders per clip. Preview clamps gains above 100%. Audio mixes use equal-input averaging, not mastering/loudness normalization. Fades are **not overlapping crossfade transitions**. Captions on the same position/time can overlap: adjust their timing or position. Caption text is plain text, not HTML. Advanced typography/shaping beyond the installed/bundled fonts is not guaranteed.
+
+### Keyboard shortcuts
+
+Click **Shortcuts** in either editor for the complete reference (Ctrl on Windows/Linux, ⌘ on Mac). Native typing/cut/copy/paste stays intact in inputs, textareas, selects and in-canvas text editing.
+
+- Both editors: **Ctrl/⌘ X/C/V** cut/copy/paste selected objects or clips, **D** duplicate, **S** save, **Z** undo, **Shift Z / Ctrl Y** redo, Delete/Backspace remove.
+- Canvas: **Ctrl/⌘ A** select unlocked objects, **G** group/ungroup, **L** lock/unlock, **B/I/U** text styling, **[ / ]** stack backward/forward. Arrows move 1 px, Shift+Arrows 10 px. T/R/O add text/rectangle/circle, Escape deselects/stops drawing, +/−/0 zoom/fit.
+- Video: Space plays/pauses, **S** splits inside the selected clip, Left/Right seek one frame (Shift: one second), Home/End seek start/end. Clip paste inserts after the selected clip, or at the end if none is selected; it preserves source/effects with a fresh ID, and respects 30 clips / 10 minutes.
+- Object/clip clipboards are **internal to the open editor**, not cross-tab or cross-app design exchange. When no object has been copied yet, browser paste can import a PNG/JPEG/WebP clipboard image. Use editable JSON or workspace ZIP for portability. Locked objects cannot be cut, moved, deleted or inspector-edited until unlocked in Layers.
 
 ### Explicit non-features
 
@@ -119,13 +133,14 @@ Set project root to `design-studio`, install with `npm ci`, build with `npm run 
 
 ```sh
 npm test                 # server regression + shared validation/effect/SRT tests
-npm run test:browser     # production static UI + local transaction tests + actual WASM media tests
+npm run test:browser     # production static UI + local transaction tests + actual WASM media + creative-tool tests
 npm run test:static      # production static UI only
+npm run test:creative    # category/CV/photo/shortcuts and full WASM preset catalogue
 ```
 
 The production test serves `dist/` below `/reverse/` with an ordinary static HTTP server, with **no backend**. It exercises canvas editing/exports/history, local image persistence, brand kit, montage upload/playback/editing, effects/motion/layers, actual microphone recording with a synthetic test device, SRT, genuine WASM MP4/download, save/reload, another visitor's empty storage, ZIP backup/restore into that clean browser and a second genuine export from restored sources, plus malformed ZIP rejection. It checks no `/api` or external-host requests and no cross-origin isolation requirement.
 
-Additional tests cover revision races, source reference protection, cancellation, archive size limits, import validation, and transaction rollback on real cloning errors and simulated asynchronous aborts. Actual full-disk/quota exhaustion behavior is browser-dependent, not universally verified. Media tests verify real output dimensions/audio/duration and pixels, motion/stills/overlays, reverse output order, WAV extraction and cancellation followed by worker recovery. The optional original server tests remain in place.
+Additional tests cover revision races, source reference protection, cancellation, archive size limits, import validation, and transaction rollback on real cloning errors and simulated asynchronous aborts. Actual full-disk/quota exhaustion behavior is browser-dependent, not universally verified. Media tests verify real output dimensions/audio/duration and pixels, motion/stills/overlays, reverse output order, WAV extraction and cancellation followed by worker recovery. The creative-tool suite additionally exercises editable CV text, cut/paste/nudge/redo and native input isolation, photo filter/crop/shadow persistence, every original template and photo preset through real Fabric export/import, video clip clipboard shortcuts and a real WASM H.264 render containing every look/effect. The optional original server tests remain in place.
 
 ## Optional original server
 

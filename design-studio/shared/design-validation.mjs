@@ -33,8 +33,23 @@ const auxiliaryTypes = new Set([
   "Brightness",
   "Contrast",
   "Saturation",
+  "Sepia",
+  "Invert",
+  "HueRotation",
+  "Blur",
+  "Pixelate",
+  "Convolute",
+  "shadow",
   "layoutManager",
 ]);
+const filterBounds = {
+  Brightness: ["brightness", -1, 1],
+  Contrast: ["contrast", -1, 1],
+  Saturation: ["saturation", -1, 1],
+  HueRotation: ["rotation", -1, 1],
+  Blur: ["blur", 0, 1],
+  Pixelate: ["blocksize", 1, 64],
+};
 const fail = (message) => {
   throw Object.assign(new Error(message), { status: 400 });
 };
@@ -52,6 +67,28 @@ export function validateCanvasTree(value, { local = false, base = "/" } = {}) {
       } else if (!auxiliaryTypes.has(node.type))
         fail("Unsupported design object type");
     }
+    const bound = filterBounds[node.type];
+    if (bound && node[bound[0]] !== undefined) {
+      const v = node[bound[0]];
+      if (
+        typeof v !== "number" ||
+        !Number.isFinite(v) ||
+        v < bound[1] ||
+        v > bound[2] ||
+        (node.type === "Pixelate" && !Number.isInteger(v))
+      )
+        fail("Invalid image filter adjustment");
+    }
+    if (
+      node.type === "Convolute" &&
+      (!Array.isArray(node.matrix) ||
+        node.matrix.length !== 9 ||
+        node.matrix.some(
+          (v) =>
+            typeof v !== "number" || !Number.isFinite(v) || Math.abs(v) > 16,
+        ))
+    )
+      fail("Use a bounded 3 × 3 image convolution");
     for (const [key, child] of Object.entries(node)) {
       if (["__proto__", "constructor", "prototype"].includes(key))
         fail("Invalid design property");

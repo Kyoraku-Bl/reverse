@@ -131,7 +131,7 @@ try {
   );
   await rail("Uploads");
   await page
-    .locator('input[accept="image/png,image/jpeg,image/webp"]')
+    .getByLabel("Upload design image", { exact: true })
     .setInputFiles("public/images/ocean.jpg");
   await page.locator(".re-assets img").first().waitFor();
   await ready();

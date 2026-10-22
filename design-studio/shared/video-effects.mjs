@@ -1,3 +1,4 @@
+import { videoLooks, videoEffects } from "./effect-catalog.mjs";
 // Shared numeric/enumerated filters only. User text is written to files, not filter expressions.
 export function visualFilters(c) {
   const filters = [];
@@ -10,18 +11,14 @@ export function visualFilters(c) {
     filters.push(
       `eq=brightness=${c.brightness || 0}:contrast=${c.contrast ?? 1}:saturation=${c.saturation ?? 1}`,
     );
-  if (c.filter === "mono") filters.push("hue=s=0");
-  if (c.filter === "warm") filters.push("colorbalance=rs=0.12:bs=-0.1");
-  if (c.filter === "cool") filters.push("colorbalance=rs=-0.1:bs=0.12");
-  if (c.filter === "vintage")
-    filters.push(
-      "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131",
-    );
+  filters.push(...(videoLooks.find((v) => v.id === c.filter)?.ff || []));
+  filters.push(...(videoEffects.find((v) => v.id === c.effect)?.ff || []));
+  if (c.hue) filters.push(`hue=h=${c.hue}`);
   if (c.blur) filters.push(`boxblur=${c.blur}:1`);
   return filters;
 }
 export function previewFilter(c = {}) {
-  return `brightness(${1 + (c.brightness || 0)}) contrast(${c.contrast ?? 1}) saturate(${c.saturation ?? 1}) ${c.filter === "mono" ? "grayscale(1)" : c.filter === "vintage" ? "sepia(1)" : c.filter === "warm" ? "sepia(.25) saturate(1.15)" : c.filter === "cool" ? "sepia(.15) hue-rotate(165deg)" : ""} blur(${c.blur || 0}px)`;
+  return `brightness(${1 + (c.brightness || 0)}) contrast(${c.contrast ?? 1}) saturate(${c.saturation ?? 1}) ${videoLooks.find((v) => v.id === c.filter)?.css || ""} ${videoEffects.find((v) => v.id === c.effect)?.css || ""} hue-rotate(${c.hue || 0}deg) blur(${c.blur || 0}px)`;
 }
 export function tempoFilter(speed) {
   const values = [];

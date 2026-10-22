@@ -9,7 +9,7 @@
     "build": "vite build",
     "start": "vite preview --host 0.0.0.0",
     "test": "node --test tests/*.test.mjs",
-    "test:browser": "node tests/static-browser.mjs && node tests/local-workspace-browser.mjs && node tests/engine-smoke.mjs",
+    "test:browser": "node tests/static-browser.mjs && node tests/local-workspace-browser.mjs && node tests/engine-smoke.mjs && npm run test:creative",
     "test:video": "node --test tests/video.test.mjs",
     "prebuild": "node scripts/prepare-static.mjs",
     "build:server": "vite build --mode server",
@@ -21,7 +21,8 @@
     "start:server": "node server/index.mjs",
     "dev:server": "concurrently -k -n api,web \"node --watch server/index.mjs\" \"vite --mode server --host 0.0.0.0\"",
     "prebuild:server": "node scripts/prepare-fonts.mjs",
-    "predev:server": "node scripts/prepare-fonts.mjs"
+    "predev:server": "node scripts/prepare-fonts.mjs",
+    "test:creative": "node tests/creative-tools-browser.mjs"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

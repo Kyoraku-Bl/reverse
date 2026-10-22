@@ -148,7 +148,7 @@ try {
   );
   await rail("Uploads");
   await page
-    .locator('input[accept="image/png,image/jpeg,image/webp"]')
+    .getByLabel("Upload design image", { exact: true })
     .setInputFiles("public/images/ocean.jpg");
   await page.locator(".re-assets img").first().waitFor();
   await ready();
@@ -416,15 +416,13 @@ async function videoAndBackup() {
     .fill("Hello مرحبا 100% : free");
   await page.getByLabel("Caption 1 start", { exact: true }).fill("0");
   await page.getByLabel("Caption 1 end", { exact: true }).fill("2");
-  await page
-    .locator(".ve-panel input[type=file]")
-    .setInputFiles({
-      name: "subtitles.srt",
-      mimeType: "text/plain",
-      buffer: Buffer.from(
-        "1\n00:00:00,100 --> 00:00:01,200\nImported subtitle\n",
-      ),
-    });
+  await page.locator(".ve-panel input[type=file]").setInputFiles({
+    name: "subtitles.srt",
+    mimeType: "text/plain",
+    buffer: Buffer.from(
+      "1\n00:00:00,100 --> 00:00:01,200\nImported subtitle\n",
+    ),
+  });
   await page.getByLabel("Caption 2 text", { exact: true }).waitFor();
   assert.equal(
     await page.getByLabel("Caption 2 text", { exact: true }).inputValue(),
@@ -609,13 +607,11 @@ async function videoAndBackup() {
     await fresh.getByTitle("Back to video projects", { exact: true }).click();
     await fresh.locator(".local-workspace-pill").click();
     fresh.once("dialog", (d) => d.accept());
-    await fresh
-      .locator(".local-dialog input[type=file]")
-      .setInputFiles({
-        name: "bad.zip",
-        mimeType: "application/zip",
-        buffer: Buffer.from("not a zip"),
-      });
+    await fresh.locator(".local-dialog input[type=file]").setInputFiles({
+      name: "bad.zip",
+      mimeType: "application/zip",
+      buffer: Buffer.from("not a zip"),
+    });
     await fresh
       .getByRole("status")
       .filter({ hasText: /invalid|unexpected/i })

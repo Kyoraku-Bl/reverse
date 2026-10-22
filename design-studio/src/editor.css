@@ -1097,3 +1097,110 @@ body:has(.real-editor) .main {
     padding-bottom: 210px;
   }
 }
+
+/* Shared inspector and shortcut reference */
+.selection-editor h3 {
+  font-size: 13px;
+  margin: 22px 0 12px;
+}
+.selection-editor fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.selection-editor textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #ddd5e5;
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  color: #29352b;
+  background: #fff;
+}
+.re-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.re-field-grid > label {
+  min-width: 0;
+}
+.re-field-grid input {
+  width: 100%;
+}
+.re-field-grid button {
+  justify-content: center;
+  font-size: 11px;
+  padding: 10px 5px;
+}
+.re-toggle-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+.re-toggle-grid button[aria-pressed="true"],
+.re-field-grid button[aria-pressed="true"] {
+  background: #e8ddfa;
+  border-color: #976dcc;
+}
+.shortcut-dialog {
+  width: min(620px, 95vw) !important;
+  max-height: 85dvh;
+  overflow: auto;
+}
+.shortcut-dialog h2 {
+  margin: 5px 0 15px;
+}
+.shortcut-dialog dl {
+  text-align: left;
+  margin: 20px 0 0;
+}
+.shortcut-dialog dl > div {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid #ece8ef;
+  align-items: center;
+}
+.shortcut-dialog dt,
+.shortcut-dialog dd {
+  margin: 0;
+  font-size: 12px;
+}
+.shortcut-dialog kbd {
+  background: #f3eef9;
+  border-radius: 5px;
+  padding: 4px 6px;
+  font-size: 11px;
+}
+.re-template-list .original-preview {
+  width: 100%;
+  height: 150px;
+  background: #f4f1f7;
+  padding: 8px;
+}
+.re-template-list > button:has(.original-preview) {
+  padding: 0 0 8px;
+  height: auto;
+  overflow: hidden;
+}
+.re-template-list > button small {
+  display: block;
+  padding: 6px;
+}
+.re-toolbar {
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 48px;
+  padding: 6px 10px;
+}
+.re-toolbar > button {
+  flex-shrink: 0;
+}
+.re-header {
+  gap: 8px;
+}
