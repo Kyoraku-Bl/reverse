@@ -1,0 +1,51 @@
+name: KyorakuReplay site
+
+# Publishes only the fxreplay/ folder to GitHub Pages.
+#
+# Why a workflow instead of "Deploy from a branch": the repository also holds
+# the REA toolchain (~5,500 files), and letting Pages copy the whole tree from
+# the branch root is slow and fragile. The artifact below contains exactly the
+# 28 files of the website, so the deploy takes seconds and
+#   https://<owner>.github.io/<repo>/        serves the site root directly,
+#   https://<owner>.github.io/<repo>/replay.html   the terminal.
+#
+# Repository setup: Settings -> Pages -> Source = "GitHub Actions".
+
+on:
+  push:
+    branches: [arena/145acf38-reverse]
+    paths:
+      - "fxreplay/**"
+      - ".github/workflows/kyorakureplay-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: kyorakureplay-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: fxreplay
+
+      - name: Deploy to Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
