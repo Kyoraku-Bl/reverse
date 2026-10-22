@@ -60,6 +60,8 @@
     redo: [],
     selected: null,
     draft: null,
+    hidden: false,
+    locked: false,
     hover: null,
     drag: null,
     playing: false,
@@ -140,17 +142,254 @@
   /* ---------------- formatting ---------------- */
   var asset = function () { return S.series.asset; };
   var fmtP = function (v) { return K.fmt(v, asset().digits); };
+  /* ---------------- time zone ---------------- */
+
+  /* The list mirrors what a trader expects from a charting terminal: UTC,
+     the instrument's own exchange, then the cities people actually use.
+     Offsets are computed with Intl, so daylight saving is always right. */
+  var TZ_LIST = [
+    { zone: "UTC", label: "UTC", group: "Universal" },
+    { zone: "exchange", label: "Exchange", group: "Universal" },
+    { zone: "Atlantic/Azores", label: "Azores", group: "Atlantic" },
+    { zone: "Atlantic/Reykjavik", label: "Reykjavik", group: "Atlantic" },
+    { zone: "America/Sao_Paulo", label: "Sao Paulo", group: "Americas" },
+    { zone: "America/Argentina/Buenos_Aires", label: "Buenos Aires", group: "Americas" },
+    { zone: "America/Santiago", label: "Santiago", group: "Americas" },
+    { zone: "America/Halifax", label: "Halifax", group: "Americas" },
+    { zone: "America/Toronto", label: "Toronto", group: "Americas" },
+    { zone: "America/New_York", label: "New York", group: "Americas" },
+    { zone: "America/Caracas", label: "Caracas", group: "Americas" },
+    { zone: "America/Lima", label: "Lima", group: "Americas" },
+    { zone: "America/Bogota", label: "Bogota", group: "Americas" },
+    { zone: "America/Chicago", label: "Chicago", group: "Americas" },
+    { zone: "America/Mexico_City", label: "Mexico City", group: "Americas" },
+    { zone: "America/El_Salvador", label: "San Salvador", group: "Americas" },
+    { zone: "America/Denver", label: "Denver", group: "Americas" },
+    { zone: "America/Phoenix", label: "Phoenix", group: "Americas" },
+    { zone: "America/Vancouver", label: "Vancouver", group: "Americas" },
+    { zone: "America/Anchorage", label: "Anchorage", group: "Americas" },
+    { zone: "America/Juneau", label: "Juneau", group: "Americas" },
+    { zone: "Pacific/Honolulu", label: "Honolulu", group: "Pacific" },
+    { zone: "Europe/London", label: "London", group: "Europe" },
+    { zone: "Europe/Lisbon", label: "Lisbon", group: "Europe" },
+    { zone: "Europe/Paris", label: "Paris", group: "Europe" },
+    { zone: "Europe/Berlin", label: "Berlin", group: "Europe" },
+    { zone: "Europe/Zurich", label: "Zurich", group: "Europe" },
+    { zone: "Europe/Madrid", label: "Madrid", group: "Europe" },
+    { zone: "Europe/Rome", label: "Rome", group: "Europe" },
+    { zone: "Europe/Istanbul", label: "Istanbul", group: "Europe" },
+    { zone: "Europe/Moscow", label: "Moscow", group: "Europe" },
+    { zone: "Africa/Casablanca", label: "Casablanca", group: "Africa" },
+    { zone: "Africa/Lagos", label: "Lagos", group: "Africa" },
+    { zone: "Africa/Johannesburg", label: "Johannesburg", group: "Africa" },
+    { zone: "Asia/Dubai", label: "Dubai", group: "Asia" },
+    { zone: "Asia/Karachi", label: "Karachi", group: "Asia" },
+    { zone: "Asia/Kolkata", label: "Kolkata", group: "Asia" },
+    { zone: "Asia/Dhaka", label: "Dhaka", group: "Asia" },
+    { zone: "Asia/Bangkok", label: "Bangkok", group: "Asia" },
+    { zone: "Asia/Jakarta", label: "Jakarta", group: "Asia" },
+    { zone: "Asia/Shanghai", label: "Shanghai", group: "Asia" },
+    { zone: "Asia/Hong_Kong", label: "Hong Kong", group: "Asia" },
+    { zone: "Asia/Singapore", label: "Singapore", group: "Asia" },
+    { zone: "Asia/Tokyo", label: "Tokyo", group: "Asia" },
+    { zone: "Asia/Seoul", label: "Seoul", group: "Asia" },
+    { zone: "Australia/Perth", label: "Perth", group: "Pacific" },
+    { zone: "Australia/Sydney", label: "Sydney", group: "Pacific" },
+    { zone: "Pacific/Auckland", label: "Auckland", group: "Pacific" }
+  ];
+
+  var tzCache = {};
+  function tzPref() {
+    var v = store.get("fxr-tz", "UTC");
+    return typeof v === "string" && v ? v : "UTC";
+  }
+  /* Resolves a stored preference ("UTC" | "exchange" | IANA id) to a real zone.
+     Kept separate from activeZone so the menu can price every row, not just
+     the one currently in use. */
+  function zoneFor(pref) {
+    if (pref !== "exchange") return pref || "UTC";
+    var market = (S.series && S.series.asset && S.series.asset.market) || "Forex";
+    var map = (window.KRSymbols && KRSymbols.VENUE_TZ) || {};
+    return map[market] || "America/New_York";
+  }
+  function venueName() {
+    var market = (S.series && S.series.asset && S.series.asset.market) || "Forex";
+    var map = (window.KRSymbols && KRSymbols.VENUE_NAME) || {};
+    return map[market] || "Exchange";
+  }
+  function activeZone() {
+    return zoneFor(tzPref());
+  }
+  function zoneFmt(zone, key, opts) {
+    var id = zone + "|" + key;
+    if (!tzCache[id]) {
+      try {
+        tzCache[id] = new Intl.DateTimeFormat("en-GB", Object.assign({ timeZone: zone, hourCycle: "h23" }, opts));
+      } catch (e) {
+        tzCache[id] = new Intl.DateTimeFormat("en-GB", Object.assign({ timeZone: "UTC", hourCycle: "h23" }, opts));
+      }
+    }
+    return tzCache[id];
+  }
+  function zParts(ts) {
+    var zone = activeZone();
+    var out = {};
+    zoneFmt(zone, "parts", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", weekday: "short"
+    }).formatToParts(new Date(ts)).forEach(function (part) {
+      if (part.type !== "literal") out[part.type] = part.value;
+    });
+    return out;
+  }
+  function zoneOffset(zone, ts) {
+    if (zone === "UTC") return "UTC";
+    try {
+      var name = zoneFmt(zone, "offset", { timeZoneName: "shortOffset" })
+        .formatToParts(new Date(ts || Date.now()))
+        .filter(function (p) { return p.type === "timeZoneName"; })[0];
+      var raw = name ? name.value : "GMT";
+      return raw.replace("GMT", "UTC").replace(/^UTC$/, "UTC").replace("UTC+0", "UTC").replace("UTC-0", "UTC");
+    } catch (e) {
+      return "UTC";
+    }
+  }
+  function tzShort() {
+    var zone = activeZone();
+    if (zone === "UTC") return "UTC";
+    var off = zoneOffset(zone);
+    return off === "UTC" ? "UTC" : off;
+  }
+  /* Short badge next to the clock: UTC or the live offset (UTC-4, UTC+5:30 …) */
+  function tzLabel() {
+    var pref = tzPref();
+    if (pref === "UTC") return "UTC";
+    return zoneOffset(zoneFor(pref));
+  }
+
+  function tzCurrentLabel() {
+    var pref = tzPref();
+    if (pref === "exchange") {
+      var zone = zoneFor(pref);
+      return "Exchange · " + venueName() + " (" + zoneOffset(zone) + ")";
+    }
+    return pref;
+  }
+  function tzOptionRight(item) {
+    return zoneOffset(zoneFor(item.zone));
+  }
+  function tzOptionName(item) {
+    return item.zone === "exchange" ? "Exchange · " + venueName() : item.label;
+  }
+
+  function renderTzMenu(filter) {
+    var list = $("#tzList");
+    if (!list) return;
+    var q = (filter || "").trim().toLowerCase();
+    var pref = tzPref();
+    var html = "";
+    var groups = [];
+    TZ_LIST.forEach(function (item) {
+      var right = tzOptionRight(item);
+      var name = tzOptionName(item);
+      var text = (name + " " + right + " " + item.zone + " " + item.group).toLowerCase();
+      if (q && text.indexOf(q) === -1) return;
+      if (!groups.length || groups[groups.length - 1].name !== item.group) {
+        groups.push({ name: item.group, items: [] });
+      }
+      var selected = item.zone === pref;
+      groups[groups.length - 1].items.push(
+        '<button type="button" class="tz-opt" role="option" data-zone="' + item.zone + '" aria-selected="' + selected + '">' +
+        '<svg class="ic ic--xs tick"><use href="#i-check"/></svg>' +
+        "<span>" + tzOptionName(item) + "</span>" +
+        '<span class="off">' + right + "</span></button>"
+      );
+    });
+    groups.forEach(function (g) {
+      if (!g.items.length) return;
+      html += '<div class="tz-group">' + g.name + "</div>" + g.items.join("");
+    });
+    list.innerHTML = html || '<div class="tz-group">No match</div>';
+  }
+
+  function openTz() {
+    var menu = $("#tzMenu");
+    if (!menu) return;
+    renderTzMenu($("#tzSearch") ? $("#tzSearch").value : "");
+    menu.hidden = false;
+    $("#tzBtn").setAttribute("aria-expanded", "true");
+    var s = $("#tzSearch");
+    if (s) setTimeout(function () { s.focus(); }, 20);
+  }
+  function closeTz() {
+    var menu = $("#tzMenu");
+    if (!menu) return;
+    menu.hidden = true;
+    $("#tzBtn").setAttribute("aria-expanded", "false");
+  }
+  function syncTzChip() {
+    var p = zPartsPlain(Date.now());
+    var clock = $("#tzClock");
+    if (clock) clock.textContent = p.hour + ":" + p.minute;
+    var lbl = $("#tzLabel");
+    if (lbl) lbl.textContent = tzLabel();
+    var chip = $("#tzChip");
+    if (chip) chip.textContent = p.hour + ":" + p.minute + " " + tzShort();
+  }
+  function setZone(zone) {
+    store.set("fxr-tz", zone);
+    closeTz();
+    syncTzChip();
+    scheduleDraw();
+    syncSymbolUI();
+    toast(zone === "UTC" ? "Chart time zone: UTC" : zone === "exchange" ? "Chart time zone: exchange" : "Chart time zone: " + zone.split("/").pop().replace(/_/g, " "));
+  }
+
   function fmtTime(ts) {
-    var d = new Date(ts);
-    return pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes());
+    var p = zParts(ts);
+    return p.hour + ":" + p.minute;
   }
   function fmtDay(ts) {
-    var d = new Date(ts);
-    return d.getUTCDate() + " " + MONTHS[d.getUTCMonth()];
+    var p = zParts(ts);
+    return parseInt(p.day, 10) + " " + p.month;
   }
   function fmtFull(ts) {
-    var d = new Date(ts);
-    return d.getUTCDate() + " " + MONTHS[d.getUTCMonth()] + " " + d.getUTCFullYear() + " · " + fmtTime(ts);
+    var p = zParts(ts);
+    return parseInt(p.day, 10) + " " + p.month + " " + p.year + " · " + p.hour + ":" + p.minute + " " + tzShort();
+  }
+  function fmtDateOnly(ts) {
+    var p = zParts(ts);
+    return parseInt(p.day, 10) + " " + p.month + " " + p.year;
+  }
+  function zPartsPlain(ts) {
+    var p = {};
+    zoneFmt(activeZone(), "plain", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit", second: "2-digit"
+    }).formatToParts(new Date(ts)).forEach(function (part) {
+      if (part.type !== "literal") p[part.type] = part.value;
+    });
+    return p;
+  }
+  function zoneOffsetMinutes(ts) {
+    var z = activeZone();
+    if (z === "UTC") return 0;
+    var p = zPartsPlain(ts);
+    var asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+    return Math.round((asUtc - ts) / 60000);
+  }
+  function toZoneInput(ts) {
+    var p = zPartsPlain(ts);
+    return p.year + "-" + p.month + "-" + p.day + "T" + p.hour + ":" + p.minute;
+  }
+  function fromZoneInput(value) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value || "");
+    if (!m) return null;
+    var guess = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+    var off1 = zoneOffsetMinutes(guess);
+    var shifted = guess - off1 * 60000;
+    var off2 = zoneOffsetMinutes(shifted);
+    return guess - off2 * 60000;
   }
   function fmtQty(q) {
     if (q >= 100) return Math.round(q).toString();
@@ -448,7 +687,7 @@
       ctx.moveTo(x, g.y0);
       ctx.lineTo(x, g.y1);
       ctx.stroke();
-      var day = new Date(d.t).getUTCDate();
+      var day = parseInt(zParts(d.t).day, 10);
       var label;
       if (S.tf === "1D") label = fmtDay(d.t);
       else if (day !== prevDay) label = fmtDay(d.t);
@@ -526,8 +765,8 @@
     if (S.pos) drawPosition(pal, sc);
 
     /* ---- user drawings ---- */
-    S.drawings.forEach(function (d) { drawShape(d, pal, sc, d === S.selected); });
-    if (S.draft) drawShape(S.draft, pal, sc, true, true);
+    if (!S.hidden) S.drawings.forEach(function (d) { drawShape(d, pal, sc, d === S.selected); });
+    if (S.draft && !S.hidden) drawShape(S.draft, pal, sc, true, true);
 
     /* ---- last price ---- */
     var last = S.data[S.cursor];
@@ -622,6 +861,334 @@
     return { x: xAt(a.i), y: yPrice(a.p, sc) };
   }
 
+  /* ---------------- chart analytics for the drawing tools ---------------- */
+
+  function barAt(i) {
+    return S.data[clamp(Math.round(i), 0, S.n - 1)] || null;
+  }
+
+  /* Volume-at-price over [from, to]. Instruments that publish no volume
+     (spot FX, some cash indices) fall back to time-at-price, which is the
+     same histogram with one tick per candle. */
+  function volumeProfile(from, to) {
+    from = clamp(Math.round(from), 0, S.n - 1);
+    to = clamp(Math.round(to), 0, S.n - 1);
+    if (to < from) { var t = from; from = to; to = t; }
+    if (to - from < 2) return null;
+    var lo = Infinity, hi = -Infinity, i, b;
+    for (i = from; i <= to; i++) {
+      b = S.data[i];
+      if (!b) continue;
+      if (b.l < lo) lo = b.l;
+      if (b.h > hi) hi = b.h;
+    }
+    if (!(hi > lo)) return null;
+    var bins = 44;
+    var step = (hi - lo) / bins;
+    var vol = [];
+    for (i = 0; i < bins; i++) vol.push(0);
+    var total = 0;
+    for (i = from; i <= to; i++) {
+      b = S.data[i];
+      if (!b) continue;
+      var typical = (b.h + b.l + b.c) / 3;
+      var k = clamp(Math.floor((typical - lo) / step), 0, bins - 1);
+      var w = b.v > 0 ? b.v : 1;
+      vol[k] += w;
+      total += w;
+    }
+    var max = 0, poc = 0;
+    for (i = 0; i < bins; i++) if (vol[i] > max) { max = vol[i]; poc = i; }
+    if (!max) return null;
+    return { lo: lo, hi: hi, step: step, bins: bins, vol: vol, max: max, poc: poc, from: from, to: to, total: total };
+  }
+
+  /* Anchored VWAP: running volume-weighted average from the anchor bar. */
+  function vwapSeries(fromIdx) {
+    var out = new Array(S.n);
+    var pv = 0, vv = 0, any = false;
+    for (var i = Math.max(0, Math.round(fromIdx)); i <= S.cursor; i++) {
+      var b = S.data[i];
+      if (!b) continue;
+      var typical = (b.h + b.l + b.c) / 3;
+      var w = b.v > 0 ? b.v : 1;
+      pv += typical * w;
+      vv += w;
+      out[i] = pv / vv;
+      any = true;
+    }
+    return any ? out : null;
+  }
+
+  function fmtSpan(ms) {
+    var mins = Math.round(ms / 60000);
+    if (mins < 60) return mins + "m";
+    var hours = mins / 60;
+    if (hours < 48) return (hours < 10 ? hours.toFixed(1) : Math.round(hours)) + "h";
+    var days = Math.round(hours / 24);
+    return days + "d";
+  }
+
+  /* Floating callout used by several tools. */
+  function callout(lines, x, y, color) {
+    var g = geom();
+    ctx.save();
+    ctx.font = "10px 'JetBrains Mono', monospace";
+    var w = 0;
+    lines.forEach(function (l) { w = Math.max(w, ctx.measureText(l).width); });
+    w += 16;
+    var h = lines.length * 14 + 10;
+    var bx = clamp(x, g.x0 + 4, g.x1 - w - 4);
+    var by = clamp(y, g.y0 + 4, g.y1 - h - 4);
+    ctx.fillStyle = hexA(color, 0.92);
+    roundRect(bx, by, w, h, 5);
+    ctx.fill();
+    ctx.fillStyle = "#06080f";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    lines.forEach(function (l, i) { ctx.fillText(l, bx + 8, by + 12 + i * 14); });
+    ctx.restore();
+  }
+
+  function drawMeasure(d, sc, preview) {
+    var a = anchorXY(d.a, sc);
+    var b = anchorXY(d.b || d.a, sc);
+    var g = geom();
+    var up = d.b ? d.b.p >= d.a.p : true;
+    var color = up ? "#38e2a0" : "#ff5d7d";
+    ctx.save();
+    if (preview) ctx.setLineDash([5, 4]);
+    ctx.fillStyle = hexA(color, 0.1);
+    ctx.fillRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+    ctx.strokeStyle = hexA(color, 0.75);
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, a.y);
+    ctx.moveTo(b.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.4;
+    ctx.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+    ctx.restore();
+
+    if (d.b) {
+      var dp = d.b.p - d.a.p;
+      var pct = d.a.p ? (dp / d.a.p) * 100 : 0;
+      var bi = Math.round(d.b.i) - Math.round(d.a.i);
+      var bars = Math.max(0, bi) + (S.tf === "1D" ? 0 : 0);
+      var span = (barAt(d.b.i).t - barAt(d.a.i).t);
+      var lines = [
+        signed(dp, asset().digits) + "  " + signed(pct, 2) + "%",
+        Math.abs(bi) + (Math.abs(bi) === 1 ? " bar" : " bars") + " · " + fmtSpan(Math.abs(span))
+      ];
+      if (Math.abs(dp) >= 0 && bars === 0) lines.pop();
+      callout(lines, b.x + 10, b.y + 10, color);
+    }
+  }
+
+  function drawPositionTool(d, sc, preview) {
+    var isLong = d.type === "long";
+    var a = anchorXY(d.a, sc);
+    var b = anchorXY(d.b || d.a, sc);
+    var c = d.c ? anchorXY(d.c, sc) : null;
+    var g = geom();
+    ctx.save();
+    if (preview) ctx.setLineDash([6, 4]);
+    var entryY = a.y, targetY = b.y, stopY = c ? c.y : null;
+    var right = g.x1;
+    if (d.b) {
+      var profitTop = Math.min(entryY, targetY), profitH = Math.abs(targetY - entryY);
+      ctx.fillStyle = "rgba(56,226,160,.16)";
+      ctx.fillRect(a.x, profitTop, Math.max(2, right - a.x), profitH);
+    }
+    if (c) {
+      var lossTop = Math.min(entryY, stopY), lossH = Math.abs(stopY - entryY);
+      ctx.fillStyle = "rgba(255,93,125,.16)";
+      ctx.fillRect(a.x, lossTop, Math.max(2, right - a.x), lossH);
+    }
+    ctx.lineWidth = 1.3;
+    var rows = [
+      { y: entryY, col: "#a78bfa", label: (isLong ? "ENTRY " : "ENTRY ") + fmtP(d.a.p) },
+      d.b ? { y: targetY, col: "#38e2a0", label: "TARGET " + fmtP(d.b.p) } : null,
+      c ? { y: stopY, col: "#ff5d7d", label: "STOP " + fmtP(d.c.p) } : null
+    ];
+    rows.forEach(function (row) {
+      if (!row) return;
+      ctx.strokeStyle = row.col;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(a.x, Math.round(row.y) + 0.5);
+      ctx.lineTo(right, Math.round(row.y) + 0.5);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "9px 'JetBrains Mono', monospace";
+      var w = ctx.measureText(row.label).width + 10;
+      ctx.fillStyle = row.col;
+      roundRect(right - w - 4, row.y - 7, w, 14, 3);
+      ctx.fill();
+      ctx.fillStyle = "#06080f";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(row.label, right - w + 1, row.y);
+    });
+    ctx.restore();
+
+    if (c && d.b) {
+      var risk = Math.abs(d.a.p - d.c.p);
+      var reward = Math.abs(d.b.p - d.a.p);
+      var rr = risk > 0 ? reward / risk : 0;
+      var lines = [
+        (isLong ? "LONG" : "SHORT") + " · " + rr.toFixed(2) + "R",
+        signed(((d.b.p - d.a.p) / d.a.p) * 100, 2) + "% target",
+        "risk " + fmtP(Math.abs(d.a.p - d.c.p))
+      ];
+      callout(lines, a.x + 10, Math.min(entryY, targetY, stopY) - 46, isLong ? "#38e2a0" : "#ff5d7d");
+    }
+  }
+
+  function drawBarsPattern(d, sc, preview) {
+    var from = Math.round(Math.min(d.a.i, d.b ? d.b.i : d.a.i));
+    var to = Math.round(Math.max(d.a.i, d.b ? d.b.i : d.a.i));
+    var g = geom();
+    var count = to - from + 1;
+    if (count < 2) return;
+    var bw = (g.x1 - g.x0) / Math.max(1, range().bars);
+    var cw = clamp(bw * 0.66, 1, 15);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(g.x0, g.y0, g.x1 - g.x0, g.y1 - g.y0);
+    ctx.clip();
+
+    /* source range marker */
+    var ax = xAt(from), bx = xAt(to);
+    ctx.strokeStyle = "rgba(139,107,255,.85)";
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([4, 3]);
+    ctx.strokeRect(ax, g.y0 + 4, Math.max(1, bx - ax), g.y1 - g.y0 - 8);
+    ctx.setLineDash([]);
+
+    /* projection: same candles, repeated right after the source */
+    var startIdx = to + 1;
+    ctx.globalAlpha = preview ? 0.35 : 0.55;
+    for (var k = 0; k < count; k++) {
+      var src = S.data[from + k];
+      if (!src) continue;
+      var px = xAt(startIdx + k);
+      if (px > g.x1 + cw) break;
+      var up = src.c >= src.o;
+      var col = up ? "#38e2a0" : "#ff5d7d";
+      ctx.strokeStyle = col;
+      ctx.fillStyle = hexA(col, 0.35);
+      ctx.lineWidth = 1;
+      var xw = Math.round(px) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(xw, yPrice(src.h, sc));
+      ctx.lineTo(xw, yPrice(src.l, sc));
+      ctx.stroke();
+      var yo = yPrice(src.o, sc), yc = yPrice(src.c, sc);
+      ctx.fillRect(px - cw / 2, Math.min(yo, yc), Math.max(1, cw - 0.6), Math.max(1, Math.abs(yc - yo)));
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    ctx.save();
+    ctx.font = "10px 'JetBrains Mono', monospace";
+    ctx.fillStyle = "rgba(167,139,250,.95)";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(count + " bars copied →", ax + 4, g.y0 + 8);
+    ctx.restore();
+  }
+
+  function drawAVWAP(d, sc, preview) {
+    var series = vwapSeries(d.a.i);
+    if (!series) return;
+    var g = geom();
+    ctx.save();
+    ctx.beginPath();
+    ctx.strokeStyle = "#ffc861";
+    ctx.lineWidth = 1.8;
+    if (preview) ctx.setLineDash([6, 4]);
+    var started = false;
+    for (var i = Math.max(0, Math.round(d.a.i)); i <= S.cursor; i++) {
+      var v = series[i];
+      if (v === undefined || !isFinite(v)) continue;
+      var x = xAt(i), y = yPrice(v, sc);
+      if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    var ax = xAt(d.a.i), ay = yPrice(d.a.p, sc);
+    ctx.fillStyle = "#ffc861";
+    ctx.beginPath();
+    ctx.arc(ax, ay, 3.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = hexA("#ffc861", 0.5);
+    ctx.beginPath();
+    ctx.moveTo(ax, ay + 4);
+    ctx.lineTo(ax, g.y1);
+    ctx.stroke();
+
+    var lastV = null;
+    for (var j = S.cursor; j >= Math.round(d.a.i); j--) {
+      if (series[j] !== undefined && isFinite(series[j])) { lastV = series[j]; break; }
+    }
+    if (lastV !== null) tagRight("AVWAP " + fmtP(lastV), yPrice(lastV, sc), "#ffc861");
+    ctx.restore();
+  }
+
+  function drawProfile(d, sc, preview, anchored) {
+    var from = Math.round(d.a.i);
+    var to = anchored ? S.cursor : Math.round(d.b ? d.b.i : d.a.i);
+    var prof = volumeProfile(from, to);
+    if (!prof) return;
+    var g = geom();
+    var rightX = xAt(anchored ? S.cursor : to);
+    var maxW = Math.min(180, (g.x1 - g.x0) * 0.34);
+    ctx.save();
+    ctx.globalAlpha = preview ? 0.6 : 1;
+
+    /* range shading */
+    var ax = xAt(Math.min(from, to));
+    ctx.fillStyle = "rgba(93,139,255,.07)";
+    ctx.fillRect(ax, g.y0, Math.max(2, rightX - ax), g.y1 - g.y0);
+
+    for (var i = 0; i < prof.bins; i++) {
+      var price = prof.lo + (i + 0.5) * prof.step;
+      var y = yPrice(price, sc);
+      if (y < g.y0 - 2 || y > g.y1 + 2) continue;
+      var w = (prof.vol[i] / prof.max) * maxW;
+      if (w < 0.6) continue;
+      var isPoc = i === prof.poc;
+      ctx.fillStyle = isPoc ? "rgba(255,200,97,.75)" : "rgba(93,139,255,.42)";
+      ctx.fillRect(rightX - w, y - Math.max(1, (g.y1 - g.y0) / prof.bins / 2), w, Math.max(1, (g.y1 - g.y0) / prof.bins - 0.6));
+    }
+
+    /* POC line + anchor */
+    var pocPrice = prof.lo + (prof.poc + 0.5) * prof.step;
+    ctx.strokeStyle = "rgba(255,200,97,.85)";
+    ctx.lineWidth = 1.1;
+    ctx.setLineDash([4, 3]);
+    var py = yPrice(pocPrice, sc);
+    ctx.beginPath();
+    ctx.moveTo(ax, py);
+    ctx.lineTo(g.x1, py);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    tagRight("POC " + fmtP(pocPrice), py, "#ffc861");
+
+    var anchorY = yPrice(barAt(from).c, sc);
+    ctx.fillStyle = "#5d8bff";
+    ctx.beginPath();
+    ctx.arc(xAt(from), anchorY, 3.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   function drawShape(d, pal, sc, selected, preview) {
     if (!d || !d.a) return;
     ctx.save();
@@ -634,6 +1201,43 @@
     var a = anchorXY(d.a, sc);
     var b = d.b ? anchorXY(d.b, sc) : null;
     var g = geom();
+
+    if (d.type === "measure") {
+      ctx.restore();
+      drawMeasure(d, sc, preview);
+      drawHandles(d, sc, color, selected, ["a", "b"]);
+      return;
+    }
+    if (d.type === "long" || d.type === "short" || d.type === "forecast") {
+      ctx.restore();
+      drawPositionTool(d, sc, preview);
+      drawHandles(d, sc, color, selected, ["a", "b", "c"]);
+      return;
+    }
+    if (d.type === "bars") {
+      ctx.restore();
+      drawBarsPattern(d, sc, preview);
+      drawHandles(d, sc, "#a78bfa", selected, ["a", "b"]);
+      return;
+    }
+    if (d.type === "avwap") {
+      ctx.restore();
+      drawAVWAP(d, sc, preview);
+      drawHandles(d, sc, "#ffc861", selected, ["a"]);
+      return;
+    }
+    if (d.type === "vprofile") {
+      ctx.restore();
+      drawProfile(d, sc, preview, false);
+      drawHandles(d, sc, "#5d8bff", selected, ["a", "b"]);
+      return;
+    }
+    if (d.type === "avprofile") {
+      ctx.restore();
+      drawProfile(d, sc, preview, true);
+      drawHandles(d, sc, "#5d8bff", selected, ["a"]);
+      return;
+    }
 
     if (d.type === "hline") {
       ctx.strokeStyle = color;
@@ -707,6 +1311,25 @@
         ctx.stroke();
       });
     }
+    ctx.restore();
+  }
+
+  /* draggable dots for the tools that use extra anchors */
+  function drawHandles(d, sc, color, selected, parts) {
+    if (!selected) return;
+    ctx.save();
+    parts.forEach(function (part) {
+      var anchor = d[part];
+      if (!anchor) return;
+      var pt = anchorXY(anchor, sc);
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    });
     ctx.restore();
   }
 
@@ -799,6 +1422,26 @@
   function hitShape(d, x, y, sc) {
     if (!d || !d.a) return null;
     var a = anchorXY(d.a, sc);
+
+    if (d.type === "avwap" || d.type === "avprofile") {
+      return dist(x, y, a.x, a.y) < 10 ? "a" : (Math.abs(x - a.x) < 8 ? "a" : null);
+    }
+    if (d.type === "measure" || d.type === "long" || d.type === "short" || d.type === "forecast" ||
+        d.type === "vprofile" || d.type === "bars") {
+      var pts = ["a", "b", "c"];
+      for (var pi = 0; pi < pts.length; pi++) {
+        var anchor = d[pts[pi]];
+        if (!anchor) continue;
+        var pt = anchorXY(anchor, sc);
+        if (dist(x, y, pt.x, pt.y) < 10) return pts[pi];
+      }
+      var bx = d.b ? anchorXY(d.b, sc) : a;
+      var minX = Math.min(a.x, bx.x) - 6, maxX = Math.max(a.x, bx.x) + 6;
+      var ys = [a.y, bx.y];
+      if (d.c) ys.push(anchorXY(d.c, sc).y);
+      var minY = Math.min.apply(null, ys) - 8, maxY = Math.max.apply(null, ys) + 8;
+      return x >= minX && x <= maxX && y >= minY && y <= maxY ? "move" : null;
+    }
     if (d.type === "hline") return Math.abs(y - a.y) < 7 ? "move" : null;
     if (d.type === "vline") return Math.abs(x - a.x) < 7 ? "move" : null;
     var b = d.b ? anchorXY(d.b, sc) : null;
@@ -1109,10 +1752,13 @@
   /* ---------------- clock ---------------- */
   function startClock() {
     var el = $("#sessionClock");
-    setInterval(function () {
+    var tick = function () {
       var s = Math.floor((Date.now() - S.start) / 1000);
-      el.textContent = pad2(Math.floor(s / 60)) + ":" + pad2(s % 60);
-    }, 1000);
+      if (el) el.textContent = pad2(Math.floor(s / 60)) + ":" + pad2(s % 60);
+      syncTzChip();
+    };
+    tick();
+    setInterval(tick, 1000);
   }
 
   /* ---------------- resize ---------------- */
@@ -1145,7 +1791,7 @@
     canvas.setPointerCapture(e.pointerId);
 
     if (S.tool === "cursor") {
-      var hit = hitTest(pt.x, pt.y, sc);
+      var hit = S.hidden || S.locked ? null : hitTest(pt.x, pt.y, sc);
       if (hit) {
         S.selected = hit.shape;
         S.drag = {
@@ -1179,6 +1825,26 @@
       S.draft = { type: "rect", a: { i: idx, p: price }, b: { i: idx, p: price }, color: "#8b6bff" };
     } else if (S.tool === "fib") {
       S.draft = { type: "fib", a: { i: idx, p: price }, b: { i: idx, p: price }, color: "#ffc861" };
+    } else if (S.tool === "measure") {
+      S.draft = { type: "measure", a: { i: idx, p: price }, b: { i: idx, p: price }, color: "#a78bfa" };
+    } else if (S.tool === "long" || S.tool === "short" || S.tool === "forecast") {
+      S.draft = {
+        type: S.tool,
+        a: { i: idx, p: price },
+        b: { i: idx, p: price },
+        c: { i: idx, p: price },
+        color: S.tool === "short" ? "#ff5d7d" : "#38e2a0"
+      };
+    } else if (S.tool === "bars") {
+      S.draft = { type: "bars", a: { i: idx, p: price }, b: { i: idx, p: price }, color: "#a78bfa" };
+    } else if (S.tool === "vprofile") {
+      S.draft = { type: "vprofile", a: { i: idx, p: price }, b: { i: idx, p: price }, color: "#5d8bff" };
+    } else if (S.tool === "avwap" || S.tool === "avprofile") {
+      S.draft = {
+        type: S.tool,
+        a: { i: idx, p: price },
+        color: S.tool === "avwap" ? "#ffc861" : "#5d8bff"
+      };
     }
     S.drag = { mode: "draw", start: pt };
     scheduleDraw();
@@ -1213,10 +1879,13 @@
           if (S.drag.part === "move") {
             shape.a = { i: origin.a.i + di, p: origin.a.p + dp };
             if (origin.b) shape.b = { i: origin.b.i + di, p: origin.b.p + dp };
+            if (origin.c) shape.c = { i: origin.c.i + di, p: origin.c.p + dp };
           } else if (S.drag.part === "a") {
             shape.a = { i: clamp(origin.a.i + di, 0, S.cursor), p: origin.a.p + dp };
           } else if (S.drag.part === "b" && origin.b) {
             shape.b = { i: clamp(origin.b.i + di, 0, S.cursor), p: origin.b.p + dp };
+          } else if (S.drag.part === "c" && origin.c) {
+            shape.c = { i: clamp(origin.c.i + di, 0, S.cursor), p: origin.c.p + dp };
           }
           scheduleDraw();
         }
@@ -1226,6 +1895,13 @@
             i: clamp(iAt(pt.x), 0, S.cursor),
             p: priceAt(clamp(pt.y, geom().y0, geom().y1), sc)
           };
+          /* the stop handle of a position tool mirrors the target around entry */
+          if (S.draft.c) {
+            var entry = S.draft.a.p;
+            var distP = S.draft.b.p - entry;
+            var stopP = S.draft.type === "short" ? entry + distP * 0.5 : entry - distP * 0.5;
+            S.draft.c = { i: S.draft.b.i, p: stopP };
+          }
         } else {
           S.draft.a.p = priceAt(clamp(pt.y, geom().y0, geom().y1), sc);
           if (S.draft.type === "vline") S.draft.a.i = clamp(iAt(pt.x), 0, S.cursor);
@@ -1267,7 +1943,19 @@
         pushUndo();
         S.drawings.push(d);
         saveDrawings();
-        toast(d.type === "hline" ? "Horizontal line added" : d.type === "vline" ? "Vertical line added" : "Drawing added");
+        var names = {
+          hline: "Horizontal line added",
+          vline: "Vertical line added",
+          measure: "Measurement added",
+          long: "Long position added",
+          short: "Short position added",
+          forecast: "Forecast added",
+          bars: "Bars pattern added",
+          avwap: "Anchored VWAP added",
+          vprofile: "Volume profile added",
+          avprofile: "Anchored volume profile added"
+        };
+        toast(names[d.type] || "Drawing added");
       }
       S.draft = null;
       setTool("cursor");
@@ -1318,17 +2006,91 @@
   });
 
   /* ---------------- tools ---------------- */
+  /* Grouped "Line tools" menu — same order and wording as TradingView's rail menu */
+  var TOOL_MENU = [
+    { name: "Lines", items: [
+      { tool: "trend", bg: "#i-trend", label: "Trend line", key: "T" },
+      { tool: "hline", bg: "#i-hline", label: "Horizontal line", key: "H" },
+      { tool: "vline", bg: "#i-vline", label: "Vertical line", key: "L" },
+      { tool: "rect", bg: "#i-rect", label: "Rectangle zone", key: "R" },
+      { tool: "fib", bg: "#i-fib", label: "Fib retracement", key: "F" }
+    ] },
+    { name: "Forecasting", items: [
+      { tool: "long", bg: "#i-longpos", label: "Long position", key: "P" },
+      { tool: "short", bg: "#i-shortpos", label: "Short position", key: "O" },
+      { tool: "forecast", bg: "#i-forecast", label: "Position forecast", key: "Y" },
+      { tool: "bars", bg: "#i-bars", label: "Bars pattern", key: "G" }
+    ] },
+    { name: "Volume based", items: [
+      { tool: "avwap", bg: "#i-avwap", label: "Anchored VWAP", key: "A" },
+      { tool: "vprofile", bg: "#i-vprofile", label: "Fixed range volume profile", key: "Z" },
+      { tool: "avprofile", bg: "#i-avprofile", label: "Anchored volume profile", key: "⇧A" }
+    ] },
+    { name: "Measurers", items: [
+      { tool: "measure", bg: "#i-measure", label: "Price & date range", key: "M" }
+    ] }
+  ];
+  function renderToolMenu() {
+    var body = $("#toolMenuBody");
+    if (!body) return;
+    body.innerHTML = TOOL_MENU.map(function (g) {
+      return '<div class="tmenu-group">' + g.name + "</div>" + g.items.map(function (it) {
+        return '<button type="button" class="tmenu-opt" data-tool="' + it.tool + '" role="menuitem">' +
+          '<svg class="ic"><use href="' + it.bg + '"/></svg><span>' + it.label + "</span>" +
+          "<kbd>" + it.key + "</kbd></button>";
+      }).join("");
+    }).join("");
+  }
+  function placeToolMenu() {
+    var m = $("#toolMenu"), b = $("#toolMenuBtn");
+    if (!m || !b) return;
+    var r = b.getBoundingClientRect();
+    var h = m.offsetHeight || 480;
+    var top = Math.min(Math.max(8, r.top - 8), Math.max(8, window.innerHeight - h - 8));
+    m.style.left = Math.round(r.right + 12) + "px";
+    m.style.top = Math.round(top) + "px";
+  }
+  function openToolMenu() {
+    var m = $("#toolMenu");
+    if (!m) return;
+    m.hidden = false;
+    placeToolMenu();
+    $("#toolMenuBtn").classList.add("on");
+    $("#toolMenuBtn").setAttribute("aria-expanded", "true");
+  }
+  function closeToolMenu() {
+    var m = $("#toolMenu");
+    if (!m || m.hidden) return;
+    m.hidden = true;
+    $("#toolMenuBtn").classList.remove("on");
+    $("#toolMenuBtn").setAttribute("aria-expanded", "false");
+  }
+
   function setTool(tool) {
+    if (S.locked && tool !== "cursor") {
+      toast("Drawings are locked — Alt+L to unlock", true);
+      return;
+    }
     S.tool = tool;
     S.draft = null;
     $$("#toolbar .tool[data-tool]").forEach(function (b) { b.classList.toggle("on", b.dataset.tool === tool); });
+    $$("#toolMenuBody .tmenu-opt").forEach(function (b) { b.classList.toggle("on", b.dataset.tool === tool); });
+    closeToolMenu();
     wrap.classList.toggle("drawing", tool !== "cursor");
     var hints = {
       trend: "Click, drag and release to draw a trend line · Esc to cancel",
       hline: "Click a price level to place a horizontal line",
       vline: "Click to mark a moment in time",
       rect: "Drag to mark a supply / demand zone",
-      fib: "Drag from swing low to swing high (or the reverse)"
+      fib: "Drag from swing low to swing high (or the reverse)",
+      measure: "Drag from A to B — price change, percentage and elapsed time",
+      long: "Long position — drag entry to target, the stop is set from the risk",
+      short: "Short position — drag entry to target, the stop is set from the risk",
+      forecast: "Position forecast — drag from the entry to the projected target",
+      bars: "Bars pattern — drag across the candles you want to copy forward",
+      avwap: "Click a bar to anchor the VWAP from there",
+      vprofile: "Drag across a range to build its volume profile",
+      avprofile: "Click a bar to anchor a volume profile to the latest candle"
     };
     var hint = $("#drawHint");
     if (hints[tool]) { hint.textContent = hints[tool]; hint.hidden = false; }
@@ -1412,19 +2174,13 @@
   /* ---------------- jump ---------------- */
   function openJump() {
     var bar = S.data[S.cursor];
-    var d = new Date(bar.t);
-    var val = d.getUTCFullYear() + "-" + pad2(d.getUTCMonth() + 1) + "-" + pad2(d.getUTCDate()) +
-      "T" + pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes());
-    $("#jumpInput").value = val;
-    $("#jumpInput").min = toLocalInput(S.data[0].t);
-    $("#jumpInput").max = toLocalInput(S.data[S.n - 2].t);
-    $("#jumpRange").textContent = "Available: " + fmtFull(S.data[0].t) + " → " + fmtFull(S.data[S.n - 2].t) + " (UTC)";
+    $("#jumpInput").value = toZoneInput(bar.t);
+    $("#jumpInput").min = toZoneInput(S.data[0].t);
+    $("#jumpInput").max = toZoneInput(S.data[S.n - 2].t);
+    $("#jumpRange").textContent = "Available: " + fmtFull(S.data[0].t) + " → " + fmtFull(S.data[S.n - 2].t) + " (" + tzShort() + ")";
+    var lbl = $("#jumpTzLabel");
+    if (lbl) lbl.textContent = "Date & time (" + tzShort() + ")";
     openDialog($("#jumpModal"));
-  }
-  function toLocalInput(ts) {
-    var d = new Date(ts);
-    return d.getUTCFullYear() + "-" + pad2(d.getUTCMonth() + 1) + "-" + pad2(d.getUTCDate()) +
-      "T" + pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes());
   }
   function jumpToTs(ts) {
     var target = ts;
@@ -1438,9 +2194,7 @@
     toast("Replay moved to " + fmtFull(S.data[S.cursor].t));
   }
   function parseJump(value) {
-    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value || "");
-    if (!m) return null;
-    return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+    return fromZoneInput(value);
   }
   function quickJump(kind) {
     pause();
@@ -1558,6 +2312,31 @@
       applyTheme(isLight() ? "dark" : "light");
     });
 
+    /* time zone picker */
+    renderTzMenu();
+    $("#tzBtn").addEventListener("click", function (e) {
+      e.stopPropagation();
+      var menu = $("#tzMenu");
+      if (menu.hidden) openTz(); else closeTz();
+    });
+    $("#tzMenu").addEventListener("click", function (e) {
+      var opt = e.target.closest(".tz-opt");
+      if (opt) setZone(opt.dataset.zone);
+    });
+    $("#tzSearch").addEventListener("input", function (e) {
+      renderTzMenu(e.target.value);
+    });
+    $("#tzSearch").addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { closeTz(); $("#tzBtn").focus(); }
+      if (e.key === "Enter") {
+        var first = $("#tzList .tz-opt");
+        if (first) setZone(first.dataset.zone);
+      }
+    });
+    document.addEventListener("click", function (e) {
+      if (!$("#tz").contains(e.target)) closeTz();
+    });
+
     /* live / auto / offline data mode */
     syncDataMode();
     $("#dataMode").addEventListener("click", function () {
@@ -1606,6 +2385,16 @@
     });
 
     /* tools */
+    renderToolMenu();
+    $("#toolMenuBtn").addEventListener("click", function (e) {
+      e.stopPropagation();
+      $("#toolMenu").hidden ? openToolMenu() : closeToolMenu();
+    });
+    $("#toolMenuX").addEventListener("click", closeToolMenu);
+    window.addEventListener("resize", closeToolMenu);
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest(".tool-fly")) closeToolMenu();
+    });
     $("#toolbar").addEventListener("click", function (e) {
       var btn = e.target.closest("button[data-tool]");
       if (btn) setTool(btn.dataset.tool);
@@ -1615,6 +2404,45 @@
       else if (S.selected && e.shiftKey) { S.selected = null; clearDrawings(); }
       else clearDrawings();
     });
+    /* eye / lock for the whole drawing layer */
+    function syncEyeLock() {
+      var eye = $("#eyeBtn"), lock = $("#lockBtn");
+      if (eye) {
+        eye.classList.toggle("on", S.hidden);
+        eye.setAttribute("aria-pressed", S.hidden ? "true" : "false");
+        eye.title = S.hidden ? "Show drawings (Alt+H)" : "Hide all drawings (Alt+H)";
+        eye.querySelector("use").setAttribute("href", S.hidden ? "#i-eye-off" : "#i-eye");
+      }
+      if (lock) {
+        lock.classList.toggle("on", S.locked);
+        lock.setAttribute("aria-pressed", S.locked ? "true" : "false");
+        lock.title = S.locked ? "Unlock drawings (Alt+L)" : "Lock drawings (Alt+L)";
+        lock.querySelector("use").setAttribute("href", S.locked ? "#i-lock" : "#i-unlock");
+      }
+      wrap.classList.toggle("locked", S.locked);
+    }
+    function toggleHidden() {
+      S.hidden = !S.hidden;
+      store.set("fxr-draw-hidden", S.hidden);
+      if (S.hidden) S.selected = null;
+      syncEyeLock();
+      scheduleDraw();
+      toast(S.hidden ? "Drawings hidden — Alt+H to show" : "Drawings shown");
+    }
+    function toggleLocked() {
+      S.locked = !S.locked;
+      store.set("fxr-draw-locked", S.locked);
+      if (S.locked) { S.selected = null; if (S.tool !== "cursor") setTool("cursor"); }
+      syncEyeLock();
+      scheduleDraw();
+      toast(S.locked ? "Drawings locked — Alt+L to unlock" : "Drawings unlocked");
+    }
+    S.hidden = !!store.get("fxr-draw-hidden", false);
+    S.locked = !!store.get("fxr-draw-locked", false);
+    syncEyeLock();
+    $("#eyeBtn").addEventListener("click", toggleHidden);
+    $("#lockBtn").addEventListener("click", toggleLocked);
+
     $("#undoBtn").addEventListener("click", undo);
     $("#redoBtn").addEventListener("click", redo);
 
@@ -1716,6 +2544,8 @@
         return;
       }
       if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); redo(); return; }
+      if (e.altKey && e.key.toLowerCase() === "h") { e.preventDefault(); toggleHidden(); return; }
+      if (e.altKey && e.key.toLowerCase() === "l") { e.preventDefault(); toggleLocked(); return; }
       if (e.key === " ") { e.preventDefault(); S.playing ? pause() : play(); return; }
       if (e.key === "ArrowRight") { e.preventDefault(); pause(); step(1); return; }
       if (e.key === "ArrowLeft") { e.preventDefault(); pause(); step(-1); return; }
@@ -1725,12 +2555,21 @@
         return;
       }
       if (e.key === "Escape") {
+        if (!$("#toolMenu").hidden) { closeToolMenu(); return; }
+        if (!$("#tzMenu").hidden) { closeTz(); return; }
         if (S.draft) { S.draft = null; setTool("cursor"); }
         else if (S.selected) { S.selected = null; scheduleDraw(); }
         return;
       }
-      var keys = { v: "cursor", t: "trend", h: "hline", l: "vline", r: "rect", f: "fib" };
-      if (!mod && keys[e.key.toLowerCase()]) { setTool(keys[e.key.toLowerCase()]); return; }
+      var keys = {
+        v: "cursor", t: "trend", h: "hline", l: "vline", r: "rect", f: "fib",
+        m: "measure", p: "long", o: "short", y: "forecast", g: "bars",
+        z: "vprofile"
+      };
+      var key = e.key.toLowerCase();
+      if (!mod && e.shiftKey && key === "a") { setTool("avprofile"); return; }
+      if (!mod && key === "a") { setTool("avwap"); return; }
+      if (!mod && keys[key]) { setTool(keys[key]); return; }
       if (!mod && e.key.toLowerCase() === "b") { openPosition(1); return; }
       if (!mod && e.key.toLowerCase() === "s") { openPosition(-1); return; }
     });

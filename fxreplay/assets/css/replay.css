@@ -49,6 +49,10 @@ html[data-theme="light"] .rp-top{background:rgba(252,253,255,.9)}
   border:1px solid rgba(139,107,255,.3);
   font-family:var(--font-display);font-size:.62rem;font-weight:700;letter-spacing:-.02em;color:#cabfff;
 }
+html[data-theme="light"] .rp-sym-ico{
+  background:linear-gradient(140deg,rgba(139,107,255,.16),rgba(77,107,255,.1));
+  border-color:rgba(139,107,255,.3);color:#5b47c9;
+}
 .rp-sym-txt{display:flex;flex-direction:column;line-height:1.15;text-align:left}
 .rp-sym-txt b{font-family:var(--font-display);font-size:.86rem;letter-spacing:-.02em}
 .rp-sym-txt small{font-size:.62rem;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -153,6 +157,7 @@ html[data-theme="light"] .rp-legend{background:rgba(255,255,255,.72)}
   background:rgba(139,107,255,.16);border:1px solid rgba(139,107,255,.35);color:#d3c8ff;
   backdrop-filter:blur(8px);
 }
+html[data-theme="light"] .rp-hint{background:rgba(139,107,255,.12);border-color:rgba(139,107,255,.3);color:#4b32b8}
 
 /* ---------- side panel ---------- */
 .rp-side{
@@ -507,3 +512,108 @@ html[data-theme="light"] .rp-note{background:rgba(176,122,18,.1);border-color:rg
 .src-badge--cache{background:rgba(93,139,255,.14);border:1px solid rgba(93,139,255,.32);color:#a9c2ff}
 .src-badge--cache .src-dot{background:#5d8bff}
 html[data-theme="light"] .src-badge--cache{background:rgba(37,86,214,.09);border-color:rgba(37,86,214,.26);color:#1f4fbe}
+
+/* =========================================================
+   Time zone control
+   ========================================================= */
+.tz{position:relative;flex:none}
+.tz-btn{
+  display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;border-radius:9px;
+  border:1px solid var(--line);background:rgba(255,255,255,.035);color:var(--muted);
+  font-family:var(--font-mono);font-size:.7rem;transition:border-color .16s,background .16s,color .16s;
+}
+.tz-btn:hover{color:var(--txt);border-color:var(--line-2);background:rgba(255,255,255,.06)}
+.tz-btn .ic{opacity:.75}
+.tz-name{font-family:var(--font-display);font-weight:600;letter-spacing:0}
+html[data-theme="light"] .tz-btn{background:rgba(16,24,40,.035);border-color:rgba(16,24,40,.12);color:#42506b}
+html[data-theme="light"] .tz-btn:hover{background:rgba(16,24,40,.07);color:#0f1b31}
+
+.tz-menu{
+  position:absolute;top:calc(100% + 8px);right:0;z-index:60;width:266px;
+  background:rgba(12,16,28,.97);border:1px solid var(--line-2);border-radius:12px;
+  box-shadow:0 24px 60px -20px #000,0 0 0 1px rgba(255,255,255,.02);
+  backdrop-filter:blur(16px);overflow:hidden;
+}
+html[data-theme="light"] .tz-menu{background:rgba(255,255,255,.98);box-shadow:0 24px 60px -22px rgba(16,24,40,.35)}
+.tz-search{padding:8px;border-bottom:1px solid var(--line)}
+.tz-search input{
+  width:100%;height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--line);
+  background:rgba(255,255,255,.04);color:var(--txt);font-size:.76rem;outline:none;
+}
+.tz-search input:focus{border-color:rgba(139,107,255,.55)}
+html[data-theme="light"] .tz-search input{background:rgba(16,24,40,.04)}
+.tz-list{max-height:min(58vh,420px);overflow-y:auto;padding:5px 5px 7px}
+.tz-list::-webkit-scrollbar{width:8px}
+.tz-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.13);border-radius:8px}
+.tz-group{
+  padding:8px 9px 4px;font-size:.56rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+}
+.tz-opt{
+  display:flex;align-items:center;gap:8px;width:100%;padding:7px 9px;border-radius:7px;
+  font-size:.76rem;color:var(--txt-2);text-align:left;transition:background .12s,color .12s;
+}
+.tz-opt:hover{background:rgba(139,107,255,.14);color:var(--txt)}
+.tz-opt .tick{width:13px;flex:none;color:var(--violet-2);opacity:0}
+.tz-opt[aria-selected="true"]{color:var(--txt);background:rgba(139,107,255,.1)}
+.tz-opt[aria-selected="true"] .tick{opacity:1}
+.tz-opt .off{margin-left:auto;font-family:var(--font-mono);font-size:.64rem;color:var(--muted)}
+
+/* =========================================================
+   "Line tools" flyout — grouped tool menu
+   ========================================================= */
+.tool-fly{position:relative;display:flex}
+.tool--fly.on{background:rgba(139,107,255,.18);border-color:rgba(139,107,255,.38);color:#d6ccff}
+.tool-flyout{
+  /* fixed: the rail scrolls, so an absolutely-positioned panel would be clipped */
+  position:fixed;left:64px;top:70px;z-index:90;width:250px;
+  background:rgba(12,16,28,.97);border:1px solid var(--line-2);border-radius:12px;
+  box-shadow:0 26px 60px -22px #000;backdrop-filter:blur(16px);overflow:hidden;
+}
+html[data-theme="light"] .tool-flyout{background:rgba(255,255,255,.99);box-shadow:0 26px 60px -22px rgba(16,24,40,.32)}
+.tool-flyout-head{
+  display:flex;align-items:center;justify-content:space-between;padding:9px 11px;
+  border-bottom:1px solid var(--line);font-family:var(--font-display);font-size:.78rem;font-weight:600;
+}
+.tool-flyout-x{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;color:var(--muted)}
+.tool-flyout-x:hover{background:rgba(255,255,255,.08);color:var(--txt)}
+.tool-flyout-body{max-height:min(72vh,560px);overflow-y:auto;padding:4px 5px 8px}
+.tool-flyout-body::-webkit-scrollbar{width:8px}
+.tool-flyout-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.13);border-radius:8px}
+.tmenu-group{
+  padding:9px 8px 4px;font-size:.55rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);display:flex;align-items:center;gap:6px;
+}
+.tmenu-group::after{content:"";flex:1;height:1px;background:var(--line)}
+.tmenu-opt{
+  display:flex;align-items:center;gap:9px;width:100%;padding:6px 8px;border-radius:7px;
+  font-size:.76rem;color:var(--txt-2);text-align:left;transition:background .12s,color .12s;
+}
+.tmenu-opt:hover{background:rgba(139,107,255,.14);color:var(--txt)}
+.tmenu-opt.on{background:rgba(139,107,255,.16);color:var(--txt)}
+.tmenu-opt .ic{width:15px;height:15px;flex:none;opacity:.85}
+.tmenu-opt kbd{
+  margin-left:auto;font-family:var(--font-mono);font-size:.62rem;color:var(--muted);
+  border:1px solid var(--line);border-radius:4px;padding:0 4px;line-height:1.4;
+}
+
+/* =========================================================
+   Chart tool rail (extended)
+   ========================================================= */
+.rp-tools{overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.rp-tools::-webkit-scrollbar{display:none}
+.rp-tools .tool{width:36px;height:36px;flex:none}
+.tool-sep{width:20px;height:1px;background:var(--line);margin:4px 0;flex:none}
+.tool--sm{width:34px;height:34px}
+.rp-tools .ic{width:17px;height:17px}
+
+.tool-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.tool-list li{display:flex;align-items:baseline;gap:8px;font-size:.72rem;color:var(--txt-2)}
+.tool-list li b{color:var(--txt);font-weight:600;flex:none}
+.tool-list li span{color:var(--muted)}
+
+@media (max-width:760px){
+  .tz-btn{padding:0 8px;height:32px}
+  .tz-name{display:none}
+  .tz-menu{width:min(90vw,266px)}
+  .rp-tools .tool{width:32px;height:32px}
+}

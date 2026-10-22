@@ -55,6 +55,20 @@
     <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v10A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z"/><path d="M3 9h18M16 14h2"/></symbol>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></symbol>
     <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 15v5h-5M20 9V4h-5M4 15v5h5"/></symbol>
+    <symbol id="i-measure" viewBox="0 0 24 24"><path d="M4 16 16 4"/><path d="m4 16 4 4 12-12-4-4z"/><path d="M8 16l1.6-1.6M11 13l1.6-1.6M14 10l1.6-1.6" opacity=".55"/></symbol>
+    <symbol id="i-longpos" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="6" rx="1.4"/><rect x="3.5" y="13" width="17" height="5" rx="1.4" opacity=".45"/><path d="M12 21V3M8.8 6.2 12 3l3.2 3.2"/></symbol>
+    <symbol id="i-shortpos" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="5" rx="1.4" opacity=".45"/><rect x="3.5" y="11" width="17" height="6" rx="1.4"/><path d="M12 3v18M8.8 17.8 12 21l3.2-3.2"/></symbol>
+    <symbol id="i-forecast" viewBox="0 0 24 24"><rect x="3.5" y="8" width="17" height="8" rx="1.4" stroke-dasharray="3 2.5"/><path d="M6 16.5 18 8"/><circle cx="18" cy="8" r="1.7" fill="currentColor"/></symbol>
+    <symbol id="i-bars" viewBox="0 0 24 24"><path d="M5 6v12M9 4v10M13 8v11M17 5v9"/><rect x="3" y="8" width="2.4" height="6" rx=".6" opacity=".5"/><rect x="7" y="6" width="2.4" height="6" rx=".6" opacity=".5"/><rect x="11" y="10" width="2.4" height="6" rx=".6" opacity=".5"/><rect x="15" y="7" width="2.4" height="5" rx=".6" opacity=".5"/><path d="M20 4v16" opacity=".6"/></symbol>
+    <symbol id="i-avwap" viewBox="0 0 24 24"><path d="M3 17c3-1 4.5-6 8-8s6 3 10-3"/><circle cx="3.5" cy="17" r="2" fill="currentColor"/><path d="M3.5 19v2" opacity=".5"/></symbol>
+    <symbol id="i-vprofile" viewBox="0 0 24 24"><rect x="3" y="4" width="17" height="16" rx="1.6" opacity=".5"/><path d="M20 7h-8M20 10h-12M20 13h-6M20 16h-10" stroke-width="2"/></symbol>
+    <symbol id="i-avprofile" viewBox="0 0 24 24"><path d="M20 6h-9M20 9.5h-13M20 13h-6M20 16.5h-11" stroke-width="2"/><path d="M4 4v16" opacity=".6"/><circle cx="4" cy="4" r="1.8" fill="currentColor"/></symbol>
+    <symbol id="i-clock-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-linetools" viewBox="0 0 24 24"><path d="M4 17.5 19.5 4.5"/><path d="M4 17.5h16" opacity=".55"/><path d="M14.5 4.5h5v5" opacity=".55"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M4 4l16 16"/><path d="M9.6 6.9A9.7 9.7 0 0 1 12 6.5c6 0 9.5 5.5 9.5 5.5a17 17 0 0 1-3.1 3.7M6.4 8.4A16.6 16.6 0 0 0 2.5 12S6 17.5 12 17.5c1 0 1.9-.2 2.7-.4"/><path d="M9.9 10a3 3 0 0 0 4.2 4.2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5"/></symbol>
+    <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.3-1.2"/></symbol>
   </defs>
 </svg>
 
@@ -90,6 +104,18 @@
       <button class="icon-btn" id="undoBtn" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="ic"><use href="#i-undo"/></svg></button>
       <button class="icon-btn" id="redoBtn" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg class="ic"><use href="#i-redo"/></svg></button>
     </div>
+    <div class="tz" id="tz">
+      <button class="tz-btn" id="tzBtn" aria-haspopup="listbox" aria-expanded="false" title="Chart time zone">
+        <svg class="ic ic--xs"><use href="#i-clock-sm"/></svg>
+        <span id="tzClock">00:00</span>
+        <span class="tz-name" id="tzLabel">UTC</span>
+      </button>
+      <div class="tz-menu" id="tzMenu" role="listbox" aria-label="Time zone" hidden>
+        <div class="tz-search"><input id="tzSearch" type="search" placeholder="Search time zone" autocomplete="off" /></div>
+        <div class="tz-list" id="tzList"></div>
+      </div>
+    </div>
+
     <button class="src-toggle" id="dataMode" aria-label="Market data mode" title="Switch between live market data and the offline engine">
       <span class="src-dot"></span><span id="dataModeLabel">Live data</span>
     </button>
@@ -104,12 +130,31 @@
 <main class="rp-main">
   <aside class="rp-tools" id="toolbar" aria-label="Drawing tools">
     <button class="tool on" data-tool="cursor" title="Cursor / pan (V)" aria-label="Cursor"><svg class="ic"><use href="#i-cursor"/></svg></button>
+    <div class="tool-fly">
+      <button class="tool tool--fly" id="toolMenuBtn" aria-haspopup="true" aria-expanded="false" title="Line tools — every drawing tool, grouped" aria-label="Line tools"><svg class="ic"><use href="#i-linetools"/></svg></button>
+      <div class="tool-flyout" id="toolMenu" hidden>
+        <div class="tool-flyout-head"><span>Line tools</span><button class="tool-flyout-x" id="toolMenuX" aria-label="Close"><svg class="ic ic--xs"><use href="#i-close"/></svg></button></div>
+        <div class="tool-flyout-body" id="toolMenuBody"></div>
+      </div>
+    </div>
     <button class="tool" data-tool="trend" title="Trend line (T)" aria-label="Trend line"><svg class="ic"><use href="#i-trend"/></svg></button>
     <button class="tool" data-tool="hline" title="Horizontal line (H)" aria-label="Horizontal line"><svg class="ic"><use href="#i-hline"/></svg></button>
     <button class="tool" data-tool="vline" title="Vertical line (L)" aria-label="Vertical line"><svg class="ic"><use href="#i-vline"/></svg></button>
     <button class="tool" data-tool="rect" title="Zone / rectangle (R)" aria-label="Rectangle"><svg class="ic"><use href="#i-rect"/></svg></button>
     <button class="tool" data-tool="fib" title="Fibonacci retracement (F)" aria-label="Fibonacci retracement"><svg class="ic"><use href="#i-fib"/></svg></button>
+    <button class="tool" data-tool="measure" title="Measure — price, % and time (M)" aria-label="Measure"><svg class="ic"><use href="#i-measure"/></svg></button>
     <span class="tool-sep" aria-hidden="true"></span>
+    <button class="tool" data-tool="long" title="Long position (P)" aria-label="Long position"><svg class="ic"><use href="#i-longpos"/></svg></button>
+    <button class="tool" data-tool="short" title="Short position (O)" aria-label="Short position"><svg class="ic"><use href="#i-shortpos"/></svg></button>
+    <button class="tool" data-tool="forecast" title="Position forecast (Y)" aria-label="Position forecast"><svg class="ic"><use href="#i-forecast"/></svg></button>
+    <button class="tool" data-tool="bars" title="Bars pattern — copy a range of candles (G)" aria-label="Bars pattern"><svg class="ic"><use href="#i-bars"/></svg></button>
+    <span class="tool-sep" aria-hidden="true"></span>
+    <button class="tool" data-tool="avwap" title="Anchored VWAP (A)" aria-label="Anchored VWAP"><svg class="ic"><use href="#i-avwap"/></svg></button>
+    <button class="tool" data-tool="vprofile" title="Fixed range volume profile (Z)" aria-label="Volume profile"><svg class="ic"><use href="#i-vprofile"/></svg></button>
+    <button class="tool" data-tool="avprofile" title="Anchored volume profile (Shift+A)" aria-label="Anchored volume profile"><svg class="ic"><use href="#i-avprofile"/></svg></button>
+    <span class="tool-sep" aria-hidden="true"></span>
+    <button class="tool tool--sm" id="eyeBtn" title="Hide all drawings (Alt+H)" aria-label="Hide drawings" aria-pressed="false"><svg class="ic"><use href="#i-eye"/></svg></button>
+    <button class="tool tool--sm" id="lockBtn" title="Lock drawings (Alt+L)" aria-label="Lock drawings" aria-pressed="false"><svg class="ic"><use href="#i-lock"/></svg></button>
     <button class="tool tool--sm" id="clearBtn" title="Delete selected (Del) · Clear all (Shift+Del)" aria-label="Clear drawings"><svg class="ic"><use href="#i-trash"/></svg></button>
   </aside>
 
@@ -247,7 +292,7 @@
       <button class="icon-btn" value="cancel" formnovalidate aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button>
     </div>
     <div class="modal-body">
-      <label class="side-field"><span>Date &amp; time (UTC)</span>
+      <label class="side-field"><span id="jumpTzLabel">Date &amp; time (UTC)</span>
         <input type="datetime-local" id="jumpInput" step="60" required />
       </label>
       <div class="jump-quick">
@@ -288,6 +333,17 @@
         <li><span>Buy / sell</span><kbd>B</kbd><kbd>S</kbd></li>
       </ul>
       <p class="modal-note">Drawings, trades and sessions are stored in your browser only.</p>
+      <div class="src-panel">
+        <p class="src-panel-title">Chart tools</p>
+        <ul class="tool-list">
+          <li><b>Measure</b><span>drag: Δ price, Δ% and elapsed time</span></li>
+          <li><b>Long / Short position</b><span>entry, stop and target with R multiples</span></li>
+          <li><b>Position forecast</b><span>project a trade forward from any bar</span></li>
+          <li><b>Bars pattern</b><span>copy a block of candles and replay it elsewhere</span></li>
+          <li><b>Anchored VWAP</b><span>click any bar to anchor a volume-weighted average</span></li>
+          <li><b>Volume profile</b><span>fixed range or anchored histogram with POC</span></li>
+        </ul>
+      </div>
       <div class="src-panel" id="srcPanel">
         <p class="src-panel-title">Market data</p>
         <p class="src-panel-copy" id="srcPanelCopy">Checking feeds…</p>
