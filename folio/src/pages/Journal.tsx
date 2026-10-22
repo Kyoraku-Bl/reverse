@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PLAYBOOKS, SPACES } from "../lib/content";
 import { etDate, formatEt, holdLabel, money, pct, priceFmt, signedMoney, uid } from "../lib/format";
-import { candlesForTrade } from "../lib/market";
+import { candlesForTrade, riskDollars } from "../lib/market";
 import { dayAdherence } from "../lib/stats";
 import { useStore } from "../lib/store";
 import type { Trade } from "../lib/types";
@@ -145,6 +145,9 @@ export function TradeDetail() {
   const [share, setShare] = useState(false);
   const [space, setSpace] = useState(SPACES[0].id);
   const [tag, setTag] = useState("");
+  const [editingPnl, setEditingPnl] = useState(false);
+  const [pnlDraft, setPnlDraft] = useState("");
+  const skipPnlSave = useRef(false);
   if (!trade) return <div className="card">Trade not found.</div>;
   const candles = candlesForTrade(trade);
   const entryAt = 18;
@@ -153,6 +156,19 @@ export function TradeDetail() {
   const pb = PLAYBOOKS.find((p) => p.id === trade.playbookId);
 
   const patch = (p: Partial<Trade>) => store.updateTrade(trade.id, p);
+  const savePnl = () => {
+    if (skipPnlSave.current) {
+      skipPnlSave.current = false;
+      setEditingPnl(false);
+      return;
+    }
+    const n = Number(pnlDraft.replace(/[$,+\s]/g, ""));
+    if (Number.isFinite(n)) {
+      const risk = riskDollars(trade.symbol, trade.qty, trade.entry, trade.stop);
+      patch({ pnl: Math.round(n * 100) / 100, rMultiple: risk ? Math.round((n / risk) * 100) / 100 : trade.rMultiple });
+    }
+    setEditingPnl(false);
+  };
 
   return (
     <div className="stack">
@@ -163,7 +179,23 @@ export function TradeDetail() {
             <span className={`badge ${trade.side}`}>{trade.side}</span>
             <span className="badge">{trade.source}</span>
           </div>
-          <div className={trade.pnl >= 0 ? "green" : "red"} style={{ fontSize: 32, fontWeight: 720 }}>{signedMoney(trade.pnl)} <span style={{ fontSize: 16 }}>{trade.rMultiple.toFixed(2)}R</span></div>
+          {editingPnl ? (
+            <form className="row" onSubmit={(e) => { e.preventDefault(); savePnl(); }}>
+              <input
+                className={`pnl-edit ${Number(pnlDraft) < 0 ? "red" : "green"}`}
+                autoFocus
+                aria-label="Edit P&L"
+                value={pnlDraft}
+                onChange={(e) => setPnlDraft(e.target.value)}
+                onBlur={savePnl}
+                onKeyDown={(e) => { if (e.key === "Escape") { skipPnlSave.current = true; setEditingPnl(false); } }}
+              />
+            </form>
+          ) : (
+            <button type="button" title="Edit P&L" className={trade.pnl >= 0 ? "green" : "red"} style={{ fontSize: 32, fontWeight: 720, background: "transparent", border: 0, padding: 0, cursor: "text" }} onClick={() => { setPnlDraft(String(trade.pnl)); setEditingPnl(true); }}>
+              {signedMoney(trade.pnl)} <span style={{ fontSize: 16 }}>{trade.rMultiple.toFixed(2)}R</span>
+            </button>
+          )}
           <div className="muted">{formatEt(trade.openedAt, true)} → {formatEt(trade.closedAt)} · {pb?.name}</div>
         </div>
         <div className="row wrap">

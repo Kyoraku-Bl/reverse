@@ -159,6 +159,19 @@ export function AppShell() {
   );
 }
 
+function formatPnlInput(n: number) {
+  const rounded = Math.round(n * 100) / 100;
+  return rounded > 0 ? `+${rounded.toFixed(2)}` : rounded.toFixed(2);
+}
+
+function readPnl(text: string | null, fallback: number) {
+  if (text == null) return fallback;
+  const cleaned = text.replace(/[$,+\s]/g, "");
+  if (cleaned === "" || cleaned === "-" || cleaned === "." || cleaned === "-.") return fallback;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function AddTrade({ onClose }: { onClose: () => void }) {
   const store = useStore();
   const [form, setForm] = useState({
@@ -166,8 +179,11 @@ function AddTrade({ onClose }: { onClose: () => void }) {
     accountId: (store.accounts[0]?.id ?? "ibkr") as Trade["accountId"], playbookId: store.playbooks[0]?.id ?? "orb", emotion: "focused", notes: "", date: "2026-10-22", time: "09:45",
   });
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
-  const pnl = tradePnl(form.symbol, form.side, Number(form.qty), Number(form.entry), Number(form.exit), 3.5);
+  const computed = tradePnl(form.symbol, form.side, Number(form.qty), Number(form.entry), Number(form.exit), 3.5);
+  const [pnlText, setPnlText] = useState<string | null>(null);
+  const pnl = readPnl(pnlText, computed);
   const risk = riskDollars(form.symbol, Number(form.qty), Number(form.entry), Number(form.stop));
+  const pnlEdited = pnlText != null && Math.abs(pnl - computed) > 0.009;
   const save = () => {
     const openedAt = `${form.date}T${form.time}:00Z`;
     const trade: Trade = {
@@ -209,13 +225,21 @@ function AddTrade({ onClose }: { onClose: () => void }) {
   };
   return (
     <Modal title="Add a trade" onClose={onClose}>
-      <div className="pnl-pill" title="Computed P&L in dollars">
+      <div className="pnl-pill" title="Type a dollar P&L, or leave the calculated number">
         <span className="icon-btn" aria-hidden><DollarSign size={16} /></span>
         <div>
           <div className="faint">P&L</div>
-          <b className={`num ${pnl >= 0 ? "green" : "red"}`}>{signedMoney(pnl)}</b>
+          <input
+            className={`pnl-edit num ${pnl >= 0 ? "green" : "red"}`}
+            inputMode="decimal"
+            aria-label="P&L in dollars"
+            value={pnlText ?? formatPnlInput(computed)}
+            onChange={(e) => setPnlText(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
+          />
         </div>
         <span className="faint">{risk ? `${(pnl / risk).toFixed(2)}R` : "Add a stop for R"}</span>
+        {pnlEdited && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPnlText(null)}>Calculated</button>}
       </div>
       <div className="grid-3" style={{ gap: 10 }}>
         <Field label="Symbol"><select value={form.symbol} onChange={(e) => set("symbol", e.target.value)}>{SYMBOLS.map((s) => <option key={s}>{s}</option>)}</select></Field>

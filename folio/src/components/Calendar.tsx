@@ -1,8 +1,15 @@
-import { Fragment, useMemo } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { addMonths, compactMoney, monthLabel } from "../lib/format";
 import type { DayStat } from "../lib/stats";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function currentMonth() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export function MonthCalendar({
   month,
@@ -16,6 +23,8 @@ export function MonthCalendar({
   monthNet: number;
 }) {
   const nav = useNavigate();
+  const [open, setOpen] = useState(false);
+  const switchRef = useRef<HTMLDivElement>(null);
   const cells = useMemo(() => {
     const [y, m] = month.split("-").map(Number);
     const first = new Date(Date.UTC(y, m - 1, 1));
@@ -35,14 +44,79 @@ export function MonthCalendar({
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
   const activeDays = daily.filter((d) => d.date.startsWith(month) && d.trades).length;
 
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (switchRef.current && !switchRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    switchRef.current?.querySelector<HTMLButtonElement>("[data-year-on]")?.scrollIntoView({ block: "center" });
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, month]);
+
+  const year = Number(month.slice(0, 4));
+  const years = useMemo(() => {
+    const now = new Date().getFullYear();
+    const start = Math.min(2010, year - 2);
+    const end = Math.max(now + 3, year + 2);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [year]);
+
+  const pick = (value: string) => {
+    setMonth(value);
+    setOpen(false);
+  };
+
   return (
     <div className="card">
       <div className="cal-head">
-        <div className="row">
+        <div className="row month-switch" ref={switchRef}>
           <button className="icon-btn" onClick={() => setMonth(addMonths(month, -1))} aria-label="Previous month"><ChevronLeft size={16} /></button>
-          <strong>{monthLabel(month)}</strong>
+          <button type="button" className="month-title" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="dialog">
+            {monthLabel(month)}
+            <ChevronDown size={14} />
+          </button>
           <button className="icon-btn" onClick={() => setMonth(addMonths(month, 1))} aria-label="Next month"><ChevronRight size={16} /></button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setMonth("2026-10")}>This month</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(true)}>This month</button>
+          {open && (
+            <div className="month-picker" role="dialog" aria-label="Choose month and year">
+              <div className="month-picker-years" role="listbox" aria-label="Years">
+                {years.map((yr) => (
+                  <button
+                    key={yr}
+                    type="button"
+                    data-year-on={yr === year ? "" : undefined}
+                    className={yr === year ? "on" : ""}
+                    onClick={() => setMonth(`${yr}-${month.slice(5, 7)}`)}
+                  >
+                    {yr}
+                  </button>
+                ))}
+              </div>
+              <div>
+                <div className="month-picker-grid" role="listbox" aria-label="Months">
+                  {MONTHS.map((label, i) => {
+                    const value = `${year}-${String(i + 1).padStart(2, "0")}`;
+                    return (
+                      <button key={label} type="button" className={value === month ? "on" : ""} onClick={() => pick(value)}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8, width: "100%" }} onClick={() => pick(currentMonth())}>
+                  This month
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="muted" style={{ fontSize: 12 }}>
           Monthly stats: <b className={monthNet >= 0 ? "green" : "red"}>{compactMoney(monthNet)}</b> · {activeDays} days

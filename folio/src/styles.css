@@ -227,6 +227,30 @@ h1, h2, h3, h4, p { margin: 0; }
 .kpi .sub { color: var(--faint); font-size: 12px; margin-top: 4px; }
 .dash { display: grid; grid-template-columns: minmax(300px, 390px) minmax(0, 1fr); gap: 10px; margin-top: 10px; }
 .cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.month-switch { position: relative; }
+.month-title {
+  display: inline-flex; align-items: center; gap: 4px; background: transparent; border: 0; color: var(--text);
+  font-weight: 720; font-size: 15px; cursor: pointer; padding: 4px 8px; border-radius: 8px;
+}
+.month-title:hover, .month-title[aria-expanded="true"] { background: var(--bg-4); }
+.month-picker {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; width: min(380px, 88vw);
+  display: grid; grid-template-columns: 88px 1fr; gap: 8px; padding: 10px;
+  background: var(--bg-2); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: var(--shadow);
+}
+.month-picker-years { display: flex; flex-direction: column; gap: 2px; max-height: 228px; overflow: auto; }
+.month-picker-years button, .month-picker-grid button {
+  border: 0; background: transparent; color: var(--text); border-radius: 8px; cursor: pointer; padding: 7px 8px; font-size: 13px;
+}
+.month-picker-years button.on, .month-picker-grid button.on { background: var(--text); color: var(--bg); font-weight: 720; }
+.month-picker-years button:hover, .month-picker-grid button:hover { background: var(--bg-4); }
+.month-picker-years button.on:hover, .month-picker-grid button.on:hover { background: var(--text); color: var(--bg); }
+.month-picker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.pnl-edit {
+  width: 148px; background: transparent; border: 0; border-bottom: 1px dashed var(--line-strong);
+  font: inherit; font-size: 22px; font-weight: 720; letter-spacing: -0.03em; padding: 0 0 2px; outline: none;
+}
+.pnl-edit:focus { border-bottom-color: var(--accent); }
 .day-view .card { min-width: 0; }
 .account-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .account-cards > * { min-width: 0; overflow: hidden; }
