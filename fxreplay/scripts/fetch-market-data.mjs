@@ -28,7 +28,10 @@ const opt = (name, fallback) => {
   const i = argv.indexOf("--" + name);
   return i === -1 ? fallback : argv[i + 1];
 };
-const OUT = path.resolve(ROOT, opt("out", "data"));
+/* --out is resolved against the current directory (the workflow runs from the
+   repository root and writes straight into _site/data), never against this
+   script's folder. */
+const OUT = path.resolve(process.cwd(), opt("out", "data"));
 const ONLY = (opt("only", "") || "").split(",").map((s) => s.trim()).filter(Boolean);
 const CONCURRENCY = Number(opt("concurrency", "4"));
 /* Seconds after which no new instrument is started. Instruments already

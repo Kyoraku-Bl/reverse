@@ -115,7 +115,7 @@ jobs:
       - name: Fetch real market data (Yahoo Finance + Binance)
         # A provider outage must never block a deploy: the site keeps working
         # with the live feed or the labelled fallback. The script stops itself
-        # after 10 minutes, keeping everything it already fetched, and NAS100 /
+        # after 7 minutes, keeping everything it already fetched, and NAS100 /
         # NQ futures are fetched first.
         continue-on-error: true
         timeout-minutes: 11
@@ -125,7 +125,8 @@ jobs:
         run: |
           set +e
           node fxreplay/scripts/fetch-market-data.mjs \
-            --out _site/data --concurrency 8 --deadline "${DEADLINE:-420}" ${ONLY:+--only "$ONLY"}
+            --out "$GITHUB_WORKSPACE/_site/data" --concurrency 8 \
+            --deadline "${DEADLINE:-420}" ${ONLY:+--only "$ONLY"}
           code=$?
           echo "snapshot exit code: $code"
           du -sh _site/data 2>/dev/null || true
