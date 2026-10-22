@@ -897,6 +897,7 @@
           '<div class="sc-foot"><a class="btn btn-primary btn-sm" href="' + escapeHtml(s.resume || "index.html#terminal") + '">' + (s.state === "live" ? "Resume" : "Replay again") + "</a>" +
           '<button class="btn btn-ghost btn-sm sc-del" data-del="' + s.id + '" aria-label="Delete session">' +
           '<svg class="ic"><use href="#i-trash"/></svg></button></div>' +
+          (s.notes ? '<p class="sc-note">' + escapeHtml(s.notes.slice(0, 160)) + (s.notes.length > 160 ? "…" : "") + "</p>" : "") +
           '<p class="card-sub" style="margin-top:9px">Saved ' + escapeHtml(s.when) + "</p>" +
           "</article>";
       }).join("");

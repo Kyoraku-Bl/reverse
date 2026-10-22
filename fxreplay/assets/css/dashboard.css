@@ -902,3 +902,11 @@ html[data-theme="light"] .mentor-empty .me-icon{color:#4b32b8}
 
 /* journal note marker */
 .note-flag{display:inline-block;margin-left:3px;font-size:.72rem;color:var(--violet-2);cursor:help}
+
+/* session card notes */
+.sc-note{
+  margin:9px 0 0;padding:8px 10px;border-radius:8px;font-size:.72rem;line-height:1.5;
+  color:var(--txt-2);background:rgba(255,255,255,.03);border-left:2px solid rgba(139,107,255,.45);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+html[data-theme="light"] .sc-note{background:rgba(16,24,40,.035)}

@@ -142,11 +142,18 @@ jobs:
         continue-on-error: true
         run: |
           python3 - <<'PY'
-          import json, pathlib
+          import json, pathlib, subprocess
           src = pathlib.Path("_site/data-status.json")
-          doc = json.loads(src.read_text()) if src.exists() else {
-              "ok": 0, "requested": 0, "failed": ["the snapshot script wrote no report"], "partial": {}
-          }
+          if src.exists():
+              doc = json.loads(src.read_text())
+          else:
+              doc = {
+                  "ok": 0, "requested": 0, "phase": "missing",
+                  "failed": ["the snapshot script wrote no report"],
+                  "partial": {},
+                  "node": subprocess.run(["node", "-v"], capture_output=True, text=True).stdout.strip(),
+                  "files": sorted(p.name for p in pathlib.Path("_site").glob("*"))[:40],
+              }
           doc.pop("at", None)
           probe = pathlib.Path("_site/data-probe.json")
           if probe.exists():

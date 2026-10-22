@@ -80,3 +80,5 @@ website/.i18n-*/
 
 # Market data snapshots are produced by CI into _site/data (never committed)
 fxreplay/data/
+# Snapshot job report (written by CI into _site, never committed from the repo)
+fxreplay/data-status.json

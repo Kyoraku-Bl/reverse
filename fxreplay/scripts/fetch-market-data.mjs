@@ -347,6 +347,7 @@ async function main() {
   const PARTIAL = {};
   let cursor = 0;
   let phase = "starting";
+  let canary = null;
 
   /* Written after every instrument, so a killed job still leaves a report. */
   async function writeStatus(done) {
@@ -359,6 +360,7 @@ async function main() {
       requested: ids.length,
       ok: ok.length,
       done: done === true,
+      canary,
       failed,
       partial: PARTIAL,
     };
@@ -368,6 +370,21 @@ async function main() {
     return report;
   }
 
+  await writeStatus(false);
+
+  /* One canary request before the queue starts: if this fails while the
+     workflow's own probe succeeds, the problem is in this script, not the
+     network — and the report says which. */
+  try {
+    const t0 = Date.now();
+    const body = await getOnce(
+      YAHOO_HOSTS[0] + "/v8/finance/chart/%5ENDX?interval=1d&range=5d",
+      8000
+    );
+    canary = { ok: true, ms: Date.now() - t0, bytes: body.length };
+  } catch (e) {
+    canary = { ok: false, error: String((e && e.message) || e), ms: 0 };
+  }
   await writeStatus(false);
   phase = "running";
 
