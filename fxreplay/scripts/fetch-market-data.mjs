@@ -31,6 +31,11 @@ const opt = (name, fallback) => {
 const OUT = path.resolve(ROOT, opt("out", "data"));
 const ONLY = (opt("only", "") || "").split(",").map((s) => s.trim()).filter(Boolean);
 const CONCURRENCY = Number(opt("concurrency", "4"));
+/* Seconds after which no new instrument is started. Instruments already
+   fetched stay written, so a slow provider still yields a usable snapshot
+   instead of the job being killed mid-write. 0 disables the limit. */
+const DEADLINE = Number(opt("deadline", "0"));
+const STARTED = Date.now();
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -226,7 +231,13 @@ async function buildInstrument(id) {
 async function fillYahoo(doc, c) {
   for (const tf of Object.keys(YAHOO_TF)) {
     const cfg = YAHOO_TF[tf];
-    const res = await yahoo(c.symbol, cfg);
+    let res;
+    try {
+      res = await yahoo(c.symbol, cfg);
+    } catch (e) {
+      doc.errors = (doc.errors || []).concat(`${c.symbol} ${tf}: ${e.message}`);
+      continue;                             /* keep the timeframes that worked */
+    }
     let bars = res.bars;
     if (cfg.aggregate) bars = aggregate(bars, cfg.aggregate);
     bars = dedupe(bars).slice(-(BAR_LIMIT[tf] || 900));
@@ -246,7 +257,14 @@ async function fillYahoo(doc, c) {
 
 async function fillBinance(doc, c) {
   for (const tf of Object.keys(BINANCE_TF)) {
-    const bars = dedupe(await binance(c.symbol, BINANCE_TF[tf], BAR_LIMIT[tf] || 1000)).slice(-(BAR_LIMIT[tf] || 900));
+    let raw;
+    try {
+      raw = await binance(c.symbol, BINANCE_TF[tf], BAR_LIMIT[tf] || 1000);
+    } catch (e) {
+      doc.errors = (doc.errors || []).concat(`${c.symbol} ${tf}: ${e.message}`);
+      continue;
+    }
+    const bars = dedupe(raw).slice(-(BAR_LIMIT[tf] || 900));
     if (bars.length < 30) continue;
     doc.tf[tf] = {
       interval: tf,
@@ -279,6 +297,10 @@ async function main() {
 
   async function worker() {
     while (cursor < ids.length) {
+      if (DEADLINE && Date.now() - STARTED > DEADLINE * 1000) {
+        process.stdout.write(`\n⏱ deadline reached — stopping after ${ok.length} instruments\n`);
+        return;
+      }
       const id = ids[cursor++];
       try {
         const doc = await buildInstrument(id);
@@ -301,7 +323,13 @@ async function main() {
   }
   await fs.writeFile(
     path.join(OUT, "_index.json"),
-    JSON.stringify({ generatedAt: Date.now(), count: ok.length, failed, instruments: ok }, null, 0)
+    JSON.stringify({
+      generatedAt: Date.now(),
+      count: ok.length,
+      truncated: DEADLINE > 0 && ids.length > ok.length + failed.length,
+      failed,
+      instruments: ok,
+    }, null, 0)
   );
   console.log(`\n${ok.length} instruments written to ${path.relative(ROOT, OUT)}${failed.length ? `, ${failed.length} failed` : ""}`);
 }

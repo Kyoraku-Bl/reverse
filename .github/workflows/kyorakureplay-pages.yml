@@ -60,12 +60,15 @@ jobs:
 
       - name: Fetch real market data (Yahoo Finance + Binance)
         # A provider outage must never block a deploy: the site keeps working
-        # with the live feed or the labelled fallback.
+        # with the live feed or the labelled fallback. The script stops itself
+        # after 10 minutes, keeping everything it already fetched, and NAS100 /
+        # NQ futures are fetched first.
         continue-on-error: true
-        timeout-minutes: 20
+        timeout-minutes: 14
         run: |
-          node fxreplay/scripts/fetch-market-data.mjs --out _site/data --concurrency 4
+          node fxreplay/scripts/fetch-market-data.mjs --out _site/data --concurrency 5 --deadline 600
           du -sh _site/data || true
+          ls _site/data | head -5 || true
 
       - name: Upload the website
         uses: actions/upload-pages-artifact@v3
