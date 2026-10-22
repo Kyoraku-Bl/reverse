@@ -7,214 +7,153 @@
  "deadline": 420,
  "done": true,
  "failed": [],
+ "net": {
+  "cooldowns": 253,
+  "throttle": 661
+ },
  "node": "v20.20.2",
- "ok": 52,
+ "ok": 43,
  "partial": {
   "AUDJPY": [
-   "AUDJPY=X 1m: All promises were rejected",
-   "AUDJPY=X 15m: no result",
-   "AUDJPY=X 1H: All promises were rejected",
-   "AUDJPY=X 4H: All promises were rejected"
+   "AUDJPY=X 15m: no result"
   ],
   "AUDUSD": [
-   "AUDUSD=X 5m: All promises were rejected",
    "AUDUSD=X 15m: no result",
-   "AUDUSD=X 4H: All promises were rejected",
    "AUDUSD=X 1D: All promises were rejected"
   ],
   "AUS200": [
-   "^AXJO 15m: All promises were rejected",
-   "^AXJO 1H: All promises were rejected"
-  ],
-  "ES": [
-   "ES=F 1m: All promises were rejected",
-   "ES=F 15m: All promises were rejected",
-   "ES=F 4H: All promises were rejected"
+   "^AXJO 15m: no result",
+   "^AXJO 1D: All promises were rejected"
   ],
   "EURAUD": [
-   "EURAUD=X 1m: All promises were rejected",
-   "EURAUD=X 15m: All promises were rejected",
+   "EURAUD=X 15m: no result",
+   "EURAUD=X 1H: All promises were rejected",
    "EURAUD=X 4H: All promises were rejected"
   ],
   "EURCHF": [
    "EURCHF=X 5m: All promises were rejected",
-   "EURCHF=X 15m: All promises were rejected"
+   "EURCHF=X 15m: no result",
+   "EURCHF=X 1H: All promises were rejected",
+   "EURCHF=X 4H: All promises were rejected"
   ],
   "EURGBP": [
-   "EURGBP=X 15m: All promises were rejected",
-   "EURGBP=X 1H: All promises were rejected"
+   "EURGBP=X 15m: no result"
   ],
   "EURJPY": [
-   "EURJPY=X 1m: All promises were rejected",
+   "EURJPY=X 5m: All promises were rejected",
    "EURJPY=X 15m: no result",
-   "EURJPY=X 1D: All promises were rejected"
+   "EURJPY=X 1H: All promises were rejected",
+   "EURJPY=X 4H: All promises were rejected"
   ],
   "EURUSD": [
    "EURUSD=X 15m: no result"
   ],
   "FRA40": [
-   "^FCHI 15m: All promises were rejected",
-   "^FCHI 4H: All promises were rejected"
+   "^FCHI 1m: All promises were rejected",
+   "^FCHI 15m: All promises were rejected"
   ],
   "GBPAUD": [
-   "GBPAUD=X 5m: All promises were rejected",
    "GBPAUD=X 15m: no result",
-   "GBPAUD=X 1H: All promises were rejected",
    "GBPAUD=X 1D: All promises were rejected"
   ],
   "GBPCHF": [
-   "GBPCHF=X 1m: All promises were rejected",
    "GBPCHF=X 15m: no result",
-   "GBPCHF=X 1H: All promises were rejected",
-   "GBPCHF=X 4H: All promises were rejected"
+   "GBPCHF=X 1D: All promises were rejected"
   ],
   "GBPJPY": [
-   "GBPJPY=X 15m: All promises were rejected",
-   "GBPJPY=X 1H: All promises were rejected"
+   "GBPJPY=X 15m: no result",
+   "GBPJPY=X 1D: All promises were rejected"
   ],
   "GBPUSD": [
-   "GBPUSD=X 15m: All promises were rejected",
-   "GBPUSD=X 4H: All promises were rejected"
+   "GBPUSD=X 15m: no result"
   ],
   "GER40": [
    "^GDAXI 15m: no result"
   ],
   "HK50": [
-   "^HSI 1m: All promises were rejected",
-   "^HSI 5m: All promises were rejected",
-   "^HSI 15m: no result",
-   "^HSI 4H: All promises were rejected",
-   "^HSI 1D: All promises were rejected"
+   "^HSI 15m: no result"
   ],
   "JP225": [
-   "^N225 1m: All promises were rejected",
-   "^N225 5m: All promises were rejected",
    "^N225 15m: no result",
    "^N225 1D: All promises were rejected"
-  ],
-  "M2K": [
-   "M2K=F 5m: All promises were rejected",
-   "M2K=F 15m: no result",
-   "M2K=F 4H: All promises were rejected"
-  ],
-  "MES": [
-   "MES=F 5m: All promises were rejected",
-   "MES=F 15m: All promises were rejected",
-   "MES=F 1D: All promises were rejected"
-  ],
-  "MNQ": [
-   "MNQ=F 5m: All promises were rejected",
-   "MNQ=F 15m: All promises were rejected",
-   "MNQ=F 4H: All promises were rejected"
-  ],
-  "MYM": [
-   "MYM=F 1m: All promises were rejected",
-   "MYM=F 15m: All promises were rejected",
-   "MYM=F 4H: All promises were rejected"
   ],
   "NAS100": [
    "^NDX 15m: no result"
   ],
   "NATGAS": [
-   "NG=F 1m: All promises were rejected",
-   "NG=F 5m: All promises were rejected",
-   "NG=F 15m: no result",
-   "NG=F 4H: All promises were rejected"
+   "NG=F 15m: All promises were rejected"
   ],
   "NQ": [
    "NQ=F 15m: no result"
   ],
   "NZDUSD": [
-   "NZDUSD=X 15m: All promises were rejected",
-   "NZDUSD=X 1H: All promises were rejected"
-  ],
-  "RTY": [
-   "RTY=F 5m: All promises were rejected",
-   "RTY=F 15m: All promises were rejected",
-   "RTY=F 1H: All promises were rejected",
-   "RTY=F 4H: All promises were rejected"
+   "NZDUSD=X 15m: no result",
+   "NZDUSD=X 1H: All promises were rejected",
+   "NZDUSD=X 4H: All promises were rejected"
   ],
   "SPX500": [
    "^GSPC 15m: no result"
   ],
   "UK100": [
-   "^FTSE 15m: no result",
-   "^FTSE 1H: All promises were rejected",
-   "^FTSE 4H: All promises were rejected",
-   "^FTSE 1D: All promises were rejected"
+   "^FTSE 15m: no result"
   ],
   "UKOIL": [
-   "BZ=F 1m: All promises were rejected",
    "BZ=F 15m: no result",
-   "BZ=F 1H: All promises were rejected"
+   "BZ=F 1D: All promises were rejected"
   ],
   "US2000": [
    "^RUT 5m: All promises were rejected",
-   "^RUT 15m: no result",
-   "^RUT 1H: All promises were rejected",
-   "^RUT 1D: All promises were rejected"
+   "^RUT 15m: no result"
   ],
   "US30": [
    "^DJI 15m: no result"
   ],
   "USDCAD": [
-   "USDCAD=X 1m: All promises were rejected",
-   "USDCAD=X 15m: All promises were rejected",
-   "USDCAD=X 1D: All promises were rejected"
+   "USDCAD=X 15m: no result"
   ],
   "USDCHF": [
    "USDCHF=X 1m: All promises were rejected",
    "USDCHF=X 15m: no result",
-   "USDCHF=X 4H: All promises were rejected"
+   "USDCHF=X 1D: All promises were rejected"
   ],
   "USDJPY": [
-   "USDJPY=X 5m: All promises were rejected",
-   "USDJPY=X 15m: no result",
-   "USDJPY=X 1D: All promises were rejected"
+   "USDJPY=X 1m: All promises were rejected",
+   "USDJPY=X 15m: no result"
   ],
   "USDMXN": [
-   "USDMXN=X 1m: All promises were rejected",
-   "USDMXN=X 15m: no result",
-   "USDMXN=X 1H: All promises were rejected",
-   "USDMXN=X 4H: All promises were rejected"
+   "USDMXN=X 15m: no result"
   ],
   "USDNOK": [
-   "USDNOK=X 5m: All promises were rejected",
-   "USDNOK=X 15m: All promises were rejected",
+   "USDNOK=X 1m: All promises were rejected",
+   "USDNOK=X 15m: no result",
    "USDNOK=X 1D: All promises were rejected"
   ],
   "USDSEK": [
-   "USDSEK=X 15m: All promises were rejected",
-   "USDSEK=X 1H: All promises were rejected"
+   "USDSEK=X 15m: no result"
   ],
   "USDSGD": [
-   "USDSGD=X 1m: All promises were rejected",
-   "USDSGD=X 15m: no result",
-   "USDSGD=X 1H: All promises were rejected",
-   "USDSGD=X 4H: All promises were rejected"
+   "USDSGD=X 15m: no result"
   ],
   "USDZAR": [
-   "USDZAR=X 5m: All promises were rejected",
+   "USDZAR=X 1m: All promises were rejected",
    "USDZAR=X 15m: no result",
+   "USDZAR=X 1H: All promises were rejected",
    "USDZAR=X 4H: All promises were rejected"
   ],
   "USOIL": [
-   "CL=F 1m: All promises were rejected",
    "CL=F 5m: All promises were rejected",
-   "CL=F 15m: no result",
-   "CL=F 1D: All promises were rejected"
+   "CL=F 15m: All promises were rejected"
   ],
   "XAGUSD": [
    "XAGUSD=X 1m: no result",
    "XAGUSD=X 5m: no result",
-   "XAGUSD=X 15m: no result",
+   "XAGUSD=X 15m: All promises were rejected",
    "XAGUSD=X 1H: no result",
    "XAGUSD=X 4H: no result",
-   "XAGUSD=X 1D: All promises were rejected",
+   "XAGUSD=X 1D: no result",
    "XAGUSD=X: XAGUSD=X 1m: no result",
-   "SI=F 15m: All promises were rejected",
-   "SI=F 1H: All promises were rejected",
-   "SI=F 4H: All promises were rejected"
+   "SI=F 1m: All promises were rejected",
+   "SI=F 15m: no result"
   ],
   "XAUUSD": [
    "XAUUSD=X 1m: no result",
@@ -222,81 +161,136 @@
    "XAUUSD=X 15m: no result",
    "XAUUSD=X 1H: no result",
    "XAUUSD=X 4H: no result",
-   "XAUUSD=X 1D: All promises were rejected",
+   "XAUUSD=X 1D: no result",
    "XAUUSD=X: XAUUSD=X 1m: no result",
-   "GC=F 5m: All promises were rejected",
    "GC=F 15m: no result",
    "GC=F 1H: All promises were rejected",
-   "GC=F 1D: All promises were rejected"
+   "GC=F 4H: All promises were rejected"
   ],
   "XPDUSD": [
    "XPDUSD=X 1m: no result",
    "XPDUSD=X 5m: no result",
-   "XPDUSD=X 15m: All promises were rejected",
-   "XPDUSD=X 1H: All promises were rejected",
+   "XPDUSD=X 15m: no result",
+   "XPDUSD=X 1H: no result",
    "XPDUSD=X 4H: no result",
    "XPDUSD=X 1D: no result",
    "XPDUSD=X: XPDUSD=X 1m: no result",
-   "PA=F 5m: All promises were rejected",
-   "PA=F 15m: no result",
-   "PA=F 1H: All promises were rejected"
+   "PA=F 15m: no result"
   ],
   "XPTUSD": [
    "XPTUSD=X 1m: no result",
    "XPTUSD=X 5m: no result",
    "XPTUSD=X 15m: no result",
-   "XPTUSD=X 1H: All promises were rejected",
+   "XPTUSD=X 1H: no result",
    "XPTUSD=X 4H: no result",
-   "XPTUSD=X 1D: All promises were rejected",
+   "XPTUSD=X 1D: no result",
    "XPTUSD=X: XPTUSD=X 1m: no result",
    "PL=F 5m: All promises were rejected",
-   "PL=F 15m: no result",
-   "PL=F 1D: All promises were rejected"
-  ],
-  "YM": [
-   "YM=F 5m: All promises were rejected",
-   "YM=F 15m: All promises were rejected"
+   "PL=F 15m: no result"
   ]
  },
  "perInstrument": 45,
  "phase": "done",
  "probe": {
   "binance_vision": {
-   "bytes": 890,
+   "bytes": 891,
    "json": false,
-   "ms": 658,
+   "ms": 555,
    "status": 200
   },
   "relay_allorigins": {
    "bytes": 7257,
    "json": false,
-   "ms": 19510,
+   "ms": 19735,
    "status": 522
   },
   "relay_codetabs": {
    "bytes": 7245,
    "json": false,
-   "ms": 19689,
+   "ms": 19825,
    "status": 522
   },
   "relay_jina": {
    "bytes": 1808,
    "json": true,
-   "ms": 496,
+   "ms": 603,
    "status": 200
   },
   "yahoo_query1": {
    "bytes": 1689,
    "json": true,
-   "ms": 132,
+   "ms": 300,
    "status": 200
   },
   "yahoo_query2": {
    "bytes": 1689,
    "json": true,
-   "ms": 96,
+   "ms": 252,
    "status": 200
   }
  },
- "requested": 103
+ "requested": 103,
+ "skipped": [
+  "AVAXUSD",
+  "LINKUSD",
+  "ES",
+  "MES",
+  "MNQ",
+  "YM",
+  "MYM",
+  "RTY",
+  "M2K",
+  "FDAX",
+  "FDXM",
+  "FESX",
+  "FSXE",
+  "FCE",
+  "VX",
+  "VXM",
+  "CL",
+  "MCL",
+  "QM",
+  "NG",
+  "MNG",
+  "HO",
+  "RB",
+  "BZ",
+  "GC",
+  "MGC",
+  "SI",
+  "SIL",
+  "HG",
+  "MHG",
+  "PL",
+  "PA",
+  "ZB",
+  "ZN",
+  "ZF",
+  "ZT",
+  "FGBL",
+  "FGBM",
+  "6E",
+  "6B",
+  "6J",
+  "6A",
+  "6C",
+  "6S",
+  "DX",
+  "ZC",
+  "ZS",
+  "ZW",
+  "ZM",
+  "ZL",
+  "LE",
+  "HE",
+  "KC",
+  "SB",
+  "CC",
+  "CT",
+  "OJ",
+  "BTC",
+  "MBT",
+  "MET"
+ ],
+ "sweeps": 0
 }
