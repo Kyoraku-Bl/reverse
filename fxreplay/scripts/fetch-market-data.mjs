@@ -99,6 +99,16 @@ function jparse(text) {
   return JSON.parse(text.slice(from, to + 1));
 }
 
+/* Yahoo answers a burst with 429/403 and then keeps refusing for a while.
+   When that happens every worker parks for a few seconds instead of hammering
+   the same door — the run costs a little wall time and keeps its data. */
+const net = { throttle: 0, cooldowns: 0 };
+let coolUntil = 0;
+async function waitCool() {
+  const left = coolUntil - Date.now();
+  if (left > 0) await sleep(left);
+}
+
 async function getOnce(url, ms = 7000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
@@ -107,6 +117,12 @@ async function getOnce(url, ms = 7000) {
       signal: ctrl.signal,
       headers: { "User-Agent": UA, Accept: "application/json,text/plain,*/*", Referer: "https://finance.yahoo.com/" },
     });
+    if (r.status === 429 || r.status === 403) {
+      net.throttle++;
+      const until = Date.now() + 2500 + Math.floor(Math.random() * 1500);
+      if (until > coolUntil) { coolUntil = until; net.cooldowns++; }
+      throw new Error("HTTP " + r.status);
+    }
     if (!r.ok) throw new Error("HTTP " + r.status);
     return await r.text();
   } finally {
@@ -120,6 +136,7 @@ const MAX_SOCKETS = Number(process.env.KR_SOCKETS || 8);
 let live = 0;
 const waiting = [];
 async function withSocket(fn) {
+  await waitCool();
   if (live >= MAX_SOCKETS) await new Promise((r) => waiting.push(r));
   live++;
   try {
@@ -155,7 +172,16 @@ async function yahoo(symbol, cfg) {
      relay, which keeps serving Yahoo JSON from datacentre IPs. */
   const direct = YAHOO_HOSTS.map((h) => h + path);
   const relayed = RELAYS.map((wrap) => wrap(direct[0]));
-  const body = await getAny(direct, relayed);
+  let body;
+  try {
+    body = await getAny(direct, relayed);
+  } catch (e) {
+    /* one second chance after a cooldown: most gaps in a big run are a
+       throttled minute, not a missing instrument */
+    if (!net.throttle) throw e;
+    await sleep(1200 + Math.floor(Math.random() * 1200));
+    body = await getAny(direct, relayed);
+  }
   const json = jparse(body);
   const res = json?.chart?.result?.[0];
   if (!res || !res.timestamp) throw new Error("no result");
@@ -244,7 +270,7 @@ function candidates(id) {
     .filter((c) => c.provider && c.symbol);
 }
 
-async function buildInstrument(id) {
+async function buildInstrument(id, want) {
   const list = candidates(id);
   if (!list.length) return null;
 
@@ -259,9 +285,9 @@ async function buildInstrument(id) {
   for (const c of list) {
     try {
       if (c.provider === "binance") {
-        await fillBinance(doc, c);
+        await fillBinance(doc, c, want);
       } else {
-        await fillYahoo(doc, c);
+        await fillYahoo(doc, c, want);
       }
       /* keep whatever worked; only fall through to the next ticker when this
          one produced nothing at all */
@@ -277,13 +303,21 @@ async function buildInstrument(id) {
   return Object.keys(doc.tf).length ? doc : null;
 }
 
-async function fillYahoo(doc, c) {
+async function fillYahoo(doc, c, want) {
   /* Every timeframe at once (bounded by the socket semaphore), so one slow
      interval cannot starve the rest. A single failure only drops that
-     interval. */
-  const jobs = Object.keys(YAHOO_TF).map(async (tf) => {
+     interval. `want` narrows the work during the retry sweep. */
+  const tfs = Object.keys(YAHOO_TF).filter((tf) => !want || want.indexOf(tf) !== -1);
+  /* 1H and 4H read the same 60m/2y series: one request serves both. */
+  const cache = new Map();
+  const series = (cfg) => {
+    const key = cfg.interval + "|" + cfg.range;
+    if (!cache.has(key)) cache.set(key, yahoo(c.symbol, cfg));
+    return cache.get(key);
+  };
+  const jobs = tfs.map(async (tf) => {
     const cfg = YAHOO_TF[tf];
-    const res = await yahoo(c.symbol, cfg);
+    const res = await series(cfg);
     let bars = res.bars;
     if (cfg.aggregate) bars = aggregate(bars, cfg.aggregate);
     bars = dedupe(bars).slice(-(BAR_LIMIT[tf] || 900));
@@ -300,7 +334,7 @@ async function fillYahoo(doc, c) {
   const settled = await Promise.allSettled(jobs);
   settled.forEach((r, i) => {
     if (r.status === "rejected") {
-      doc.errors = (doc.errors || []).concat(`${c.symbol} ${Object.keys(YAHOO_TF)[i]}: ${r.reason && r.reason.message}`);
+      doc.errors = (doc.errors || []).concat(`${c.symbol} ${tfs[i]}: ${r.reason && r.reason.message}`);
     }
   });
   if (!Object.keys(doc.tf).length) {
@@ -308,8 +342,9 @@ async function fillYahoo(doc, c) {
   }
 }
 
-async function fillBinance(doc, c) {
-  const jobs = Object.keys(BINANCE_TF).map(async (tf) => {
+async function fillBinance(doc, c, want) {
+  const tfs = Object.keys(BINANCE_TF).filter((tf) => !want || want.indexOf(tf) !== -1);
+  const jobs = tfs.map(async (tf) => {
     const raw = await binance(c.symbol, BINANCE_TF[tf], BAR_LIMIT[tf] || 1000);
     const bars = dedupe(raw).slice(-(BAR_LIMIT[tf] || 900));
     if (bars.length < 30) throw new Error("only " + bars.length + " bars");
@@ -325,7 +360,7 @@ async function fillBinance(doc, c) {
   const settled = await Promise.allSettled(jobs);
   settled.forEach((r, i) => {
     if (r.status === "rejected") {
-      doc.errors = (doc.errors || []).concat(`${c.symbol} ${Object.keys(BINANCE_TF)[i]}: ${r.reason && r.reason.message}`);
+      doc.errors = (doc.errors || []).concat(`${c.symbol} ${tfs[i]}: ${r.reason && r.reason.message}`);
     }
   });
   if (!Object.keys(doc.tf).length) {
@@ -348,9 +383,13 @@ async function main() {
   const ok = [];
   const failed = [];
   const PARTIAL = {};
+  const SKIPPED = [];
+  const DOCS = new Map();          /* id -> the document that was written */
+  const ALL_TF = Object.keys(YAHOO_TF);
   let cursor = 0;
   let phase = "starting";
   let canary = null;
+  let sweeps = 0;
 
   /* Written after every instrument, so a killed job still leaves a report. */
   async function writeStatus(done) {
@@ -363,6 +402,9 @@ async function main() {
       requested: ids.length,
       ok: ok.length,
       done: done === true,
+      sweeps,
+      skipped: SKIPPED,
+      net: { throttle: net.throttle, cooldowns: net.cooldowns },
       canary,
       failed,
       partial: PARTIAL,
@@ -391,10 +433,15 @@ async function main() {
   await writeStatus(false);
   phase = "running";
 
+  const timeLeft = () => !DEADLINE || Date.now() - STARTED < DEADLINE * 1000;
+
   async function worker() {
     while (cursor < ids.length) {
-      if (DEADLINE && Date.now() - STARTED > DEADLINE * 1000) {
+      if (!timeLeft()) {
+        /* Everything not started yet is reported, never silently dropped. */
+        for (let k = cursor; k < ids.length; k++) SKIPPED.push(ids[k]);
         process.stdout.write(`\n⏱ deadline reached — stopping after ${ok.length} instruments\n`);
+        cursor = ids.length;
         return;
       }
       const id = ids[cursor++];
@@ -403,6 +450,7 @@ async function main() {
         if (!doc) throw new Error("nothing resolved");
         await fs.writeFile(path.join(OUT, id + ".json"), JSON.stringify(doc));
         ok.push(id);
+        DOCS.set(id, doc);
         if (doc.errors) PARTIAL[id] = doc.errors;
         await writeStatus(false);
         process.stdout.write(`✓ ${id} ${Object.keys(doc.tf).join("/")} (${doc.symbol})\n`);
@@ -415,6 +463,66 @@ async function main() {
   }
 
   await Promise.all(Array.from({ length: Math.max(1, CONCURRENCY) }, worker));
+
+  /* ---- retry sweep ----
+     Yahoo throttles bursts, so an instrument can come back with only part of
+     its timeframes. Whatever the deadline left on the clock is spent filling
+     those gaps, one quiet pass at a time, instead of re-fetching everything. */
+  /* "only 3 bars" is the source saying it has no more history for that
+     interval — retrying it would just burn the deadline. Only gaps that look
+     like throttling are swept. */
+  const thinTfs = (doc) =>
+    new Set((doc.errors || [])
+      .filter((e) => /\sonly \d+ bars$/.test(e))
+      .map((e) => e.split(" ").find((w) => ALL_TF.indexOf(w.replace(":", "")) !== -1))
+      .filter(Boolean)
+      .map((w) => w.replace(":", "")));
+  const missingTfs = (doc) => {
+    const thin = thinTfs(doc);
+    return ALL_TF.filter((tf) => !doc.tf[tf] && !thin.has(tf));
+  };
+  while (timeLeft() && Date.now() - STARTED < DEADLINE * 1000 - 20000 && sweeps < 2) {
+    const queue = ok.filter((id) => missingTfs(DOCS.get(id)).length);
+    if (!queue.length) break;
+    sweeps++;
+    phase = "sweeping " + sweeps;
+    process.stdout.write(`\n↻ retry sweep ${sweeps}: ${queue.length} instruments with gaps\n`);
+    let qi = 0;
+    const sweepWorker = async () => {
+      while (qi < queue.length && timeLeft() && Date.now() - STARTED < DEADLINE * 1000 - 15000) {
+        const id = queue[qi++];
+        const doc = DOCS.get(id);
+        const want = missingTfs(doc);
+        /* 4H is a 4-candle aggregate of the 1H series: if 1H made it, the
+           gap closes with no network at all. */
+        if (want.indexOf("4H") !== -1 && doc.tf["1H"]) {
+          const src = doc.tf["1H"];
+          const bars = dedupe(aggregate(src.bars, 4)).slice(-(BAR_LIMIT["4H"] || 900));
+          if (bars.length >= 30) {
+            doc.tf["4H"] = { interval: "4H", provider: "yahoo", symbol: doc.tf["1H"].symbol || doc.symbol, fetchedAt: Date.now(), currency: src.currency || null, bars };
+            want.splice(want.indexOf("4H"), 1);
+            await fs.writeFile(path.join(OUT, id + ".json"), JSON.stringify(doc));
+          }
+        }
+        if (!want.length) continue;
+        try {
+          const patch = await buildInstrument(id, want);
+          if (!patch) continue;
+          Object.assign(doc.tf, patch.tf);
+          doc.errors = (doc.errors || []).filter((e) => !want.some((tf) => e.indexOf(" " + tf + ":") !== -1));
+          if (!doc.errors.length) delete doc.errors;
+          doc.fetchedAt = Date.now();
+          await fs.writeFile(path.join(OUT, id + ".json"), JSON.stringify(doc));
+          if (doc.errors) PARTIAL[id] = doc.errors;
+          else delete PARTIAL[id];
+          process.stdout.write(`↻ ${id}: ${Object.keys(patch.tf).join("/") || "nothing new"}\n`);
+        } catch (e) {
+          /* still throttled — the instrument keeps the timeframes it has */
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(6, CONCURRENCY) }, sweepWorker));
+  }
 
   /* A machine-readable report travels with the site, so a failed run can be
      diagnosed from the deployment itself (runner logs are not always
