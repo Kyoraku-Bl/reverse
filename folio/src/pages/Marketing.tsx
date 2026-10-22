@@ -1,13 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useStore } from "../lib/store";
 import { BROKERS, FAQS, PLANS, POSTS } from "../lib/content";
-import { compactMoney, pct } from "../lib/format";
-import { freshState } from "../lib/seed";
-import { computeStats } from "../lib/stats";
-import { answerQuestion } from "../lib/ai";
 import { Field, Logo } from "../components/Ui";
-import { EquityChart } from "../components/Charts";
 
 export function MarketingLayout() {
   return (
@@ -62,12 +57,8 @@ export function MarketingLayout() {
 }
 
 export function Landing() {
-  const demo = useMemo(() => freshState(), []);
-  const stats = useMemo(() => computeStats(demo.trades, 225000), [demo]);
   const [tab, setTab] = useState("journal");
   const [annual, setAnnual] = useState(true);
-  const [ask, setAsk] = useState("Where do I leak?");
-  const reply = answerQuestion(ask, stats, demo.trades);
   const products = [
     { id: "journal", title: "Every fill, journaled.", text: "Connect a file or add the trade by hand. Tags, notes, screenshots, and the playbook land on the fill — not in a spreadsheet you abandon by Thursday.", points: ["CSV, manual, and simulated broker sync", "Notes, ratings, emotions, mistakes", "Running P&L, MAE, and MFE", "Multi-account book"] },
     { id: "backtest", title: "Prove the idea before it costs you.", text: "Step a simulated tape bar by bar, or run a plain-English template — opening range, fair value gap, trend, mean reversion — and read the expectancy.", points: ["Bar-by-bar practice", "Market, limit, and stop drills", "Four strategy templates", "Sessions you can save"] },
@@ -85,11 +76,11 @@ export function Landing() {
           <h1>Journal the fill.<br /><em>Find the leak.</em></h1>
           <p className="lede">Folio keeps the executions, the score, the tape, and the evaluation rules in one desk — so the next session starts from evidence, not from memory.</p>
           <div className="hero-actions">
-            <Link to="/signup" className="btn btn-primary">Open the demo journal</Link>
+            <Link to="/signup" className="btn btn-primary">Open the journal</Link>
             <Link to="/pricing" className="btn btn-ghost">See pricing</Link>
           </div>
           <div className="stat-row">
-            <div><strong>{stats.count}</strong> sample fills</div>
+            <div><strong>Empty</strong> until you add a fill</div>
             <div><strong>50+</strong> live reports</div>
             <div><strong>3</strong> replay modes</div>
             <div><strong>Local</strong> data stays in the browser</div>
@@ -98,15 +89,15 @@ export function Landing() {
         <div className="frame">
           <div className="frame-top"><i /><i /><i /></div>
           <div className="frame-body">
-            <div className="between"><b>Demo book</b><span className="badge good">Net {compactMoney(stats.net)}</span></div>
+            <div className="between"><b>Your journal</b><span className="badge">No fills</span></div>
             <div className="kpis" style={{ marginTop: 10, gridTemplateColumns: "1fr 1fr 1fr" }}>
-              <div className="card"><div className="faint">Win rate</div><div className="val num">{pct(stats.winRate)}</div></div>
-              <div className="card"><div className="faint">Profit factor</div><div className="val num">{stats.profitFactor.toFixed(2)}</div></div>
-              <div className="card"><div className="faint">Folio Score</div><div className="val num">{stats.folioScore.toFixed(0)}</div></div>
+              <div className="card"><div className="faint">Win rate</div><div className="val num">—</div></div>
+              <div className="card"><div className="faint">Profit factor</div><div className="val num">—</div></div>
+              <div className="card"><div className="faint">Folio Score</div><div className="val num">—</div></div>
             </div>
             <div className="card" style={{ marginTop: 10 }}>
               <div className="faint">Daily net cumulative P&L</div>
-              <EquityChart data={stats.equity} height={150} />
+              <p className="muted" style={{ marginTop: 28, marginBottom: 28 }}>Nothing is preloaded. Add a trade or import a CSV and the curve starts here.</p>
             </div>
           </div>
         </div>
@@ -132,10 +123,10 @@ export function Landing() {
             <Link to={`/features/${current.id}`} className="btn btn-ghost" style={{ marginTop: 16 }}>Learn more</Link>
           </div>
           <div className="card">
-            <div className="faint">From the demo book</div>
-            <p style={{ fontSize: 22, letterSpacing: "-0.03em", margin: "8px 0" }}>{stats.bestPlaybook ? "The paying setup is already in the tags." : "Tag the setup."}</p>
-            <p className="muted">Worst hour in this book: {stats.worstHour?.label ?? "—"}. Tilt and FOMO: {compactMoney(stats.tilt.pnl)}. Exit efficiency: {pct(stats.exitEfficiency)}.</p>
-            <Link to="/signup" className="btn btn-primary" style={{ marginTop: 14 }}>Review it yourself</Link>
+            <div className="faint">Your book</div>
+            <p style={{ fontSize: 22, letterSpacing: "-0.03em", margin: "8px 0" }}>Stats appear after the first fill.</p>
+            <p className="muted">Hours, playbooks, tilt, and exit efficiency are computed from trades you add. There is no sample history.</p>
+            <Link to="/signup" className="btn btn-primary" style={{ marginTop: 14 }}>Start an empty journal</Link>
           </div>
         </div>
       </section>
@@ -146,11 +137,11 @@ export function Landing() {
           <div className="card">
             <div className="chips" style={{ marginBottom: 10 }}>
               {["Where do I leak?", "Best playbook", "Worst hour", "FTMO status", "Exit efficiency"].map((c) => (
-                <button key={c} className={`chip ${ask === c ? "on" : ""}`} onClick={() => setAsk(c)}>{c}</button>
+                <span key={c} className="chip">{c}</span>
               ))}
             </div>
-            <h3 style={{ color: "white", fontSize: 18 }}>{reply.title}</h3>
-            <p style={{ whiteSpace: "pre-wrap", color: "#c5cbd6", marginTop: 8 }}>{reply.body}</p>
+            <h3 style={{ color: "white", fontSize: 18 }}>It waits for your fills</h3>
+            <p style={{ color: "#c5cbd6", marginTop: 8 }}>Ask about a leak, a playbook, an hour, tilt, or an evaluation. Folio AI only reads trades in your journal. With an empty book, it has nothing to invent.</p>
           </div>
           <div>
             <p className="lede">Agents watch the part of the session you will not. Habits. Risk. Tone. Or a rule only you would write.</p>
@@ -342,7 +333,7 @@ export function Legal({ kind }: { kind: "privacy" | "terms" }) {
       {kind === "privacy" ? (
         <p className="lede" style={{ marginTop: 12 }}>This demo stores your journal in local storage on this browser. It is not sent to a server. Export a backup from Settings. Clearing site data deletes it. Do not paste live account credentials into the broker connect screen — that control is a simulation.</p>
       ) : (
-        <p className="lede" style={{ marginTop: 12 }}>Folio is a demonstration product. It does not execute live orders, custody funds, or provide investment advice. Prop rules shown are sample sheets for the demo book and may not match a firm’s current program. You are responsible for confirming every rule with the firm before you trade.</p>
+        <p className="lede" style={{ marginTop: 12 }}>Folio is a demonstration product. It does not execute live orders, custody funds, or provide investment advice. Prop rules shown are sample sheets and may not match a firm’s current program. You are responsible for confirming every rule with the firm before you trade.</p>
       )}
     </section>
   );
@@ -364,7 +355,7 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
       <div className="auth-card">
         <Link to="/" className="brand"><Logo /> Folio</Link>
         <h2 style={{ margin: "14px 0 6px" }}>{mode === "login" ? "Welcome back" : "Open your desk"}</h2>
-        <p className="muted">The demo book is preloaded. Nothing is sent to a server.</p>
+        <p className="muted">The journal starts empty. Nothing is sent to a server.</p>
         <div className="stack" style={{ marginTop: 14 }}>
           {mode === "signup" && <Field label="Name"><input value={name} onChange={(e) => setName(e.target.value)} /></Field>}
           <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} /></Field>

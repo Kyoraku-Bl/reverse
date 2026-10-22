@@ -2,9 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PLAYBOOKS } from "../lib/content";
 import { compactMoney, money, pct, signedMoney, viewValue } from "../lib/format";
-import { OPEN_POSITIONS } from "../lib/seed";
 import { propSnapshots } from "../lib/stats";
-import { tradePnl } from "../lib/market";
 import { useStore } from "../lib/store";
 import { Bars, EquityChart, Gauge, HSplit, Radar, Ring } from "../components/Charts";
 import { MonthCalendar } from "../components/Calendar";
@@ -24,8 +22,9 @@ export function Dashboard() {
     <div>
       <div className="between" style={{ marginBottom: 10 }}>
         <div className="muted" style={{ fontSize: 13 }}>
-          Last import {new Date(store.lastImport).toLocaleString()} · {store.connected.length} connections · demo book
-          <button className="btn btn-ghost btn-sm" style={{ marginLeft: 8 }} onClick={() => store.toast("Resync simulated. No new live fills.")}>Resync</button>
+          {store.trades.length === 0
+            ? "No trades yet. Add a fill or import a CSV."
+            : `${store.lastImport ? `Last import ${new Date(store.lastImport).toLocaleString()} · ` : ""}${store.connected.length} connections`}
         </div>
         <details>
           <summary className="faint" style={{ cursor: "pointer" }}>Widgets</summary>
@@ -111,6 +110,9 @@ export function Dashboard() {
               <div className="between"><h3>Recent trades</h3><Link to="/app/trades" className="faint">All</Link></div>
               <table>
                 <tbody>
+                  {recent.length === 0 && (
+                    <tr><td className="muted">No trades yet.</td></tr>
+                  )}
                   {recent.map((t) => (
                     <tr key={t.id} className="click" onClick={() => nav(`/app/trades/${t.id}`)}>
                       <td>{t.symbol}<div className="faint">{PLAYBOOKS.find((p) => p.id === t.playbookId)?.name}</div></td>
@@ -124,16 +126,7 @@ export function Dashboard() {
             {w.open && (
               <div className="card">
                 <h3>Open positions</h3>
-                {OPEN_POSITIONS.map((p) => {
-                  const upnl = tradePnl(p.symbol, p.side, p.qty, p.entry, p.last, 0);
-                  return (
-                    <div key={p.id} style={{ marginTop: 10 }}>
-                      <div className="between"><b>{p.symbol}</b><span className={upnl >= 0 ? "green" : "red"}>{signedMoney(upnl)}</span></div>
-                      <div className="faint">{p.side} {p.qty} @ {p.entry} · stop {p.stop}</div>
-                    </div>
-                  );
-                })}
-                <p className="faint" style={{ marginTop: 8 }}>Unrealized, marked on the demo tape. Not a live quote.</p>
+                <p className="muted" style={{ marginTop: 8 }}>No open positions. This journal tracks closed fills you add or import.</p>
               </div>
             )}
           </div>

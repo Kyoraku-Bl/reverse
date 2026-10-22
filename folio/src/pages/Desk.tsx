@@ -361,7 +361,7 @@ export function Settings() {
               } else store.toast("That file is not a Folio backup");
             }} />
           </label>
-          <button className="btn btn-ghost" onClick={() => store.resetDemo()}>Reset demo book</button>
+          <button className="btn btn-ghost" onClick={() => store.resetDemo()}>Clear journal</button>
           <button className="btn btn-ghost" onClick={() => { store.logout(); window.location.assign(`${import.meta.env.BASE_URL}#/`); }}>Log out</button>
         </div>
       </div>

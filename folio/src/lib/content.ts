@@ -387,8 +387,8 @@ export const FAQS = [
     a: "No. Folio is a journal, a replay desk, and a practice backtester. Orders you place in backtesting are simulated on a generated tape. Nothing here connects to a live exchange.",
   },
   {
-    q: "Is the demo book real market data?",
-    a: "The preloaded book is a realistic simulated history so every report, score, and prop gauge has something true to say about that book. Broker connect in this demo is a workflow preview, not a live sync. CSV import is real — your file stays in the browser.",
+    q: "Does Folio start with sample trades?",
+    a: "No. The journal is empty until you add a trade or import a CSV. Broker connect is a workflow preview, not a live sync. Your file stays in the browser.",
   },
   {
     q: "Where is my data stored?",
@@ -396,7 +396,7 @@ export const FAQS = [
   },
   {
     q: "Which markets does it cover?",
-    a: "Futures, forex, stocks, and crypto. The sample book includes index futures, majors, large-cap shares, and bitcoin. Add any symbol manually or by CSV.",
+    a: "Futures, forex, stocks, and crypto. Add any symbol manually or by CSV.",
   },
   {
     q: "Can I track a prop evaluation?",

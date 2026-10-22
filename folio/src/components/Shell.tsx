@@ -278,11 +278,12 @@ function Alerts({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Notifications" onClose={onClose}>
       <div className="stack">
-        <div className="msg"><b>Risk agent</b><p className="muted">Tilt cluster on Oct 17 is still the largest process leak in the book. Daily loss room is the number to say out loud before the next click.</p></div>
-        <div className="msg"><b>Habit agent</b><p className="muted">Reviewed rate is {(store.stats.reviewedRate * 100).toFixed(0)}%. Four recent sessions are missing an end-of-day note.</p></div>
-        <div className="msg"><b>Sentiment agent</b><p className="muted">FOMO and tilt trades net {store.stats.tilt.pnl.toFixed(0)}. Calm and focused trades are the book.</p></div>
-        {worst && <div className="msg"><b>Time</b><p className="muted">{worst.label} ET is negative ({worst.net.toFixed(0)}). The close is not a strategy.</p></div>}
-        <p className="faint">Last import {new Date(store.lastImport).toLocaleString()} · {store.connected.length} connections in this browser</p>
+        {store.stats.count === 0 && <div className="msg"><b>Journal</b><p className="muted">No fills yet. Add a trade or import a CSV before the agents have anything to read.</p></div>}
+        {store.stats.count > 0 && <div className="msg"><b>Risk agent</b><p className="muted">Max drawdown is {store.stats.maxDrawdown.toFixed(0)}. Say the daily loss room out loud before the next click.</p></div>}
+        {store.stats.count > 0 && <div className="msg"><b>Habit agent</b><p className="muted">Reviewed rate is {(store.stats.reviewedRate * 100).toFixed(0)}%.</p></div>}
+        {store.stats.count > 0 && <div className="msg"><b>Sentiment agent</b><p className="muted">FOMO and tilt trades net {store.stats.tilt.pnl.toFixed(0)} across {store.stats.tilt.count} fills.</p></div>}
+        {worst && <div className="msg"><b>Time</b><p className="muted">{worst.label} ET is negative ({worst.net.toFixed(0)}).</p></div>}
+        <p className="faint">{store.lastImport ? `Last import ${new Date(store.lastImport).toLocaleString()} · ` : ""}{store.connected.length} connections in this browser</p>
       </div>
     </Modal>
   );

@@ -9,12 +9,41 @@ import type { AgentConfig, AppState, BacktestSession, DayPlan, Filters, Note, Pl
 const KEY = "folio-state-v1";
 const BAK = "folio-state-v1-backup";
 
+const SEED_NOTES = new Set(["n1", "n2", "n3", "n4", "n5", "n6"]);
+const SEED_MESSAGES = new Set(["m1", "m2", "m3", "m4", "m5", "m6"]);
+const SEED_CONNECTED = ["Interactive Brokers", "FTMO", "Apex Trader Funding"];
+
+/** Drop the preloaded simulated book, including a copy already saved in this browser. */
+function withoutDemoBook(state: AppState): AppState {
+  const connected =
+    state.connected.length === SEED_CONNECTED.length && state.connected.every((name, i) => name === SEED_CONNECTED[i])
+      ? []
+      : state.connected;
+  const checklists = { ...state.checklists };
+  const seededDay = checklists["2026-10-22"];
+  if (seededDay && seededDay.intention === "A+ only. Flat by 15:00 ET." && !seededDay.journal) delete checklists["2026-10-22"];
+  return {
+    ...state,
+    trades: state.trades.filter((t) => t.source !== "sync"),
+    notes: state.notes.filter((n) => !SEED_NOTES.has(n.id)),
+    messages: state.messages.filter((m) => !SEED_MESSAGES.has(m.id)),
+    backtests: state.backtests.filter((b) => b.id !== "bt1"),
+    connected,
+    checklists,
+    lastImport: state.lastImport === "2026-10-22T09:14:00Z" ? "" : state.lastImport,
+  };
+}
+
 function parseState(raw: string | null): AppState | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as AppState;
     if (parsed.version !== 1 || !Array.isArray(parsed.trades)) return null;
-    return { ...freshState(), ...parsed, playbooks: parsed.playbooks?.length ? parsed.playbooks : freshState().playbooks };
+    return withoutDemoBook({
+      ...freshState(),
+      ...parsed,
+      playbooks: parsed.playbooks?.length ? parsed.playbooks : freshState().playbooks,
+    });
   } catch {
     return null;
   }
@@ -163,7 +192,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         writeState(next);
         setState(next);
         setSavedAt(new Date().toISOString());
-        toast("Demo book restored");
+        toast("Journal cleared");
       },
       replaceState: (s) => {
         writeState(s);

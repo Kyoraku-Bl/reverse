@@ -586,7 +586,7 @@ export function dayAdherence(trades: Trade[], date: string) {
     { id: "revenge", label: "No revenge click", pass: list.every((t) => !t.mistakes.includes("revenge") && t.emotion !== "tilt"), detail: "Tilt or a click inside 15 minutes of a loss" },
     { id: "notes", label: "Every trade has a note", pass: list.length > 0 && list.every((t) => t.notes.trim().length > 3), detail: "Notes are the part the broker cannot sync" },
     { id: "emotion", label: "No FOMO tag", pass: list.every((t) => t.emotion !== "fomo"), detail: "FOMO-tagged fills" },
-    { id: "loss", label: "Daily loss inside $800", pass: list.reduce((s, t) => s + t.pnl, 0) > -800, detail: "Personal circuit breaker for the demo book" },
+    { id: "loss", label: "Daily loss inside $800", pass: list.reduce((s, t) => s + t.pnl, 0) > -800, detail: "Personal circuit breaker" },
     { id: "stop", label: "Stop was defined", pass: list.every((t) => Math.abs(t.stop - t.entry) > 0), detail: "Every fill has a stop price" },
     { id: "review", label: "Session marked reviewed", pass: list.length > 0 && list.every((t) => t.reviewed), detail: "Review toggle on each trade" },
   ];
