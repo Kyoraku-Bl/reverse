@@ -1,48 +1,63 @@
 {
- "deadline": 60,
- "done": true,
- "failed": [],
- "node": "v22.22.3",
- "ok": 5,
+ "failed": [
+  "the snapshot script wrote no report"
+ ],
+ "files": [
+  ".gitignore",
+  "README.md",
+  "api",
+  "ar.html",
+  "assets",
+  "dashboard.html",
+  "data-probe.json",
+  "index.html",
+  "login.html",
+  "replay.html",
+  "server.py",
+  "signup.html",
+  "vercel.json"
+ ],
+ "node": "v20.20.2",
+ "ok": 0,
  "partial": {},
- "perInstrument": 45,
+ "phase": "missing",
  "probe": {
   "binance_vision": {
-   "bytes": 887,
+   "bytes": 888,
    "json": false,
-   "ms": 712,
+   "ms": 597,
    "status": 200
   },
   "relay_allorigins": {
    "bytes": 7256,
    "json": false,
-   "ms": 19490,
+   "ms": 19753,
    "status": 522
   },
   "relay_codetabs": {
    "bytes": 7244,
    "json": false,
-   "ms": 19562,
+   "ms": 19556,
    "status": 522
   },
   "relay_jina": {
    "bytes": 1808,
    "json": true,
-   "ms": 596,
+   "ms": 582,
    "status": 200
   },
   "yahoo_query1": {
    "bytes": 1689,
    "json": true,
-   "ms": 150,
+   "ms": 232,
    "status": 200
   },
   "yahoo_query2": {
    "bytes": 1689,
    "json": true,
-   "ms": 87,
+   "ms": 206,
    "status": 200
   }
  },
- "requested": 5
+ "requested": 0
 }
