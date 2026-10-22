@@ -521,17 +521,12 @@
     return series;
   }
 
-  /* A quick, awaited probe + load used by the boot screen. */
+  /* Boot helper: start the reachability probe in the background (it only
+     feeds the status panel) and resolve as soon as the first series is
+     ready. Never makes the chart wait for a probe round-trip. */
   function ready(id, tf) {
-    return probe().then(function (st) {
-      var asset = K.get(id);
-      var cand = candidates(id)[0];
-      if (mode() === "synthetic") return load(id, tf);
-      if (cand && ((cand.provider === "yahoo" && !st.yahoo) || (cand.provider === "binance" && !st.binance))) {
-        return fallback(id, tf, "Live endpoint unavailable");
-      }
-      return load(id, tf);
-    });
+    if (mode() !== "synthetic" && !status.checked) probe();
+    return load(id, tf);
   }
 
   global.KRData = {

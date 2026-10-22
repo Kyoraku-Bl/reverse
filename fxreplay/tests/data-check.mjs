@@ -150,7 +150,27 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   ok("mode=auto returns live again", live.synthetic === false);
 }
 
-/* ---------- 5. 4H aggregation + dedupe ---------- */
+/* ---------- 5. ready() resolves without waiting for the probe ---------- */
+{
+  let probeCalls = 0;
+  const ctx = makeCtx(async (url) => {
+    const u = String(url);
+    if (u.includes("probe=1")) { probeCalls++; await sleep(3000); }
+    if (u.startsWith("/api/")) return { ok: false, status: 404, json: async () => ({}) };
+    if (u.includes("allorigins") || u.includes("corsproxy") || u.includes("codetabs")) {
+      return { ok: true, json: async () => yahooPayload("ES=F", 300) };
+    }
+    return { ok: false, status: 500, json: async () => ({}) };
+  });
+  const { KRData } = ctx.window;
+  const t0 = Date.now();
+  const s = await KRData.ready("ES", "5m");
+  const ms = Date.now() - t0;
+  ok("ready() returns live data", s.synthetic === false && s.source.transport === "relay", s.source && s.source.transport);
+  ok("ready() does not block on the probe", ms < 2500, ms + "ms");
+}
+
+/* ---------- 6. 4H aggregation + dedupe ---------- */
 {
   const ctx = makeCtx(async (url) => {
     const u = String(url);
