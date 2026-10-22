@@ -35,6 +35,9 @@ const CONCURRENCY = Number(opt("concurrency", "4"));
    fetched stay written, so a slow provider still yields a usable snapshot
    instead of the job being killed mid-write. 0 disables the limit. */
 const DEADLINE = Number(opt("deadline", "0"));
+/* A single instrument may not stall the queue: once it has spent this long,
+   it keeps whatever timeframes it already has. */
+const PER_INSTRUMENT = Number(opt("per-instrument", "90"));
 const STARTED = Date.now();
 
 const UA =
@@ -93,7 +96,7 @@ function jparse(text) {
   return JSON.parse(text.slice(from, to + 1));
 }
 
-async function getOnce(url, ms = 12000) {
+async function getOnce(url, ms = 9000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
@@ -130,7 +133,7 @@ async function yahoo(symbol, cfg) {
   const path = "/v8/finance/chart/" + encodeURIComponent(symbol) + q;
   const direct = YAHOO_HOSTS.map((h) => h + path);
   const urls = direct.concat(RELAYS.map((wrap) => wrap(direct[0])));
-  const body = await getAny(urls, 2);
+  const body = await getAny(urls, 1);
   const json = jparse(body);
   const res = json?.chart?.result?.[0];
   if (!res || !res.timestamp) throw new Error("no result");
@@ -257,7 +260,12 @@ async function buildInstrument(id) {
 }
 
 async function fillYahoo(doc, c) {
+  const t0 = Date.now();
   for (const tf of Object.keys(YAHOO_TF)) {
+    if (Date.now() - t0 > PER_INSTRUMENT * 1000) {
+      doc.errors = (doc.errors || []).concat(`${c.symbol} ${tf}: skipped (time budget)`);
+      continue;
+    }
     const cfg = YAHOO_TF[tf];
     let res;
     try {
@@ -284,7 +292,12 @@ async function fillYahoo(doc, c) {
 }
 
 async function fillBinance(doc, c) {
+  const t0 = Date.now();
   for (const tf of Object.keys(BINANCE_TF)) {
+    if (Date.now() - t0 > PER_INSTRUMENT * 1000) {
+      doc.errors = (doc.errors || []).concat(`${c.symbol} ${tf}: skipped (time budget)`);
+      continue;
+    }
     let raw;
     try {
       raw = await binance(c.symbol, BINANCE_TF[tf], BAR_LIMIT[tf] || 1000);
@@ -321,6 +334,7 @@ async function main() {
 
   const ok = [];
   const failed = [];
+  const PARTIAL = {};
   let cursor = 0;
 
   async function worker() {
@@ -335,6 +349,7 @@ async function main() {
         if (!doc) throw new Error("nothing resolved");
         await fs.writeFile(path.join(OUT, id + ".json"), JSON.stringify(doc));
         ok.push(id);
+        if (doc.errors) PARTIAL[id] = doc.errors;
         process.stdout.write(`✓ ${id} ${Object.keys(doc.tf).join("/")} (${doc.symbol})\n`);
       } catch (e) {
         failed.push(id + ": " + e.message);
@@ -344,6 +359,21 @@ async function main() {
   }
 
   await Promise.all(Array.from({ length: Math.max(1, CONCURRENCY) }, worker));
+
+  /* A machine-readable report travels with the site, so a failed run can be
+     diagnosed from the deployment itself (runner logs are not always
+     reachable from the agent that reads them). */
+  const report = {
+    at: new Date().toISOString(),
+    node: process.version,
+    deadline: DEADLINE,
+    perInstrument: PER_INSTRUMENT,
+    requested: ids.length,
+    ok: ok.length,
+    failed,
+    partial: PARTIAL,
+  };
+  await fs.writeFile(path.join(path.dirname(OUT), "_diag.json"), JSON.stringify(report, null, 1));
 
   if (!ok.length) {
     console.error("No instrument could be fetched — leaving the previous snapshot untouched.");
