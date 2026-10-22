@@ -39,7 +39,7 @@ function makeCtx(fetchImpl) {
   ctx.self = ctx;
   ctx.globalThis = ctx;
   vm.createContext(ctx);
-  for (const f of ["assets/js/market-data.js", "assets/js/data-provider.js"]) {
+  for (const f of ["assets/js/market-data.js", "assets/js/symbol-map.js", "assets/js/data-provider.js"]) {
     vm.runInContext(fs.readFileSync(new URL(f, `file://${SITE}`), "utf8"), ctx, { filename: f });
   }
   return ctx;
@@ -72,6 +72,14 @@ function binancePayload(n = 400, px = 60000) {
   return out;
 }
 
+/* fetch stub response: real browsers always expose text() + json() */
+const resp = (body, status = 200) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  json: async () => (typeof body === "string" ? JSON.parse(body) : body),
+  text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
+});
+
 const res = [];
 const ok = (name, cond, extra = "") => res.push([cond ? "PASS" : "FAIL", name, extra]);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -82,9 +90,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const ctx = makeCtx(async (url) => {
     const u = String(url);
     seen.push(u);
-    if (u.startsWith("/api/yahoo")) return { ok: true, json: async () => yahooPayload() };
-    if (u.startsWith("/api/binance")) return { ok: true, json: async () => binancePayload() };
-    return { ok: false, status: 404, json: async () => ({ error: "nf" }) };
+    if (u.startsWith("/api/yahoo")) return resp(yahooPayload());
+    if (u.startsWith("/api/binance")) return resp(binancePayload());
+    return resp({ error: "nf" }, 404);
   });
   const { KRData } = ctx.window;
   const s = await KRData.load("ES", "5m");
@@ -101,14 +109,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const ctx = makeCtx(async (url) => {
     const u = String(url);
     seen.push(u);
-    if (u.startsWith("/api/")) return { ok: false, status: 404, json: async () => ({}) };
-    if (u.includes("allorigins") || u.includes("corsproxy") || u.includes("codetabs")) {
-      return { ok: true, json: async () => yahooPayload("ES=F", 300) };
+    if (u.startsWith("/api/")) return resp({}, 404);
+    if (u.includes("allorigins") || u.includes("corsproxy") || u.includes("codetabs") || u.includes("r.jina.ai")) {
+      return resp(yahooPayload("ES=F", 300));
     }
     if (u.includes("data-api.binance.vision") || u.includes("api.binance.com")) {
-      return { ok: true, json: async () => binancePayload(300) };
+      return resp(binancePayload(300));
     }
-    return { ok: false, status: 500, json: async () => ({}) };
+    return resp({}, 500);
   });
   const { KRData } = ctx.window;
   const s = await KRData.load("NQ", "15m");
@@ -122,7 +130,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* ---------- 3. offline: everything blocked, but a cache exists ---------- */
 {
-  const ctx = makeCtx(async () => ({ ok: false, status: 502, json: async () => ({}) }));
+  const ctx = makeCtx(async () => resp({}, 502));
   const { KRData } = ctx.window;
   const first = await KRData.load("ES", "5m");
   ok("offline: falls back to synthetic", first.synthetic === true, first.fallbackReason);
@@ -133,13 +141,80 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   ok("offline: no stuck loading", true);
 }
 
+/* ---------- 3b. snapshot shipped with the site ---------- */
+{
+  const now = Date.now();
+  const bars = (n, step, px) => {
+    const out = []; let p = px;
+    for (let i = 0; i < n; i++) {
+      const t = Math.floor((now - (n - i) * step) / 1000);
+      const c = p * (1 + Math.sin(i / 13) * 0.001);
+      out.push([t, p, Math.max(p, c) * 1.001, Math.min(p, c) * 0.999, c, 100]);
+      p = c;
+    }
+    return out;
+  };
+  const snap = { id: "NAS100", symbol: "^NDX", provider: "yahoo", fetchedAt: now - 60000,
+    tf: { "5m": { bars: bars(300, 300, 29822), provider: "yahoo", symbol: "^NDX", fetchedAt: now - 60000 } } };
+
+  const liveCalls = [];
+  const ctx = makeCtx(async (url) => {
+    const u = String(url);
+    if (u.startsWith("data/NAS100.json")) return resp(snap);
+    liveCalls.push(u);
+    return resp({}, 502);
+  });
+  const { KRData } = ctx.window;
+  const s = await KRData.load("NAS100", "5m");
+  ok("snapshot: fresh file is used", s.synthetic === false && s.source.transport === "snapshot", s.source && s.source.transport);
+  ok("snapshot: real ticker kept", s.source.symbol === "^NDX", s.source.symbol);
+  ok("snapshot: no provider call for that ticker", !liveCalls.some((u) => u.includes("%5ENDX")), String(liveCalls.length));
+  ok("snapshot: prices are the provider's", Math.abs(s.data[s.data.length - 1].c - snap.tf["5m"].bars.at(-1)[4]) < 1e-6);
+}
+
+/* ---------- 3c. stale snapshot is preferred over a synthetic series ---------- */
+{
+  const now = Date.now();
+  const rows = [];
+  for (let i = 0; i < 200; i++) {
+    const t = Math.floor((now - (200 - i) * 300000) / 1000);
+    rows.push([t, 29800 + i, 29810 + i, 29790 + i, 29805 + i, 10]);
+  }
+  const snap = { id: "NQ", symbol: "NQ=F", provider: "yahoo", fetchedAt: now - 6 * 3600 * 1000,
+    tf: { "5m": { bars: rows, provider: "yahoo", symbol: "NQ=F", fetchedAt: now - 6 * 3600 * 1000 } } };
+  const ctx = makeCtx(async (url) => {
+    const u = String(url);
+    if (u.startsWith("data/NQ.json")) return resp(snap);
+    return resp({}, 502);
+  });
+  const { KRData } = ctx.window;
+  const s = await KRData.load("NQ", "5m");
+  ok("snapshot: stale copy still beats synthetic", s.synthetic === false && s.stale === true, String(s.stale));
+}
+
+/* ---------- 3d. relays that wrap the payload in text ---------- */
+{
+  const payload = yahooPayload("^NDX", 120, 29822);
+  const wrapped = "Title: \n\nURL Source: https://query1.finance.yahoo.com/...\n\nMarkdown Content:\n" + JSON.stringify(payload);
+  const ctx = makeCtx(async (url) => {
+    const u = String(url);
+    if (u.startsWith("/api/")) return resp({}, 404);
+    if (u.startsWith("data/")) return resp({}, 404);
+    if (u.includes("r.jina.ai")) return resp(wrapped);
+    return resp({}, 500);
+  });
+  const { KRData } = ctx.window;
+  const s = await KRData.load("NAS100", "5m");
+  ok("relay: wrapped text payload parsed", s.synthetic === false && s.source.transport === "relay", s.source && s.source.transport);
+}
+
 /* ---------- 4. explicit offline mode ignores even a working feed ---------- */
 {
   const ctx = makeCtx(async (url) => {
     const u = String(url);
-    if (u.startsWith("/api/yahoo")) return { ok: true, json: async () => yahooPayload() };
-    if (u.startsWith("/api/binance")) return { ok: true, json: async () => binancePayload() };
-    return { ok: false, status: 404, json: async () => ({}) };
+    if (u.startsWith("/api/yahoo")) return resp(yahooPayload());
+    if (u.startsWith("/api/binance")) return resp(binancePayload());
+    return resp({}, 404);
   });
   const { KRData } = ctx.window;
   KRData.setMode("synthetic");
@@ -156,11 +231,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const ctx = makeCtx(async (url) => {
     const u = String(url);
     if (u.includes("probe=1")) { probeCalls++; await sleep(3000); }
-    if (u.startsWith("/api/")) return { ok: false, status: 404, json: async () => ({}) };
-    if (u.includes("allorigins") || u.includes("corsproxy") || u.includes("codetabs")) {
-      return { ok: true, json: async () => yahooPayload("ES=F", 300) };
+    if (u.startsWith("/api/")) return resp({}, 404);
+    if (u.includes("allorigins") || u.includes("corsproxy") || u.includes("codetabs") || u.includes("r.jina.ai")) {
+      return resp(yahooPayload("ES=F", 300));
     }
-    return { ok: false, status: 500, json: async () => ({}) };
+    return resp({}, 500);
   });
   const { KRData } = ctx.window;
   const t0 = Date.now();
@@ -174,8 +249,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 {
   const ctx = makeCtx(async (url) => {
     const u = String(url);
-    if (u.startsWith("/api/yahoo")) return { ok: true, json: async () => yahooPayload("ES=F", 600, 5200, 3600) };
-    return { ok: false, status: 404, json: async () => ({}) };
+    if (u.startsWith("/api/yahoo")) return resp(yahooPayload("ES=F", 600, 5200, 3600));
+    return resp({}, 404);
   });
   const { KRData } = ctx.window;
   const s = await KRData.load("ES", "4H");

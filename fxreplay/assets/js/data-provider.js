@@ -23,70 +23,7 @@
      Futures use Yahoo's continuous front-month contract (=F),
      FX futures their CME code, crypto its Binance spot pair.
   --------------------------------------------------------- */
-  var LIVE = {
-    /* ---- Forex (spot, Yahoo FX) ---- */
-    EURUSD: "yahoo:EURUSD=X", GBPUSD: "yahoo:GBPUSD=X", USDJPY: "yahoo:USDJPY=X",
-    USDCHF: "yahoo:USDCHF=X", USDCAD: "yahoo:USDCAD=X", AUDUSD: "yahoo:AUDUSD=X",
-    NZDUSD: "yahoo:NZDUSD=X", EURGBP: "yahoo:EURGBP=X", EURJPY: "yahoo:EURJPY=X",
-    GBPJPY: "yahoo:GBPJPY=X", AUDJPY: "yahoo:AUDJPY=X", EURAUD: "yahoo:EURAUD=X",
-    GBPAUD: "yahoo:GBPAUD=X", USDSEK: "yahoo:USDSEK=X", USDNOK: "yahoo:USDNOK=X",
-    USDMXN: "yahoo:USDMXN=X", USDZAR: "yahoo:USDZAR=X", USDSGD: "yahoo:USDSGD=X",
-    EURCHF: "yahoo:EURCHF=X", GBPCHF: "yahoo:GBPCHF=X",
-
-    /* ---- Indices (cash indices) ---- */
-    NAS100: "yahoo:^NDX", SPX500: "yahoo:^GSPC", US30: "yahoo:^DJI", US2000: "yahoo:^RUT",
-    GER40: "yahoo:^GDAXI", UK100: "yahoo:^FTSE", FRA40: "yahoo:^FCHI",
-    JP225: "yahoo:^N225", AUS200: "yahoo:^AXJO", HK50: "yahoo:^HSI",
-
-    /* ---- Metals (spot, falling back to COMEX futures) ---- */
-    XAUUSD: "yahoo:XAUUSD=X|GC=F", XAGUSD: "yahoo:XAGUSD=X|SI=F",
-    XPTUSD: "yahoo:XPTUSD=X|PL=F", XPDUSD: "yahoo:XPDUSD=X|PA=F",
-
-    /* ---- Energy (NYMEX / ICE) ---- */
-    USOIL: "yahoo:CL=F", UKOIL: "yahoo:BZ=F", NATGAS: "yahoo:NG=F",
-
-    /* ---- Crypto (Binance spot, no key) ---- */
-    BTCUSD: "binance:BTCUSDT", ETHUSD: "binance:ETHUSDT", SOLUSD: "binance:SOLUSDT",
-    XRPUSD: "binance:XRPUSDT", DOGEUSD: "binance:DOGEUSDT", AVAXUSD: "binance:AVAXUSDT",
-    LINKUSD: "binance:LINKUSDT",
-
-    /* ---- Futures: equity index ---- */
-    ES: "yahoo:ES=F", MES: "yahoo:MES=F|ES=F",
-    NQ: "yahoo:NQ=F", MNQ: "yahoo:MNQ=F|NQ=F",
-    YM: "yahoo:YM=F", MYM: "yahoo:MYM=F|YM=F",
-    RTY: "yahoo:RTY=F", M2K: "yahoo:M2K=F|RTY=F",
-    FDAX: "yahoo:FDAX=F|^GDAXI", FDXM: "yahoo:FDXM=F|FDAX=F|^GDAXI",
-    FESX: "yahoo:FESX=F|^STOXX50E", FSXE: "yahoo:FSXE=F|FESX=F|^STOXX50E",
-    FCE: "yahoo:FCE=F|^FCHI",
-    VX: "yahoo:^VIX", VXM: "yahoo:^VIX",
-
-    /* ---- Futures: energy ---- */
-    CL: "yahoo:CL=F", MCL: "yahoo:MCL=F|CL=F", QM: "yahoo:QM=F|CL=F",
-    NG: "yahoo:NG=F", MNG: "yahoo:MNG=F|NG=F",
-    HO: "yahoo:HO=F", RB: "yahoo:RB=F", BZ: "yahoo:BZ=F",
-
-    /* ---- Futures: metals ---- */
-    GC: "yahoo:GC=F", MGC: "yahoo:MGC=F|GC=F",
-    SI: "yahoo:SI=F", SIL: "yahoo:SIL=F|SI=F",
-    HG: "yahoo:HG=F", MHG: "yahoo:MHG=F|HG=F",
-    PL: "yahoo:PL=F", PA: "yahoo:PA=F",
-
-    /* ---- Futures: rates ---- */
-    ZB: "yahoo:ZB=F", ZN: "yahoo:ZN=F", ZF: "yahoo:ZF=F", ZT: "yahoo:ZT=F",
-    FGBL: "yahoo:FGBL=F", FGBM: "yahoo:FGBM=F",
-
-    /* ---- Futures: FX ---- */
-    "6E": "yahoo:6E=F", "6B": "yahoo:6B=F", "6J": "yahoo:6J=F", "6A": "yahoo:6A=F",
-    "6C": "yahoo:6C=F", "6S": "yahoo:6S=F", DX: "yahoo:DX-Y.NYB|DX=F",
-
-    /* ---- Futures: grains & softs ---- */
-    ZC: "yahoo:ZC=F", ZS: "yahoo:ZS=F", ZW: "yahoo:ZW=F", ZM: "yahoo:ZM=F", ZL: "yahoo:ZL=F",
-    LE: "yahoo:LE=F", HE: "yahoo:HE=F", KC: "yahoo:KC=F", SB: "yahoo:SB=F",
-    CC: "yahoo:CC=F", CT: "yahoo:CT=F", OJ: "yahoo:OJ=F",
-
-    /* ---- Futures: crypto ---- */
-    BTC: "binance:BTCUSDT", MBT: "binance:BTCUSDT", MET: "binance:ETHUSDT"
-  };
+  var LIVE = (global.KRSymbols || {}).LIVE || {};
 
   /* ---------------------------------------------------------
      Timeframe translation
@@ -152,12 +89,12 @@
     });
   }
 
-  function json(url) {
+  function json(url, ms) {
     return withTimeout(
       fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);
         return r.json();
-      }), 12000);
+      }), ms || 12000);
   }
 
   function yahooUrl(symbol, tf) {
@@ -181,13 +118,16 @@
      exchange; Yahoo has no CORS, so its candles go through a public
      passthrough relay. Same bytes, same numbers, no key.
   --------------------------------------------------------- */
-  var DIRECT = window.KRDirect || {
+  var DIRECT = global.KRDirect || {
     yahoo: "https://query1.finance.yahoo.com/v8/finance/chart/",
     binance: [
       "https://data-api.binance.vision/api/v3/klines",
       "https://api.binance.com/api/v3/klines"
     ],
     relays: [
+      /* r.jina.ai answers fast and is rarely blocked; it wraps the JSON in a
+         short text preamble, which jparse() strips. */
+      function (u) { return "https://r.jina.ai/" + u; },
       function (u) { return "https://api.allorigins.win/raw?url=" + encodeURIComponent(u); },
       function (u) { return "https://corsproxy.io/?url=" + encodeURIComponent(u); },
       function (u) { return "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u); },
@@ -216,6 +156,16 @@
       }), ms || 9000);
   }
 
+  /* Some relays wrap the payload in a text preamble or HTML shell.
+     Pull out the first complete JSON object instead of trusting the body. */
+  function jparse(text) {
+    if (typeof text !== "string") return text;
+    var from = text.indexOf("{");
+    var to = text.lastIndexOf("}");
+    if (from === -1 || to <= from) throw new Error("relay returned no JSON");
+    return JSON.parse(text.slice(from, to + 1));
+  }
+
   /* Resolves with the first relay that returns a real chart payload.
      Two relays are raced at a time so a slow or blocked one cannot stall
      the chart; the winner is remembered for the rest of the session. */
@@ -240,7 +190,12 @@
 
     function wave(indexes, ms) {
       return anyOf(indexes.map(function (i) {
-        return jsonAbs(DIRECT.relays[i](target), ms).then(function (p) {
+        var url = DIRECT.relays[i](target);
+        return withTimeout(fetch(url, { cache: "no-store" }).then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.text();
+        }), ms).then(function (body) {
+          var p = jparse(body);
           if (!p || !p.chart || !p.chart.result || !p.chart.result.length) {
             throw new Error("relay payload");
           }
@@ -350,6 +305,61 @@
     return bars.slice(bars.length - limit);
   }
 
+  /* ---------------------------------------------------------
+     Snapshots
+     `data/<ID>.json` ships with the site: real candles fetched from
+     the provider by the GitHub Actions job (scripts/fetch-market-data).
+     Same origin, so it always loads — even when every relay is down.
+  --------------------------------------------------------- */
+  var SNAP_BASE = "data/";
+  var SNAP_FRESH = 40 * 60 * 1000;   /* a snapshot younger than this is used first */
+
+  function snapKey(id) { return "snap:" + id; }
+  function loadSnapshot(id) {
+    var hit = mem.get(snapKey(id));
+    if (hit && Date.now() - hit.at < 10 * 60 * 1000) return Promise.resolve(hit.snap);
+    return withTimeout(
+      fetch(SNAP_BASE + id + ".json", { cache: "no-store" }).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      }), 6000
+    ).then(function (snap) {
+      if (!snap || !snap.tf) throw new Error("empty snapshot");
+      mem.set(snapKey(id), { snap: snap, at: Date.now() });
+      return snap;
+    }).catch(function () { return null; });
+  }
+
+  function seriesFromSnapshot(asset, id, tf, snap, stale) {
+    var cfg = snap.tf[tf];
+    if (!cfg) return null;
+    var rows = cfg.bars || cfg;
+    var bars = rows.map(function (r) {
+      return { t: r[0] < 1e12 ? r[0] * 1000 : r[0], o: r[1], h: r[2], l: r[3], c: r[4], v: r[5] || 0 };
+    });
+    bars = trim(bars, BAR_LIMIT);
+    if (bars.length < 30) return null;
+    var series = K.decorate(asset, tf, bars, {
+      synthetic: false,
+      source: {
+        provider: cfg.provider || snap.provider || "yahoo",
+        symbol: cfg.symbol || snap.symbol || id,
+        label: (cfg.provider || snap.provider) === "binance" ? "Binance" : "Yahoo Finance",
+        fetchedAt: (cfg.fetchedAt || snap.fetchedAt || Date.now()),
+        transport: "snapshot",
+        currency: null
+      }
+    });
+    series.synthetic = false;
+    series.snapshot = true;
+    series.stale = !!stale;
+    return series;
+  }
+
+  function snapshotAge(snap) {
+    return Date.now() - (snap.fetchedAt || 0);
+  }
+
   function fingerprint(bars) {
     if (!bars.length) return "";
     var f = bars[0], l = bars[bars.length - 1];
@@ -432,11 +442,70 @@
   /* Build a series from real candles when possible.
      Always resolves: on any failure it hands back the synthetic series
      with `synthetic: true` so the caller can show the right badge. */
+  function remember(id, tf, series) {
+    mem.set(id + ":" + tf, { series: series, at: Date.now() });
+    try {
+      toCacheStorage(id, tf, series.data, series.source);
+    } catch (e) {}
+    status.lastSource = series.source;
+    status.lastError = null;
+  }
+
+  function liveFromCandidates(id, tf, list, tried, i, asset) {
+    if (i >= list.length) return Promise.reject(new Error(tried.join(", ") || "source unavailable"));
+    var c = list[i];
+    /* the probe already told us this endpoint is missing in this build:
+       skip the round-trip instead of waiting on a doomed request */
+    if (status.checked && status[c.provider] === false && !global.KRDirect) {
+      tried.push(c.symbol + " (endpoint unavailable)");
+      return liveFromCandidates(id, tf, list, tried, i + 1, asset);
+    }
+    var url = c.provider === "binance" ? binanceUrl(c.symbol, tf) : yahooUrl(c.symbol, tf);
+    return json(url, 4000)
+      .then(function (payload) { return { payload: payload, transport: "proxy" }; })
+      .catch(function () { return offlineFetch(c, tf); })
+      .then(function (res) {
+        var parsed = c.provider === "binance" ? parseBinance(res.payload) : parseYahoo(res.payload);
+        var cfg = c.provider === "yahoo" ? (YAHOO[tf] || {}) : {};
+        var bars = parsed.bars;
+        if (cfg.aggregate) bars = aggregate(bars, cfg.aggregate);
+        bars = trim(bars, BAR_LIMIT);
+        if (bars.length < 30) throw new Error("only " + bars.length + " bars");
+        var series = K.decorate(asset, tf, bars, {
+          synthetic: false,
+          source: {
+            provider: c.provider,
+            symbol: c.symbol,
+            label: c.provider === "binance" ? "Binance" : "Yahoo Finance",
+            fetchedAt: Date.now(),
+            transport: res.transport,
+            currency: parsed.meta && parsed.meta.currency
+          }
+        });
+        series.synthetic = false;
+        mem.set(id + ":" + tf, { series: series, at: Date.now() });
+        try { toCacheStorage(id, tf, bars, series.source); } catch (e) {}
+        status.lastSource = series.source;
+        status.lastError = null;
+        return series;
+      })
+      .catch(function (err) {
+        tried.push(c.symbol + " (" + (err && err.message ? err.message : "error") + ")");
+        return liveFromCandidates(id, tf, list, tried, i + 1, asset);
+      });
+  }
+
+  /* Order of preference:
+       1. a fresh snapshot that shipped with the site (same origin, instant)
+       2. the live provider through /api, a relay, or the exchange directly
+       3. an older snapshot — still real prices, just older
+       4. the last real prices this browser saved
+       5. the labelled synthetic engine                                        */
   function load(id, tf) {
     tf = tf || "1m";
     var asset = K.get(id);
     var m = mode();
-    if (!status.checked && m !== "synthetic") probe();   /* refresh reachability in the background */
+    if (!status.checked && m !== "synthetic") probe();
     var hit = cached(id, tf);
     if (hit) return Promise.resolve(hit);
     if (m === "synthetic" || !LIVE[id]) {
@@ -446,57 +515,24 @@
     var list = candidates(id);
     var tried = [];
 
-    function attempt(i) {
-      if (i >= list.length) {
-        return Promise.resolve(fallback(id, tf, tried.join(", ") || "Source unavailable"));
+    return loadSnapshot(id).then(function (snap) {
+      if (snap && cfgFor(snap, tf) && snapshotAge(snap) < SNAP_FRESH) {
+        var fresh = seriesFromSnapshot(asset, id, tf, snap, false);
+        if (fresh) { remember(id, tf, fresh); return fresh; }
       }
-      var c = list[i];
-      /* the probe already told us this endpoint is missing in this build:
-         skip the round-trip instead of waiting on a doomed request */
-      if (status.checked && status[c.provider] === false) {
-        tried.push(c.symbol + " (endpoint unavailable)");
-        return attempt(i + 1);
-      }
-      var url = c.provider === "binance" ? binanceUrl(c.symbol, tf) : yahooUrl(c.symbol, tf);
-      return json(url)
-        .then(function (payload) { return { payload: payload, transport: "proxy" }; })
-        .catch(function () { return offlineFetch(c, tf); })
-        .then(function (res) {
-          var payload = res.payload;
-          var transport = res.transport;
-          return (function () {
-          var parsed = c.provider === "binance" ? parseBinance(payload) : parseYahoo(payload);
-          var cfg = c.provider === "yahoo" ? (YAHOO[tf] || {}) : {};
-          var bars = parsed.bars;
-          if (cfg.aggregate) bars = aggregate(bars, cfg.aggregate);
-          bars = trim(bars, BAR_LIMIT);
-          if (bars.length < 30) throw new Error("only " + bars.length + " bars");
-          var series = K.decorate(asset, tf, bars, {
-            synthetic: false,
-            source: {
-              provider: c.provider,
-              symbol: c.symbol,
-              label: c.provider === "binance" ? "Binance" : "Yahoo Finance",
-              fetchedAt: Date.now(),
-              transport: transport,
-              currency: parsed.meta && parsed.meta.currency
-            }
-          });
-          series.synthetic = false;
-          mem.set(id + ":" + tf, { series: series, at: Date.now() });
-          toCacheStorage(id, tf, bars, series.source);
-          status.lastSource = series.source;
-          status.lastError = null;
-          return series;
-          })();
-        })
-        .catch(function (err) {
-          tried.push(c.symbol + " (" + (err && err.message ? err.message : "error") + ")");
-          return attempt(i + 1);
-        });
-    }
+      return liveFromCandidates(id, tf, list, tried, 0, asset).catch(function (err) {
+        if (snap) {
+          var older = seriesFromSnapshot(asset, id, tf, snap, true);
+          if (older) { remember(id, tf, older); return older; }
+        }
+        status.lastError = err && err.message;
+        return fallback(id, tf, (err && err.message) || "Source unavailable");
+      });
+    });
+  }
 
-    return attempt(0);
+  function cfgFor(snap, tf) {
+    return snap && snap.tf && snap.tf[tf];
   }
 
   function fallback(id, tf, reason) {

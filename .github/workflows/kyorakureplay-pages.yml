@@ -17,6 +17,10 @@ on:
     paths:
       - "fxreplay/**"
       - ".github/workflows/kyorakureplay-pages.yml"
+  schedule:
+    # Refresh the market snapshot every 30 minutes. Scheduled runs only fire
+    # when this branch is the repository default; manual runs always work.
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -44,10 +48,24 @@ jobs:
       - name: Stage the website
         run: |
           mkdir -p _site
-          rsync -a fxreplay/ _site/ --exclude 'tests'
+          rsync -a fxreplay/ _site/ --exclude 'tests' --exclude 'scripts'
           test -f _site/index.html
           test -f _site/replay.html
           du -sh _site
+
+      - name: Set up Node for the market snapshot
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Fetch real market data (Yahoo Finance + Binance)
+        # A provider outage must never block a deploy: the site keeps working
+        # with the live feed or the labelled fallback.
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          node fxreplay/scripts/fetch-market-data.mjs --out _site/data --concurrency 4
+          du -sh _site/data || true
 
       - name: Upload the website
         uses: actions/upload-pages-artifact@v3
