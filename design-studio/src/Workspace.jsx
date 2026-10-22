@@ -1,3 +1,5 @@
+import { IS_STATIC } from "./config";
+import LocalWorkspaceTools from "./LocalWorkspaceTools";
 import React, { useState, useEffect, createContext, useContext } from "react";
 import { api, projectView, saveProject } from "./api";
 import { Sparkles, ArrowRight, LoaderCircle, LogOut } from "lucide-react";
@@ -88,6 +90,18 @@ export function Workspace({ children }) {
       <div className="auth-loading">
         <LoaderCircle size={30} className="spin" />
         <p>Opening your creative workspace…</p>
+      </div>
+    );
+  if (IS_STATIC && !user)
+    return (
+      <div className="auth-loading">
+        <h2>Could not open local workspace</h2>
+        <p role="alert">{error || "Browser storage is unavailable."}</p>
+        <p>
+          Allow site storage, leave private browsing, then reload. Existing
+          browser data is not deleted.
+        </p>
+        <button onClick={() => location.reload()}>Try again</button>
       </div>
     );
   if (!user)
@@ -220,6 +234,7 @@ export function Workspace({ children }) {
       }}
     >
       {children}
+      {IS_STATIC && <LocalWorkspaceTools />}
       {error && (
         <div className="toast" onClick={() => setError("")}>
           {error}

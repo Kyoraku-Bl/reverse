@@ -1,3 +1,4 @@
+import { IS_STATIC, assetUrl } from "./config";
 import React, { useState, useRef, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -159,7 +160,7 @@ function Artwork({ item, large = false }) {
         <>
           <img
             className="art-photo"
-            src="/images/ocean.jpg"
+            src={assetUrl("images/ocean.jpg")}
             alt="Sunlit blue ocean"
           />
           <div className="sun-disc" />
@@ -457,7 +458,7 @@ function App() {
             <span className="avatar">{user.name[0].toUpperCase()}</span>
             <span>
               <b>{user.name}'s workspace</b>
-              <small>Free account</small>
+              <small>{IS_STATIC ? "Local workspace" : "Free account"}</small>
             </span>
             <MoreHorizontal size={19} />
           </button>
@@ -534,7 +535,7 @@ function App() {
                     <small>A LITTLE CREATIVITY GOES A LONG WAY</small>
                   </div>
                   <div className="hero-paper paper-photo">
-                    <img src="/images/ocean.jpg" alt="" />
+                    <img src={assetUrl("images/ocean.jpg")} alt="" />
                     <span>
                       somewhere
                       <br />
@@ -1044,14 +1045,17 @@ function App() {
                 <h2>Every tool. No paywalls.</h2>
                 <p>
                   All the features in Open Studio are free: editing, multiple
-                  pages, uploads, brand kits, version history, sharing, and
+                  pages, uploads, brand kits, version history, design files, and
                   exports without watermarks.
                 </p>
                 <div className="demo-note">
                   This is your own independent workspace, not a Canva
-                  subscription. Hosting costs depend on where you run the
-                  server. AI generation and live collaboration are not
-                  implemented yet. Video editing is available in Video studio.
+                  subscription.{" "}
+                  {IS_STATIC
+                    ? "This edition runs locally in your browser with no rendering server. Save external backups regularly."
+                    : "Hosting costs depend on where you run the server."}{" "}
+                  AI generation and live collaboration are not implemented.
+                  Video editing is available in Video studio.
                 </div>
                 <button
                   className="primary-button full"
@@ -1115,9 +1119,9 @@ function App() {
                 </button>
                 <button
                   className="primary-button full account-logout"
-                  onClick={logout}
+                  onClick={IS_STATIC ? () => setModal(null) : logout}
                 >
-                  Sign out
+                  {IS_STATIC ? "Close account panel" : "Sign out"}
                 </button>
               </>
             ) : modal === "notifications" ? (
@@ -1156,8 +1160,9 @@ function App() {
                     <summary>How do I save my work?</summary>
                     <p>
                       In the editor, click Save. Designs are stored in your
-                      server account and appear in Projects. The editor also
-                      autosaves every 15 seconds.
+                      {IS_STATIC ? "browser workspace" : "server account"} and
+                      appear in Projects. The editor also autosaves every 15
+                      seconds.
                     </p>
                   </details>
                   <details>
@@ -1281,7 +1286,7 @@ function App() {
   );
 }
 createRoot(document.getElementById("root")).render(
-  new URLSearchParams(location.search).has("share") ? (
+  !IS_STATIC && new URLSearchParams(location.search).has("share") ? (
     <SharedDesign />
   ) : (
     <Workspace>

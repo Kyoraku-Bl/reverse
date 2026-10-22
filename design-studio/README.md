@@ -1,12 +1,12 @@
-# Open Studio
+# Open Studio — static browser edition
 
-An independent, self-hosted design application inspired by creative tools such as Canva. **Every implemented tool is free. There are no subscriptions, locked templates, watermarks, or paid export options.** This is not an integration with Canva and does not unlock Canva's own premium services or assets.
+A real design and video workspace that can be published as **static files**. The default build needs **no Node/Express server, database service, payment card, online account, API key, upload endpoint, or rendering service**. All implemented editing tools and exports are free and have no watermark.
 
-The application now has a real server, user accounts, a persistent database, private file storage, and an object-based canvas editor. It is not the previous localStorage-only mockup. It lives in its own directory and leaves the repository's reverse-engineering runtime and existing documentation site unchanged.
+This is an independent application, not Canva or CapCut, and it does **not** claim complete feature parity with either product or unlock their paid services. The existing reverse-engineering project and publishing workflows remain intact.
 
-## Run locally
+## Run
 
-Requires Node.js **22.19 or newer** (Node 22 currently labels its built-in SQLite API experimental).
+Node **22.19+** is needed on the developer/build machine, not on the visitor's computer.
 
 ```sh
 cd design-studio
@@ -14,178 +14,136 @@ npm ci
 npm run dev
 ```
 
-- Frontend: port `5173`
-- API: port `3001`
-- API requests use relative URLs, proxied by Vite. The browser never calls a separate localhost backend.
-- Register an account on the first screen. No default account, password, or sample projects are installed.
-- The server creates `data/studio.sqlite` and `data/uploads/` automatically. These paths are ignored by Git. Accounts and projects survive application restarts.
-
-No external account, credit card, API key, image CDN, or paid service is needed. The application does not make third-party network requests during normal editing. Hosting, electricity, backups, and disk space remain the operator's responsibility.
-
-## Implemented features
-
-### Accounts and persistence
-
-- Email/password registration, login, and logout
-- Scrypt password hashing with per-user random salts
-- HttpOnly, SameSite session cookies; server-side logout revocation
-- Account-isolated projects, images, favorites, workspace name, and brand kit
-- Server-side project creation, rename, duplication, deletion, and search in the workspace
-- Optimistic revision checks to prevent silently overwriting another tab's edits
-- Saved project thumbnails generated from the real canvas
-
-### Editor
-
-- Object-based editing with Fabric.js, rather than editing a fixed HTML poster
-- Move, resize, rotate, and multi-select objects directly on the canvas
-- Double-click text editing, font family/size, bold, italic, and text alignment
-- Rectangles, rounded rectangles, circles, triangles, and lines
-- Fill colors, page background, opacity, rotation
-- Layer selection, front/back ordering, lock/unlock
-- Group/ungroup, duplicate, copy/paste, select all, delete
-- Undo/redo history per page
-- Freehand drawing with brush color and width
-- Private PNG, JPEG, and WebP uploads; reusable image library
-- Grayscale and brightness adjustments
-- Multiple pages, page switching, duplication, and deletion
-- Custom document dimensions and zoom/fit controls
-- Manual server saves and autosave checks every 15 seconds when changes exist
-- Latest 30 saved revisions with a restore interface
-- Template category filtering and search
-- Saved brand colors available in the editor
-- Responsive desktop and mobile layouts
-
-### Export and sharing
-
-- PNG and JPG exports at original or 2× scale (output longest side capped at 4096 px)
-- Real vector SVG, with images and bundled fonts embedded; no `foreignObject` HTML screenshot
-- Multipage PDF (pages rendered as images for visual fidelity)
-- Editable design JSON export/import
-- Read-only public sharing links for the latest saved design
-- Share revocation; old links and their private image access stop working
-
-**No-watermark exports are free in every format.** PNG/JPG/SVG export the current page. PDF and editable JSON include all pages. JSON files reference server-owned image uploads and are not portable image archives: to move to another installation, back up the database and uploads together. Shared users may view/export, not edit.
-
-### Keyboard shortcuts
-
-- Workspace: `Ctrl/Cmd K` focuses template search
-- Canvas: `Ctrl/Cmd S` saves, `Ctrl/Cmd Z` undoes, `Ctrl/Cmd Shift Z` / `Ctrl Y` redoes
-- `Ctrl/Cmd C` / `V` copy/paste, `Ctrl/Cmd D` duplicates, `Ctrl/Cmd A` selects all
-- Delete/Backspace removes unlocked objects; Escape clears selection
-- Text editing keeps its normal typing shortcuts
-
-## Video montage
-
-Open **Video studio** in the sidebar (also available from Apps or Create a design). Choose **New video**, upload footage, and add video files from the media library to the timeline. Select a clip to trim its In/Out points, split at the playhead, duplicate/delete it, change playback speed, choose fit/fill, adjust volume, or apply fade-in/out. Drag clips to reorder; arrow buttons provide a mobile/keyboard alternative. Text adds timed captions, and Audio selects one looping background soundtrack.
-
-- Playback/scrubbing previews the sequence, its speed changes, captions, and soundtrack in the browser.
-- Video projects have their own server-persisted library, revision checks, manual save, and 15-second autosave. They are separate from graphic design projects.
-- Export saves a snapshot and starts a real **FFmpeg render**: H.264 + AAC MP4, no watermark. Landscape, portrait, and square presets support up to 1080p at 24/30 fps. Progress, cancellation, re-download, and export status on reopening a project are included.
-- Rendering runs on the server, so the editor can close while the job continues. Edits made during a render do not change its saved snapshot. Download the finished export from the Export panel.
-- Silent source clips receive a silent audio track, avoiding broken concatenations; music is mixed with the original audio. Fades dip to black/silence; they are **not overlapping crossfade transitions**.
-- Remove clips/soundtracks and save before deleting an unused media original from the library. References from another saved project or active render prevent deletion.
-
-The preview depends on browser codec support; H.264 MP4 and VP8/VP9 WebM are recommended. The server may be able to render MOV/MKV or other supported media that a browser cannot preview. Audio gain above 100% can be clamped in browser preview but is applied during export. Changing speed changes video timing; no pitch-shifting effect is provided. Captions use bundled DM Sans and explicit line breaks; advanced subtitle layout and universal script shaping are not claimed.
-
-### Media tools and deployment
-
-The server resolves `FFMPEG_PATH` / `FFPROBE_PATH` if set, otherwise uses the platform-specific npm installer binaries, falling back to `ffmpeg` / `ffprobe` on PATH if those packages are omitted. No shell command or uploaded filename is interpolated into process arguments. Probe/encode inputs are restricted to local file protocols and an allowlist of media demuxers.
-
-**Use maintained, patched FFmpeg/FFprobe binaries for a public deployment.** The npm installer fallback includes an older FFmpeg build; a clean npm vulnerability audit does not audit native codecs. The Docker recipe instead installs the distribution FFmpeg package and explicitly selects `/usr/bin/ffmpeg` and `/usr/bin/ffprobe`. Container deployment has not been executed here. For untrusted public uploads, isolate rendering in a non-root container with memory/CPU/disk limits and blocked network egress, and keep its codecs patched. FFmpeg/libx264 redistribution licensing applies separately.
-
-One server process owns a `DATA_DIR`. Do not run a cluster or multiple servers against the same video directory: an exclusive `data/video/server.lock` marker prevents that. Graceful shutdown cancels and awaits media processes before releasing the marker or closing SQLite. After a hard crash, first **verify the previous server and its media children are stopped**, then remove the stale marker before restarting. The server deliberately does not infer safety from a PID alone. Recovery marks interrupted jobs failed and cleans incomplete work; it does not silently resume partial output. Keep backups of `data/video/` together with SQLite and image uploads.
-
-Video safety limits (not paid tiers): 100 MB per source, 30-minute maximum source duration, source dimensions up to 4096 px, 1 GB stored media per account, up to 30 clips / 20 captions / 10-minute output, one active job per account, one renderer globally, and at most 10 queued jobs. Each render has a 10-minute wall-clock budget. Upload/probe concurrency is bounded. The latest 5 completed MP4 exports per account are retained; the sixth removes the oldest export, not its editable project or originals. Allow several GB of temporary disk and adequate CPU/RAM for long 1080p projects. These limits may need tuning before large-scale hosting.
-
-## Scope: what is NOT implemented
-
-This is a substantial first full-stack release, **not feature parity with Canva**. Static video-cover designs and website mockups remain separate from the new video timeline. Video studio now renders real MP4 files; website publication is still not implemented.
-
-Still to build:
-
-- Multitrack video compositing, keyframes, overlapping crossfade transitions, recording, and GIF export
-- AI image/text generation, background removal, and generative editing
-- Real-time collaborative editing, invitations, team roles, and comments
-- Website publishing, domains, forms, and analytics
-- Presentation playback, presenter view, and slide animations
-- Social scheduling, third-party app integrations, and print ordering
-- Large licensed stock libraries and an expanded original template library
-- Advanced image cropping/masking, editable charts, advanced typography, and accessibility checking
-- Password recovery/email verification, account deletion, administrator tools, and operational observability
-
-These require additional implementation and, in some cases, infrastructure or model hosting. Adding them does not require introducing a paid feature tier, but externally hosted services cannot be assumed to be cost-free. No fake AI buttons or payment forms have been added.
-
-## Resource and safety limits
-
-The current limits are technical bounds, not paid tiers:
-
-- Document: 64–4096 px per side, up to 50 pages
-- Up to 300 top-level objects per page / 1,000 objects across a document including groups
-- Project request body up to 5 MB; editable JSON imports up to 5 MB
-- Image upload: PNG/JPEG/WebP only, 10 MB, at most 40 megapixels and 16,000 px per side
-- Most recent 30 server revisions; up to 60 undo states per edited page
-- Authentication attempts limited per IP
-
-The server validates documents and file signatures/metadata, checks asset ownership, rejects external image URLs and unsupported object classes, uses parameterized SQL, and rejects cross-origin mutations. These measures are tested but are not a substitute for an independent security review before a public deployment. Public hosting also needs abuse protection, disk quotas, monitoring, and a backup policy; these operator controls are not currently built into the application.
-
-## Production build
+Open the Vite address (normally port 5173). It opens a local workspace immediately—there is no login screen.
 
 ```sh
-npm ci
 npm run build
-PORT=3001 npm start
+npm start
 ```
 
-The Node server serves both the built frontend and `/api` on the same origin. It binds to `0.0.0.0`. No development server is required for production.
+The build copies the single-thread FFmpeg JavaScript worker and WASM into `dist/engine/`. Serve **all of `dist/`**, including `engine/`, using an ordinary HTTP(S) static host. Opening `index.html` using `file://` will not work. `npm start` is a local preview, not a required production server. There are no required hosting environment variables.
 
-Configuration:
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `PORT` | `3001` | HTTP listening port |
-| `DATA_DIR` | `./data` | Persistent SQLite and uploaded image directory |
-| `COOKIE_SECURE` | `false` | Set `true` for an HTTPS deployment |
-| `TRUST_PROXY` | `false` | Set `true` only behind one trusted reverse proxy |
-| `FFMPEG_PATH` | Installer binary or PATH | Override the FFmpeg executable (use a patched build in production) |
-| `FFPROBE_PATH` | Installer binary or PATH | Override the FFprobe executable |
-| `ARENA_PREVIEW` | `false` | Opt-in HTTPS Arena iframe embedding and secure partitioned preview sessions |
-| `PUBLIC_ORIGIN` | Empty | Exact external origin when a trusted proxy rewrites the Host header |
-
-For public deployments, terminate HTTPS at a reverse proxy, set `COOKIE_SECURE=true`, forward the original `Host` header, and restrict direct access to the Node service. Do not enable `TRUST_PROXY` if untrusted clients can reach the service directly. Back up the entire data directory with the server stopped, or use a proper SQLite online backup procedure plus matching upload backups. Do not copy just the SQLite main file while WAL writes are active.
-
-A Dockerfile and Compose recipe are included for convenience. They were not executed in this sandbox. The Node production build and browser tests were executed directly.
+For a site under a path, set `STUDIO_BASE` **at build time**, for example:
 
 ```sh
-docker compose up --build -d
-# Local HTTP: http://localhost:3001
+STUDIO_BASE=/reverse/ npm run build
+STUDIO_BASE=/reverse/ npm start
 ```
 
-The Compose volume persists account and design data. Configure an HTTPS reverse proxy before exposing it publicly.
+Vite rewrites fonts, photos, chunks, and worker paths. Changing the hosting origin or base path opens a separate workspace; transfer your work using a ZIP backup first.
 
-## Validation
+## What's implemented
+
+### Design editor
+
+- Fabric object-based canvas: text, shapes, drawing, images, layers, grouping, locking, transforms, undo/redo, alignment and multiple pages.
+- Templates, image library, favorites, workspace naming and brand kits.
+- Local save and 15-second autosave; atomic revision checks against stale saves from other tabs; latest 30 design revisions with restore.
+- PNG, JPG, embedded-font/image vector SVG, multipage PDF and editable JSON downloads.
+- Local image uploads are embedded as raster data URLs in designs, so they survive reloads and design JSON transfers. No arbitrary remote image URLs or SVG uploads.
+- Bundled DM Sans, Manrope and Noto Sans Arabic (including licenses); choose Noto Sans Arabic for Arabic design text. Caption rendering includes the Arabic fallback font and browser text shaping.
+- "Design file" downloads editable JSON rather than creating a misleading public sharing link. The static edition has **no server-hosted project sharing**.
+
+### Video montage
+
+Open **Video studio → New video**. Import files in **Media**, then add clips with the plus buttons.
+
+| Area         | Working tools                                                                                                                                                     |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Timeline     | Video and still-image clips, scrubbing/playback, trim, split, reorder/drag, duplicate/delete, fit/fill, zoomable timeline, document undo/redo                     |
+| Speed        | 0.25×, 0.5×, 0.75×, 1×, 1.25×, 1.5×, 2×, 3×, 4×; chained audio tempo filters                                                                                      |
+| Effects      | Original, monochrome, warm, cool, vintage sepia; brightness, contrast, saturation, blur, 90/180/270° rotation, horizontal/vertical flips, reset                   |
+| Crop/motion  | 1–2× start/end zoom and two-point X/Y pan, interpolated over each clip; use identical endpoints for a fixed crop                                                  |
+| Clip tools   | Volume/mute, fade in/out to black/silence; source frame PNG; freeze-frame copy appended as an editable still; source audio extraction to WAV; reversed video copy |
+| Text         | Timed multiline captions, color/size/top/center/bottom placement, import/export plain-text SRT, browser-rasterized captions with Arabic fallback                  |
+| Image layers | Up to 10 timed logos/stickers/photos from your own PNG/JPEG/WebP files, position, width and opacity                                                               |
+| Audio        | Original clip audio, looping background music/offset/volume, up to 5 timed voiceover/SFX layers with trim, placement, volume and fades                            |
+| Recording    | Real microphone recording using MediaRecorder (permission required); recorded sources and timed voiceover layers save locally                                     |
+| Layer lanes  | Separate caption/image/audio rows; click to edit, drag to reposition, Left/Right to nudge 0.1s, Shift+Left/Right to nudge 1s                                      |
+| Export       | Real H.264 + AAC MP4 from FFmpeg.wasm, landscape/portrait/square presets, 24/25/30/60fps, draft/balanced/high quality, progress/cancel/download                   |
+
+Reverse creates a separate, correctly playable media file rather than pretending native video supports negative playback rates. Reverse copies are restricted to **10 seconds and 640 px** to bound the reverse filter's frame buffer. Freeze frames and reversed copies are appended to the timeline; drag to reposition. Source-frame downloads and freeze captures intentionally omit montage effects and captions. Audio extraction exports the selected source range before its timeline speed/effects, capped at 2 minutes per WAV file.
+
+Microphone recording requires HTTPS (or localhost) and browser permission. Stay in the Audio tab while recording; leaving it stops/discards an unfinished recording. Recording stops after 2 minutes or 25 MB. Recordings with missing WebM duration headers are measured from FFprobe packet timestamps.
+
+Color/blur preview is approximate; export uses FFmpeg filters. Preview clamps gains above 100%. Audio mixes use equal-input averaging, not mastering/loudness normalization. Fades are **not overlapping crossfade transitions**. Captions on the same position/time can overlap: adjust their timing or position. Caption text is plain text, not HTML. Advanced typography/shaping beyond the installed/bundled fonts is not guaranteed.
+
+### Explicit non-features
+
+This is **not all of CapCut**. There is no AI video generation, automatic speech transcription/captions, background removal, motion tracking, stabilization, beauty/face retouching, optical-flow interpolation, arbitrary keyframe curves, speed ramps, general overlapping video/PiP tracks, licensed stock/template marketplace, live collaboration, online accounts/cloud sync, project hosting or direct social publishing. The image/audio layers and two-point motion above are real; they are not substitutes mislabeled as those unimplemented tools. No buttons claim to run these unavailable services.
+
+## Data, privacy and backup
+
+Click **On this device → Backup** (bottom-right on the workspace).
+
+- Designs, history, preferences, brand kit and source media live in **IndexedDB** in this browser profile/origin/base path. No `/api` calls are required in the static edition.
+- There is no account boundary on a shared browser profile, and data is not encrypted at rest. Another visitor on another computer does not receive your projects. Same-origin website JavaScript shares the browser's origin-level security boundary.
+- Storage can be cleared/evicted or unavailable in private browsing. The app reports storage errors instead of silently pretending it saved. The persistent-storage request is best-effort, not a guarantee.
+- ZIP export includes source files, all saved designs/video projects, design history, preferences and brand kit. Original media can also be downloaded individually from Media. It reads one consistent database snapshot. **128 MB uncompressed backup safety limit**; do not treat browser storage as your only archive.
+- ZIP import is a **replacement**, not a merge. Export your current workspace first. Only restore trusted backups. Size/count/path/schema/reference/checksum validation happens before a single atomic replacement transaction; failure preserves the existing workspace.
+- A design JSON file includes its design images but is not a complete video/source-library backup. Use the ZIP backup to move video projects to another browser/device/address.
+- MP4 jobs/finished exports are **tab-session only**. Keep the tab open while exporting and download completed videos. Up to 5 finished exports, with a 128 MB aggregate retention budget, are kept in memory. A single large latest export can exceed that aggregate budget.
+- Existing accounts/uploads in the old Node server are **not migrated automatically**. Keep the old database/uploads intact; export designs and download the originals before switching. The legacy server remains available separately.
+
+## Browser safety limits
+
+- Import: **100 MB/file**, 1 GB local-library safety cap (actual browser quota can be lower), sources up to 30 minutes and 4096 px/side.
+- Editing: up to 30 sequential clips / 10 minutes, 20 captions, 10 image overlays and 5 extra audio layers.
+- Browser MP4 export: **2 minutes maximum**, **150 MB unique source data**, up to 1080p; outputs above 720p are capped at **30 seconds**. Projects can be longer for editing but must be split for export. The renderer fails with an actionable message rather than promising an unsupported export.
+- One WASM operation at a time per tab, one active video job per tab, 10-minute export wall-clock budget. Worker termination releases encoder memory on cancellation/failure/completion. Avoid simultaneous heavy tabs, especially on phones.
+- FFmpeg's single-thread core loads approximately 31 MB on first use, from the same static host. No CDN or SharedArrayBuffer/COOP/COEP headers are required. Initial loading still needs an internet connection; this is not an installed offline PWA.
+- Chrome/Chromium desktop is tested. Mobile layout is tested at 390×844, but actual phone memory, Safari/Firefox codecs, long/large video export and all effects on every browser are **not** universally verified. A supported device still needs enough RAM/CPU for encoding.
+
+## Publish on GitHub Pages
+
+**This repository already has a Pages site from a different branch. Nothing here changes that site automatically.** GitHub allows one Pages site per repository; publishing this application at its root would replace what is currently served there (not delete the source files). Use a separate static hosting project if you need both sites independently.
+
+The new `.github/workflows/studio-static.yml`:
+
+1. Builds/tests only this application on pushes to `arena/2af71eea-reverse`.
+2. Generates the correct `/<repository>/` asset prefix and uploads a Pages artifact.
+3. **Does not publish** unless the repository owner deliberately sets `STUDIO_PAGES_ENABLED=true`.
+
+If replacing the existing Pages site with Open Studio is what you want:
+
+1. Repository **Settings → Pages → Build and deployment → Source → GitHub Actions**.
+2. **Settings → Secrets and variables → Actions → Variables → New repository variable**:
+   - Name: `STUDIO_PAGES_ENABLED`
+   - Value: `true`
+3. Open **Actions → Open Studio static build**, select the latest run on this branch, and **Re-run all jobs** (or push another change on this branch). The build and publish jobs must both succeed.
+4. If the `github-pages` environment restricts deployment branches, allow `arena/2af71eea-reverse` in its deployment policy. Do not switch or rename this session's branch.
+5. Use the URL returned by the successful **publish** job / Settings → Pages. A build artifact by itself is not a deployed public website.
+
+Do not run the old `Publish REA website` workflow expecting it to deploy Open Studio; it publishes the unrelated original website.
+
+### Other static hosts
+
+Set project root to `design-studio`, install with `npm ci`, build with `npm run build`, publish directory `dist`. Use `/` as the build base unless publishing below a path. Do **not** select the Dockerfile or configure a database, persistent disk, backend start command, or `COOKIE_SECURE`/`PUBLIC_ORIGIN` variables for this edition. Hosting-provider signup/verification policies are outside this application's control.
+
+## Tests
 
 ```sh
-npm test             # real HTTP/API and SQLite persistence/security tests
-npm run build
-npm run test:browser # graphic + video browser suites, with temporary production servers
-npm run test:video   # real FFmpeg integration/security/cancellation tests
-npm audit --omit=dev
+npm test                 # server regression + shared validation/effect/SRT tests
+npm run test:browser     # production static UI + local transaction tests + actual WASM media tests
+npm run test:static      # production static UI only
 ```
 
-Browser tests use npm-packaged Chromium and Linux libraries; no external browser download is required. They exercise registration, search, drag, undo/redo, direct text editing, private uploads, grouping, server saves, reload persistence, multi-page documents, each export format, revision listing, sharing/revocation, brand storage, custom dimensions, and mobile layout. Backend tests check authorization isolation, malformed documents, conflicting revisions, private image access, public share access/revocation, logout, and persistence after closing/reopening SQLite. Screenshots and temporary test data are ignored or cleaned up. Test servers are stopped when the tests complete; no preview server is started automatically.
+The production test serves `dist/` below `/reverse/` with an ordinary static HTTP server, with **no backend**. It exercises canvas editing/exports/history, local image persistence, brand kit, montage upload/playback/editing, effects/motion/layers, actual microphone recording with a synthetic test device, SRT, genuine WASM MP4/download, save/reload, another visitor's empty storage, ZIP backup/restore into that clean browser and a second genuine export from restored sources, plus malformed ZIP rejection. It checks no `/api` or external-host requests and no cross-origin isolation requirement.
 
-Version restoration, JSON import recovery, drawing, individual typography controls, and image filters are implemented but do not yet have exhaustive browser regression coverage. Video backend tests encode actual red/blue footage plus silent clips, timed text, speed changes, and background music, then probe the output duration/dimensions/audio and decode frames to verify clip order. They also test owner-only media/export access, range streaming, stale revisions, render cancellation/shutdown cleanup, persistence, and exclusive storage ownership. The video browser suite tests actual upload, playback, trim/split/reordering, captions, soundtrack, saves/reload, MP4 download, and mobile layout. Long/4K sources, advanced character shaping, timeout escalation under a hung codec, browser compatibility beyond Chromium, container deployment, load tests, and multi-user real-time collaboration have not been verified.
+Additional tests cover revision races, source reference protection, cancellation, archive size limits, import validation, and transaction rollback on real cloning errors and simulated asynchronous aborts. Actual full-disk/quota exhaustion behavior is browser-dependent, not universally verified. Media tests verify real output dimensions/audio/duration and pixels, motion/stills/overlays, reverse output order, WAV extraction and cancellation followed by worker recovery. The optional original server tests remain in place.
 
-## Credits
+## Optional original server
 
-- Video encoding/probing: FFmpeg and FFprobe (separate tool licensing; libx264 builds may be GPL)
-- Canvas engine: Fabric.js (MIT)
-- PDF export: jsPDF (MIT)
-- Icons: Lucide (ISC)
-- DM Sans and Manrope: Google Fonts (SIL Open Font License); notices in `public/fonts/`
-- Ocean photograph: Start Bootstrap Landing Page's Unsplash-sourced `bg-masthead.jpg`, bundled locally
-- Canva is a trademark of its owner. Open Studio is independent and is not affiliated with Canva.
+The default is now static; it no longer launches Express. To use the previous online-account/SQLite edition, see [SERVER.md](SERVER.md). Its renderer implements the previous, smaller montage feature set, not the new browser-only tools.
 
-### Arena access
+## Assets and redistribution
 
-For an Arena HTTPS preview, start with `ARENA_PREVIEW=true` and set `PUBLIC_ORIGIN` to the exact HTTPS preview URL. This allows framing only by Arena and E2B preview origins, removes the conflicting X-Frame-Options header, and uses Secure/SameSite=None/Partitioned cookies. Defaults remain same-origin framing and SameSite=Strict for normal deployments. If a browser blocks third-party storage, open the website in a new tab; a partitioned session in the embedded panel and a top-level session may require separate sign-ins.
+- Ocean photograph: bundled from Start Bootstrap's landing-page sample (Unsplash credit); see the original server documentation for its source.
+- DM Sans, Manrope and Noto Sans Arabic: Google Fonts repository, each bundled with its SIL Open Font License.
+- `@ffmpeg/ffmpeg` 0.12.15 wrapper: MIT. `@ffmpeg/core` 0.12.10: GPL-2.0-or-later (including libx264); license texts, notices and release-source/build-recipe links are copied to `dist/engine/` during preparation. Package versions are locked.
+- Core source/build recipes: https://github.com/ffmpegwasm/ffmpeg.wasm/tree/71aa99d37c02a7b4c435275ca9ef50e612f6efa1
+- Wrapper source: https://github.com/ffmpegwasm/ffmpeg.wasm/tree/f78aed147c4185484da8eba1d97c51354a5e3352
+- The upstream core uses FFmpeg n5.1.4. A clean npm audit is **not** a native/WASM codec security audit; keep the core maintained and review upstream security updates. WASM runs in a dedicated worker, not as a host OS executable, but malformed media can still exhaust memory or crash the tab.
+- Before redistributing codec binaries publicly, comply with their license/corresponding-source distribution requirements (including enabled codec dependencies); notices alone are not a blanket license clearance or patent grant. No stock assets, subscriptions or services from Canva/CapCut are included.
+
+Large generated workers/WASM, dependencies, test outputs, uploads and database files are ignored by Git. CI/build regenerates the browser engine from the lockfile.

@@ -1,3 +1,4 @@
+import { IS_STATIC, assetUrl } from "./config";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Canvas,
@@ -59,7 +60,14 @@ import {
   serializeCanvas,
 } from "./design";
 import "./editor.css";
-const fonts = ["DM Sans", "Manrope", "Georgia", "Arial", "monospace"];
+const fonts = [
+  "DM Sans",
+  "Manrope",
+  "Noto Sans Arabic",
+  "Georgia",
+  "Arial",
+  "monospace",
+];
 const colors = [
   "#eee8dd",
   "#d6f281",
@@ -368,7 +376,13 @@ export default function CanvasEditor({
       record.current = saved;
       savedChange.current = version;
       setDirty(change.current !== version);
-      feedback(automatic ? "Automatically saved" : "Saved to your account");
+      feedback(
+        automatic
+          ? "Automatically saved"
+          : IS_STATIC
+            ? "Saved on this device"
+            : "Saved to your account",
+      );
       return saved;
     } catch (e) {
       feedback(e.message);
@@ -707,7 +721,9 @@ export default function CanvasEditor({
         }
         const embeddedFonts = await Promise.all(
           ["DMSans", "Manrope"].map(async (name) => {
-            const blob = await (await fetch("/fonts/" + name + ".ttf")).blob();
+            const blob = await (
+              await fetch(assetUrl("fonts/" + name + ".ttf"))
+            ).blob();
             const data = await new Promise((resolve) => {
               const r = new FileReader();
               r.onload = () => resolve(r.result);
@@ -716,6 +732,26 @@ export default function CanvasEditor({
             return `@font-face{font-family:'${name === "DMSans" ? "DM Sans" : "Manrope"}';src:url('${data}');font-weight:100 1000;}`;
           }),
         );
+        let arabicCss = await (
+          await fetch(assetUrl("fonts/generated/noto.css"))
+        ).text();
+        for (const [, file] of [
+          ...arabicCss.matchAll(/url\(\.\/([^\)]+)\)/g),
+        ]) {
+          const blob = await (
+            await fetch(assetUrl("fonts/generated/" + file))
+          ).blob();
+          const data = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+          arabicCss = arabicCss.replace(
+            "url(./" + file + ")",
+            "url('" + data + "')",
+          );
+        }
+        embeddedFonts.push(arabicCss);
         svg = svg.replace(
           "<defs>",
           "<defs><style>" + embeddedFonts.join("") + "</style>",
@@ -803,6 +839,16 @@ export default function CanvasEditor({
     try {
       const saved = await save();
       if (!saved) return;
+      if (IS_STATIC) {
+        downloadBlob(
+          new Blob([JSON.stringify(doc.current)], { type: "application/json" }),
+          title + ".json",
+        );
+        feedback(
+          "Design file downloaded. Use workspace backup to transfer all projects and media.",
+        );
+        return;
+      }
       const s = await api(`/projects/${record.current.id}/share`, {
         method: "POST",
       });
@@ -885,7 +931,7 @@ export default function CanvasEditor({
             </button>
             <button disabled={busy || !ready} onClick={shareDesign}>
               <Share2 size={16} />
-              <span>Share</span>
+              <span>{IS_STATIC ? "Design file" : "Share"}</span>
             </button>
           </>
         )}
@@ -1074,7 +1120,7 @@ export default function CanvasEditor({
                 <>
                   <p>
                     PNG, JPEG, WebP · up to 10 MB. Your images are private to
-                    your account.
+                    {IS_STATIC ? "this browser." : "your account."}
                   </p>
                   <button
                     className="re-wide"
@@ -1329,8 +1375,8 @@ export default function CanvasEditor({
               {tab === "History" && !readOnly && (
                 <>
                   <p>
-                    Every server save keeps a version. The latest 30 versions
-                    are retained.
+                    Every save keeps a version. The latest 30 versions are
+                    retained.
                   </p>
                   {!versions.length && (
                     <p>

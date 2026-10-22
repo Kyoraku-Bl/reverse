@@ -1,3 +1,4 @@
+import { IS_STATIC, assetUrl } from "./config";
 import { validateCanvasTree } from "../shared/design-validation.mjs";
 import { Textbox, Rect, Circle, FabricImage } from "fabric";
 export const uid = () => crypto.randomUUID();
@@ -52,7 +53,9 @@ export async function documentFromTemplate(item) {
     );
   let background = item.color || "#eee8dd";
   if (item.style === "summer" || item.upload) {
-    const img = await FabricImage.fromURL(item.upload || "/images/ocean.jpg");
+    const img = await FabricImage.fromURL(
+      item.upload || assetUrl("images/ocean.jpg"),
+    );
     const scale = Math.max(width / img.width, height / img.height);
     img.set({ ...base, left: 0, top: 0, scaleX: scale, scaleY: scale });
     objects.push(img);
@@ -172,5 +175,23 @@ export function validateImport(value) {
     )
       throw new Error("Invalid page");
   }
-  return validateCanvasTree(value);
+  if (IS_STATIC) {
+    const portable = (node) => {
+      if (!node || typeof node !== "object") return;
+      for (const [key, child] of Object.entries(node)) {
+        if (
+          ["src", "source", "url", "href"].includes(key) &&
+          typeof child === "string" &&
+          /^\/(?:[^?#]*\/)?images\/ocean\.jpg$/.test(child)
+        )
+          node[key] = assetUrl("images/ocean.jpg");
+        else portable(child);
+      }
+    };
+    portable(value);
+  }
+  return validateCanvasTree(value, {
+    local: IS_STATIC,
+    base: import.meta.env.BASE_URL,
+  });
 }

@@ -1,0 +1,71 @@
+name: Open Studio static build
+
+on:
+  push:
+    branches: [arena/2af71eea-reverse]
+    paths:
+      - design-studio/**
+      - .github/workflows/studio-static.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Shares the existing website publisher's lock. Publication is opt-in because
+# a repository can have only one Pages site, and this repo already has one.
+concurrency:
+  group: website-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/arena/2af71eea-reverse'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: design-studio/package-lock.json
+      - name: Install application dependencies
+        working-directory: design-studio
+        run: npm ci
+      - name: Set Pages asset prefix
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          if [[ "${REPO_NAME,,}" == "${OWNER,,}.github.io" ]]; then
+            echo 'STUDIO_BASE=/' >> "$GITHUB_ENV"
+          else
+            echo "STUDIO_BASE=/$REPO_NAME/" >> "$GITHUB_ENV"
+          fi
+      - name: Validate and build the browser edition
+        working-directory: design-studio
+        run: |
+          npm test
+          npm run build
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
+        with:
+          path: design-studio/dist
+  publish:
+    # No billing changes, hosting settings changes, or replacement of an
+    # existing public site unless its owner explicitly enables publication.
+    if: vars.STUDIO_PAGES_ENABLED == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
+        id: deployment

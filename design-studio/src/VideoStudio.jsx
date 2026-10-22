@@ -1,3 +1,13 @@
+import { IS_STATIC } from "./config";
+import { previewFilter } from "../shared/video-effects.mjs";
+import {
+  Effects,
+  CaptionTools,
+  ImageLayers,
+  AudioLayers,
+  SourceTools,
+  TimelineLayer,
+} from "./VideoExtras";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Video,
@@ -21,6 +31,10 @@ import {
   X,
   ZoomIn,
   ZoomOut,
+  Undo2,
+  Redo2,
+  SlidersHorizontal,
+  Layers,
 } from "lucide-react";
 import { api } from "./api";
 import {
@@ -187,6 +201,10 @@ function VideoEditor({ initial, onClose }) {
     [renderBusy, setRenderBusy] = useState(false),
     [pixels, setPixels] = useState(65),
     [frameSize, setFrameSize] = useState({ width: 640, height: 360 });
+  const history = useRef({ past: [], future: [] });
+  const [historyTick, setHistoryTick] = useState(0);
+  const extraAudio = useRef(new Map()),
+    activeSource = useRef();
   const fileRef = useRef(),
     videoRef = useRef(),
     audioRef = useRef(),
@@ -216,15 +234,34 @@ function VideoEditor({ initial, onClose }) {
     sound = document.soundtrack,
     soundMedia = media.find((m) => m.id === sound?.assetId);
   activeRef.current = active;
+  activeSource.current = activeMedia;
   const change = (fn) => {
-    setDocument((old) => {
-      const next = typeof fn === "function" ? fn(old) : fn;
-      docRef.current = next;
-      return next;
-    });
+    const old = docRef.current,
+      next = typeof fn === "function" ? fn(old) : fn;
+    history.current.past.push(structuredClone(old));
+    if (history.current.past.length > 50) history.current.past.shift();
+    history.current.future = [];
+    docRef.current = next;
+    setDocument(next);
+    setHistoryTick((n) => n + 1);
     changed.current++;
     setDirty(true);
   };
+  function travel(direction) {
+    const from = direction === "undo" ? "past" : "future",
+      to = direction === "undo" ? "future" : "past";
+    if (!history.current[from].length) return;
+    history.current[to].push(structuredClone(docRef.current));
+    const next = history.current[from].pop();
+    docRef.current = next;
+    setDocument(next);
+    setHistoryTick((n) => n + 1);
+    changed.current++;
+    setDirty(true);
+    setPlaying(false);
+    if (!next.clips.some((c) => c.id === selected))
+      setSelected(next.clips[0]?.id || null);
+  }
   const loadMedia = async () => {
     const r = await api("/video/media");
     setMedia(r.media);
@@ -319,7 +356,7 @@ function VideoEditor({ initial, onClose }) {
       el.play().catch(() => {
         setPlaying(false);
         setMessage(
-          "Your browser cannot play this codec. Try an H.264 MP4 or VP8/VP9 WebM; server export may still work.",
+          "Your browser cannot play this codec. Try an H.264 MP4 or VP8/VP9 WebM.",
         );
       });
   }
@@ -339,11 +376,58 @@ function VideoEditor({ initial, onClose }) {
             ),
           )
         : 1;
-      el.volume = Math.min(1, (c.volume * gain) / (s ? 2 : 1));
+      el.volume = Math.min(
+        1,
+        (c.volume * gain) /
+          (1 + (s ? 1 : 0) + (docRef.current.audioTracks?.length || 0)),
+      );
     }
     if (audioRef.current)
-      audioRef.current.volume = Math.min(1, (s?.volume || 0) / 2);
+      audioRef.current.volume = Math.min(
+        1,
+        ((s?.volume || 0) *
+          Math.min(
+            1,
+            Math.max(
+              0,
+              (duration(docRef.current) - timeRef.current) /
+                Math.max(0.01, Math.min(0.5, duration(docRef.current))),
+            ),
+          )) /
+          (1 + (s ? 1 : 0) + (docRef.current.audioTracks?.length || 0)),
+      );
   }
+  useEffect(() => {
+    const divisor = 1 + (sound ? 1 : 0) + (document.audioTracks?.length || 0);
+    for (const t of document.audioTracks || []) {
+      const el = extraAudio.current.get(t.id),
+        position = playhead - t.start,
+        length = t.out - t.in;
+      if (!el) continue;
+      if (position < 0 || position >= length || !playing) {
+        el.pause();
+        continue;
+      }
+      if (Math.abs(el.currentTime - (t.in + position)) > 0.3)
+        el.currentTime = t.in + position;
+      const gain = Math.max(
+        0,
+        Math.min(
+          1,
+          t.fadeIn ? position / Math.min(t.fadeIn, length / 2) : 1,
+          t.fadeOut ? (length - position) / Math.min(t.fadeOut, length / 2) : 1,
+        ),
+      );
+      el.volume = Math.min(1, (t.volume * gain) / divisor);
+      el.play().catch(() => {});
+    }
+  }, [playhead, playing, document.audioTracks, sound?.assetId]);
+  useEffect(
+    () => () => {
+      for (const el of extraAudio.current.values()) el.pause();
+    },
+    [],
+  );
   function syncMusic() {
     const audio = audioRef.current,
       s = docRef.current.soundtrack;
@@ -385,13 +469,32 @@ function VideoEditor({ initial, onClose }) {
   useEffect(() => {
     if (!playing) return;
     let frame,
-      last = 0;
+      last = performance.now();
     const tick = (now) => {
       if (now - last > 25) {
+        const delta = (now - last) / 1000;
         last = now;
         const c = activeRef.current,
           video = videoRef.current;
-        if (c && video && video.readyState >= 2 && !video.seeking) {
+        if (c && activeSource.current?.kind === "image") {
+          const t = timeRef.current + delta;
+          if (t >= c.end) {
+            const items = timeline(docRef.current),
+              index = items.findIndex((v) => v.id === c.id);
+            if (index < items.length - 1) {
+              timeRef.current = items[index + 1].start + 0.001;
+              setPlayhead(timeRef.current);
+            } else {
+              setPlaying(false);
+              timeRef.current = duration(docRef.current);
+              setPlayhead(timeRef.current);
+            }
+          } else {
+            timeRef.current = t;
+            setPlayhead(t);
+            setVolumes();
+          }
+        } else if (c && video && video.readyState >= 2 && !video.seeking) {
           const t = c.start + (video.currentTime - c.in) / c.speed;
           if (video.currentTime >= c.out - 0.02 || video.ended) {
             const list = timeline(docRef.current),
@@ -420,11 +523,22 @@ function VideoEditor({ initial, onClose }) {
   }, [playing]);
   useEffect(() => {
     const keys = (e) => {
-      if (e.target.closest('input,textarea,select,[contenteditable="true"]'))
-        return;
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         saveRef.current?.();
+        return;
+      }
+      if (e.target.closest('input,textarea,select,[contenteditable="true"]'))
+        return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        travel(e.shiftKey ? "redo" : "undo");
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        travel("redo");
+        return;
       }
       if (e.code === "Space") {
         e.preventDefault();
@@ -457,7 +571,11 @@ function VideoEditor({ initial, onClose }) {
       savedVersion.current = version;
       setDirty(changed.current !== version);
       setMessage(
-        automatic ? "Video automatically saved" : "Video saved to your account",
+        automatic
+          ? "Video automatically saved"
+          : IS_STATIC
+            ? "Video saved on this device"
+            : "Video saved to your account",
       );
       return r.project;
     } catch (e) {
@@ -501,7 +619,9 @@ function VideoEditor({ initial, onClose }) {
   async function deleteMedia(asset) {
     if (
       docRef.current.clips.some((c) => c.assetId === asset.id) ||
-      docRef.current.soundtrack?.assetId === asset.id
+      docRef.current.soundtrack?.assetId === asset.id ||
+      docRef.current.overlays?.some((o) => o.assetId === asset.id) ||
+      docRef.current.audioTracks?.some((t) => t.assetId === asset.id)
     ) {
       setMessage(
         "Remove this media from your timeline or soundtrack, then save the project before deleting the source.",
@@ -552,11 +672,13 @@ function VideoEditor({ initial, onClose }) {
     );
   }
   function updateClip(patch) {
-    if (!selectedClip) return;
+    if (!selectedClip || !selectedMedia) return;
     const next = { ...selectedClip, ...patch };
     if (
       next.in < 0 ||
-      next.out > selectedMedia.duration + 0.02 ||
+      next.out >
+        (selectedMedia.kind === "image" ? 600 : selectedMedia.duration) +
+          0.02 ||
       next.out - next.in < 0.1
     ) {
       setMessage(
@@ -677,7 +799,9 @@ function VideoEditor({ initial, onClose }) {
       setJob(r.job);
       setTab("Export");
       setMessage(
-        "Rendering the saved version. You can keep editing while the server works.",
+        IS_STATIC
+          ? "Rendering on this device. Keep this tab open and download your finished MP4."
+          : "Rendering the saved version. You can keep editing while the server works.",
       );
     } catch (e) {
       setMessage(e.message);
@@ -700,7 +824,11 @@ function VideoEditor({ initial, onClose }) {
         ref={fileRef}
         type="file"
         multiple
-        accept="video/mp4,video/webm,video/quicktime,audio/mpeg,audio/wav,audio/ogg,audio/flac,audio/mp4,.mkv,.m4a,.aac"
+        accept={
+          IS_STATIC
+            ? "video/*,audio/*,image/png,image/jpeg,image/webp,.mkv,.m4a,.aac"
+            : "video/mp4,video/webm,video/quicktime,audio/mpeg,audio/wav,audio/ogg,audio/flac,audio/mp4,.mkv,.m4a,.aac"
+        }
         hidden
         onChange={upload}
       />
@@ -730,8 +858,24 @@ function VideoEditor({ initial, onClose }) {
             ? "Saving…"
             : dirty
               ? "Unsaved changes"
-              : "Saved to your account"}
+              : IS_STATIC
+                ? "Saved on this device"
+                : "Saved to your account"}
         </small>
+        <button
+          title="Undo video edit"
+          disabled={!history.current.past.length}
+          onClick={() => travel("undo")}
+        >
+          <Undo2 size={17} />
+        </button>
+        <button
+          title="Redo video edit"
+          disabled={!history.current.future.length}
+          onClick={() => travel("redo")}
+        >
+          <Redo2 size={17} />
+        </button>
         <button
           onClick={() => save()}
           disabled={saving || uploading}
@@ -742,7 +886,13 @@ function VideoEditor({ initial, onClose }) {
         </button>
         <button
           className="ve-primary"
-          disabled={renderBusy || !document.clips.length || renderActive}
+          disabled={
+            renderBusy ||
+            saving ||
+            uploading ||
+            !document.clips.length ||
+            renderActive
+          }
           onClick={render}
         >
           <Download size={16} />
@@ -754,6 +904,12 @@ function VideoEditor({ initial, onClose }) {
           {[
             { name: "Media", icon: Film },
             { name: "Clip", icon: Scissors },
+            ...(IS_STATIC
+              ? [
+                  { name: "Effects", icon: SlidersHorizontal },
+                  { name: "Layers", icon: Layers },
+                ]
+              : []),
             { name: "Text", icon: Type },
             { name: "Audio", icon: Music },
             { name: "Export", icon: Download },
@@ -798,11 +954,13 @@ function VideoEditor({ initial, onClose }) {
                 ) : (
                   <Upload size={16} />
                 )}
-                Upload video / audio
+                {IS_STATIC
+                  ? "Import video / audio / image"
+                  : "Upload video / audio"}
               </button>
               <small className="ve-hint">
                 Up to 100 MB per file · 1 GB library safety limit · MP4, WebM,
-                MOV, MP3, WAV
+                MOV, MP3, WAV {IS_STATIC && " · PNG, JPEG, WebP"}
               </small>
               <div className="ve-media-list">
                 {media.map((m) => (
@@ -841,6 +999,16 @@ function VideoEditor({ initial, onClose }) {
                     >
                       <Plus size={16} />
                     </button>
+                    {IS_STATIC && (
+                      <a
+                        className="ve-source-download"
+                        href={m.url}
+                        download={m.name}
+                        title={`Download original ${m.name}`}
+                      >
+                        <Download size={13} />
+                      </a>
+                    )}
                     <button
                       title={`Delete unused ${m.name}`}
                       onClick={() => deleteMedia(m)}
@@ -904,7 +1072,11 @@ function VideoEditor({ initial, onClose }) {
                       aria-label="Clip out"
                       type="number"
                       min={selectedClip.in + 0.1}
-                      max={selectedMedia?.duration}
+                      max={
+                        selectedMedia?.kind === "image"
+                          ? 600
+                          : selectedMedia?.duration
+                      }
                       step={0.1}
                       value={Number(selectedClip.out.toFixed(3))}
                       onChange={(e) =>
@@ -922,7 +1094,10 @@ function VideoEditor({ initial, onClose }) {
                       updateClip({ speed: Number(e.target.value) })
                     }
                   >
-                    {[0.5, 1, 1.5, 2].map((v) => (
+                    {(IS_STATIC
+                      ? [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4]
+                      : [0.5, 1, 1.5, 2]
+                    ).map((v) => (
                       <option key={v} value={v}>
                         {v}×
                       </option>
@@ -969,6 +1144,16 @@ function VideoEditor({ initial, onClose }) {
                     <option value={1}>1 second</option>
                   </select>
                 </label>
+                {IS_STATIC && (
+                  <SourceTools
+                    media={selectedMedia}
+                    clip={selectedClip}
+                    video={videoRef}
+                    message={setMessage}
+                    reloadMedia={loadMedia}
+                    addClip={addClip}
+                  />
+                )}
                 <div className="ve-clip-tools">
                   <button
                     title="Move clip earlier"
@@ -1012,12 +1197,31 @@ function VideoEditor({ initial, onClose }) {
                 </small>
               </>
             ))}
+          {tab === "Effects" && (
+            <Effects clip={selectedClip} updateClip={updateClip} />
+          )}
+          {tab === "Layers" && (
+            <ImageLayers
+              document={document}
+              media={media}
+              change={change}
+              playhead={playhead}
+              total={total}
+            />
+          )}
           {tab === "Text" && (
             <>
               <p>
                 Add timed text over the complete montage. Use line breaks for
                 longer captions.
               </p>
+              {IS_STATIC && (
+                <CaptionTools
+                  captions={document.captions}
+                  change={change}
+                  message={setMessage}
+                />
+              )}
               <button
                 className="ve-wide"
                 disabled={document.captions.length >= 20}
@@ -1130,6 +1334,17 @@ function VideoEditor({ initial, onClose }) {
                 Add a soundtrack. It loops to fit your montage and mixes with
                 your clips.
               </p>
+              {IS_STATIC && (
+                <AudioLayers
+                  document={document}
+                  media={media}
+                  change={change}
+                  playhead={playhead}
+                  message={setMessage}
+                  reloadMedia={loadMedia}
+                />
+              )}
+              <h3 className="ve-subheading">Background soundtrack</h3>
               <button
                 className="ve-wide"
                 onClick={() => fileRef.current.click()}
@@ -1215,8 +1430,9 @@ function VideoEditor({ initial, onClose }) {
           {tab === "Export" && (
             <>
               <p>
-                Real server-rendered MP4. H.264 video + AAC audio, with every
-                clip, trim, caption, and soundtrack included.
+                {IS_STATIC
+                  ? "Real browser-rendered MP4. Single-thread FFmpeg runs on your device, not on a server. Keep this tab open while exporting."
+                  : "Real server-rendered MP4. H.264 video + AAC audio, with every clip, trim, caption, and soundtrack included."}
               </p>
               <label>
                 Canvas format
@@ -1254,7 +1470,9 @@ function VideoEditor({ initial, onClose }) {
                   }
                 >
                   <option value={24}>24 fps</option>
+                  {IS_STATIC && <option value={25}>25 fps</option>}
                   <option value={30}>30 fps</option>
+                  {IS_STATIC && <option value={60}>60 fps</option>}
                 </select>
               </label>
               <button
@@ -1274,11 +1492,29 @@ function VideoEditor({ initial, onClose }) {
                 )}
                 Render MP4 — free
               </button>
+              {IS_STATIC && (
+                <label>
+                  Encoding quality
+                  <select
+                    aria-label="Encoding quality"
+                    value={document.quality || "balanced"}
+                    onChange={(e) =>
+                      change((d) => ({ ...d, quality: e.target.value }))
+                    }
+                  >
+                    <option value="draft">Draft · smaller file</option>
+                    <option value="balanced">Balanced</option>
+                    <option value="high">High · larger file</option>
+                  </select>
+                </label>
+              )}
               <small className="ve-hint">
                 {document.width} × {document.height} · {document.fps} fps ·{" "}
                 {timecode(total)}
                 <br />
-                Up to 30 clips / 10 minutes. Latest 5 finished exports retained.
+                {IS_STATIC
+                  ? "Local MP4 export: up to 2 minutes, 150 MB of sources. Above 720p: up to 30 seconds. Download exports before closing this tab. No server or watermark."
+                  : "Up to 30 clips / 10 minutes. Latest 5 finished exports retained."}
               </small>
               {job && (
                 <div className={`ve-job ${job.status}`}>
@@ -1286,7 +1522,9 @@ function VideoEditor({ initial, onClose }) {
                     {job.status === "completed"
                       ? "Your video is ready."
                       : job.status === "queued"
-                        ? "Waiting in the render queue…"
+                        ? IS_STATIC
+                          ? "Preparing browser renderer…"
+                          : "Waiting in the render queue…"
                         : job.status === "rendering"
                           ? `Rendering… ${job.progress}%`
                           : job.status === "cancelled"
@@ -1321,7 +1559,16 @@ function VideoEditor({ initial, onClose }) {
                   )}
                   {job.error && <p>{job.error}</p>}
                   {job.status === "completed" && (
-                    <a className="ve-primary" href={job.downloadUrl} download>
+                    <a
+                      className="ve-primary"
+                      href={job.downloadUrl}
+                      download={
+                        IS_STATIC
+                          ? (job.title || title).replace(/[<>:"/\\|?*]/g, "-") +
+                            ".mp4"
+                          : true
+                      }
+                    >
                       <Download size={16} />
                       Download MP4
                     </a>
@@ -1331,6 +1578,17 @@ function VideoEditor({ initial, onClose }) {
             </>
           )}
         </aside>
+        {(document.audioTracks || []).map((t) => (
+          <audio
+            key={t.id}
+            ref={(el) => {
+              if (el) extraAudio.current.set(t.id, el);
+              else extraAudio.current.delete(t.id);
+            }}
+            src={media.find((m) => m.id === t.assetId)?.url}
+            preload="metadata"
+          />
+        ))}
         <section className="ve-workspace">
           <div className="ve-preview-info">
             <span>
@@ -1347,52 +1605,104 @@ function VideoEditor({ initial, onClose }) {
             >
               {activeMedia ? (
                 <>
-                  <video
-                    ref={videoRef}
-                    src={activeMedia.url}
-                    playsInline
-                    preload="auto"
+                  <div
                     style={{
-                      objectFit: active?.fit,
-                      opacity: active?.fade
-                        ? Math.max(
-                            0,
-                            Math.min(
-                              1,
-                              (playhead - active.start) /
-                                Math.min(
-                                  active.fade,
-                                  (active.end - active.start) / 2,
-                                ),
-                              (active.end - playhead) /
-                                Math.min(
-                                  active.fade,
-                                  (active.end - active.start) / 2,
-                                ),
-                            ),
-                          )
-                        : 1,
+                      position: "absolute",
+                      inset: 0,
+                      background: "#000",
+                      transform: `scale(${(active?.zoomStart ?? 1) + ((active?.zoomEnd ?? 1) - (active?.zoomStart ?? 1)) * Math.min(1, Math.max(0, (playhead - (active?.start || 0)) / Math.max(0.1, (active?.end || 0) - (active?.start || 0))))})`,
+                      transformOrigin: `${(active?.panX ?? 50) + ((active?.panEndX ?? 50) - (active?.panX ?? 50)) * Math.min(1, Math.max(0, (playhead - (active?.start || 0)) / Math.max(0.1, (active?.end || 0) - (active?.start || 0))))}% ${(active?.panY ?? 50) + ((active?.panEndY ?? 50) - (active?.panY ?? 50)) * Math.min(1, Math.max(0, (playhead - (active?.start || 0)) / Math.max(0.1, (active?.end || 0) - (active?.start || 0))))}%`,
                     }}
-                    onLoadedMetadata={syncVideo}
-                    onError={() =>
-                      setMessage(
-                        "This codec cannot be previewed in your browser. Try H.264 MP4 or WebM; the server may still be able to render it.",
-                      )
-                    }
-                  />
+                  >
+                    {React.createElement(
+                      activeMedia.kind === "image" ? "img" : "video",
+                      {
+                        ref:
+                          activeMedia.kind === "image" ? undefined : videoRef,
+                        src: activeMedia.url,
+                        ...(activeMedia.kind === "image"
+                          ? { alt: activeMedia.name }
+                          : {
+                              playsInline: true,
+                              preload: "auto",
+                              onLoadedMetadata: syncVideo,
+                              onError: () =>
+                                setMessage(
+                                  "This codec cannot play in your browser. Try H.264 MP4 or WebM.",
+                                ),
+                            }),
+                        style: {
+                          position: "absolute",
+                          width:
+                            active?.rotation === 90 || active?.rotation === 270
+                              ? frameSize.height
+                              : frameSize.width,
+                          height:
+                            active?.rotation === 90 || active?.rotation === 270
+                              ? frameSize.width
+                              : frameSize.height,
+                          left: "50%",
+                          top: "50%",
+                          objectFit: active?.fit,
+                          transform: `translate(-50%,-50%) rotate(${active?.rotation || 0}deg) scale(${active?.flipX ? -1 : 1},${active?.flipY ? -1 : 1})`,
+                          filter: previewFilter(active),
+                          opacity: active?.fade
+                            ? Math.max(
+                                0,
+                                Math.min(
+                                  1,
+                                  (playhead - active.start) /
+                                    Math.min(
+                                      active.fade,
+                                      (active.end - active.start) / 2,
+                                    ),
+                                  (active.end - playhead) /
+                                    Math.min(
+                                      active.fade,
+                                      (active.end - active.start) / 2,
+                                    ),
+                                ),
+                              )
+                            : 1,
+                        },
+                      },
+                    )}
+                  </div>
                   {document.captions
                     .filter((c) => playhead >= c.start && playhead < c.end)
                     .map((c) => (
                       <div
                         key={c.id}
+                        dir="auto"
                         className={`ve-preview-caption ${c.position}`}
                         style={{
                           fontSize: (c.size * frameSize.width) / document.width,
                           color: c.color,
+                          fontFamily:
+                            '"DM Sans", "Noto Sans Arabic", sans-serif',
                         }}
                       >
                         {c.text}
                       </div>
+                    ))}
+                  {(document.overlays || [])
+                    .filter((o) => playhead >= o.start && playhead < o.end)
+                    .map((o) => (
+                      <img
+                        key={o.id}
+                        alt="Image overlay"
+                        className="ve-image-overlay"
+                        src={media.find((m) => m.id === o.assetId)?.url}
+                        style={{
+                          position: "absolute",
+                          left: o.x + "%",
+                          top: o.y + "%",
+                          width: o.width + "%",
+                          height: "auto",
+                          opacity: o.opacity,
+                          objectFit: "contain",
+                        }}
+                      />
                     ))}
                 </>
               ) : (
@@ -1473,6 +1783,8 @@ function VideoEditor({ initial, onClose }) {
           <div className="ve-timeline-scroll">
             <div
               className="ve-timeline-track"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => e.preventDefault()}
               ref={trackRef}
               style={{ width: Math.max(500, total * pixels + 80) }}
             >
@@ -1570,7 +1882,101 @@ function VideoEditor({ initial, onClose }) {
                   </button>
                 )}
               </div>
-              {document.captions.length > 0 && (
+              {IS_STATIC &&
+                (document.audioTracks || []).map((t, i) => (
+                  <TimelineLayer
+                    key={t.id}
+                    item={t}
+                    length={t.out - t.in}
+                    pixels={pixels}
+                    kind="audio"
+                    label={`Audio layer ${i + 1}: ${media.find((m) => m.id === t.assetId)?.name || "Audio"}`}
+                    onOpen={() => {
+                      setTab("Audio");
+                      seek(t.start);
+                    }}
+                    onMove={(start) =>
+                      change((d) => ({
+                        ...d,
+                        audioTracks: d.audioTracks.map((a) =>
+                          a.id === t.id
+                            ? {
+                                ...a,
+                                start:
+                                  Math.round(
+                                    Math.max(
+                                      0,
+                                      Math.min(600 - (t.out - t.in), start),
+                                    ) * 1000,
+                                  ) / 1000,
+                              }
+                            : a,
+                        ),
+                      }))
+                    }
+                  />
+                ))}
+              {IS_STATIC &&
+                (document.overlays || []).map((o, i) => (
+                  <TimelineLayer
+                    key={o.id}
+                    item={o}
+                    length={o.end - o.start}
+                    pixels={pixels}
+                    kind="image"
+                    label={`Image layer ${i + 1}: ${media.find((m) => m.id === o.assetId)?.name || "Image"}`}
+                    onOpen={() => {
+                      setTab("Layers");
+                      seek(o.start);
+                    }}
+                    onMove={(start) => {
+                      const next =
+                        Math.round(
+                          Math.max(
+                            0,
+                            Math.min(600 - (o.end - o.start), start),
+                          ) * 1000,
+                        ) / 1000;
+                      change((d) => ({
+                        ...d,
+                        overlays: d.overlays.map((v) =>
+                          v.id === o.id
+                            ? { ...v, start: next, end: next + o.end - o.start }
+                            : v,
+                        ),
+                      }));
+                    }}
+                  />
+                ))}
+              {IS_STATIC &&
+                document.captions.map((c, i) => (
+                  <TimelineLayer
+                    key={c.id}
+                    item={c}
+                    length={c.end - c.start}
+                    pixels={pixels}
+                    kind="caption"
+                    label={`Caption ${i + 1}: ${c.text}`}
+                    onOpen={() => {
+                      setTab("Text");
+                      seek(c.start);
+                    }}
+                    onMove={(start) => {
+                      const next =
+                        Math.round(
+                          Math.max(
+                            0,
+                            Math.min(600 - (c.end - c.start), start),
+                          ) * 1000,
+                        ) / 1000;
+                      editCaption(c.id, {
+                        start: next,
+                        end: next + c.end - c.start,
+                      });
+                    }}
+                  />
+                ))}
+              {!IS_STATIC && document.captions.length > 0 && (
                 <div className="ve-captions-lane">
                   {document.captions.map((c) => (
                     <button

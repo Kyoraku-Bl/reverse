@@ -1,4 +1,6 @@
+import { IS_STATIC } from "./config";
 export async function api(path, options = {}) {
+  if (IS_STATIC) return (await import("./local-api")).localApi(path, options);
   const response = await fetch("/api" + path, {
     credentials: "same-origin",
     ...options,

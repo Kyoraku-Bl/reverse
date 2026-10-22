@@ -40,7 +40,7 @@ const fail = (message) => {
 };
 // One shared boundary policy for server persistence and client design imports.
 // Uploaded asset ownership is additionally verified by the server.
-export function validateCanvasTree(value) {
+export function validateCanvasTree(value, { local = false, base = "/" } = {}) {
   let count = 0;
   function visit(node, depth = 0) {
     if (depth > 40) fail("Design is too deeply nested");
@@ -58,8 +58,13 @@ export function validateCanvasTree(value) {
       if (
         ["src", "source", "href", "url"].includes(key) &&
         typeof child === "string" &&
-        !/^\/api\/assets\/[a-f0-9-]+\/file$/.test(child) &&
-        child !== "/images/ocean.jpg"
+        !(!local && /^\/api\/assets\/[a-f0-9-]+\/file$/.test(child)) &&
+        child !== "/images/ocean.jpg" &&
+        !(
+          local &&
+          (child === base + "images/ocean.jpg" ||
+            /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(child))
+        )
       )
         fail("Use your own uploaded images rather than external URLs");
       if (

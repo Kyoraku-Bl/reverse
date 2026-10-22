@@ -82,11 +82,16 @@ export default function BrandKit() {
             value={font}
             onChange={(e) => setFont(e.target.value)}
           >
-            {["DM Sans", "Manrope", "Georgia", "Arial", "monospace"].map(
-              (f) => (
-                <option key={f}>{f}</option>
-              ),
-            )}
+            {[
+              "DM Sans",
+              "Manrope",
+              "Noto Sans Arabic",
+              "Georgia",
+              "Arial",
+              "monospace",
+            ].map((f) => (
+              <option key={f}>{f}</option>
+            ))}
           </select>
         </label>
         <button

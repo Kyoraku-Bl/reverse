@@ -1287,3 +1287,131 @@ body:has(.video-editor) .video-editor {
     display: none;
   }
 }
+
+.ve-extra-buttons {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.ve-extra-buttons button {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 100px;
+  border: 1px solid #d9cfe4;
+  border-radius: 7px;
+  padding: 10px 6px;
+  font-size: 11px;
+  background: #f6f1fb;
+  color: #73558c;
+}
+.ve-extra-buttons button[aria-pressed="true"] {
+  border-color: #a482c3;
+  background: #e8ddf1;
+}
+.ve-extra-buttons button:disabled {
+  opacity: 0.4;
+}
+.ve-subheading {
+  margin: 24px 0 12px;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  color: #526847;
+}
+.ve-image-overlay {
+  pointer-events: none !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+.ve-preview-frame {
+  isolation: isolate;
+  overflow: hidden;
+}
+.ve-preview-caption {
+  z-index: 2;
+}
+.ve-image-overlay {
+  z-index: 3;
+}
+.ve-header > button:disabled {
+  opacity: 0.35;
+}
+.ve-nav {
+  overflow-y: auto;
+}
+.ve-panel select {
+  max-width: 100%;
+}
+.ve-header {
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .ve-header {
+    gap: 3px;
+  }
+  .ve-header > input {
+    min-width: 50px;
+  }
+  .ve-back b {
+    display: none;
+  }
+  .ve-header > button {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
+
+.ve-layer-lane {
+  height: 29px;
+  position: relative;
+  margin-top: 4px;
+}
+.ve-layer-lane > button {
+  position: absolute;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 4px;
+  font-size: 9px;
+  padding: 4px 7px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: left;
+  background: #f2e7d5;
+  color: #806c49;
+  border: 1px solid #deccae;
+  cursor: grab;
+}
+.ve-layer-lane.audio > button {
+  background: #e8efde;
+  color: #61784d;
+  border-color: #c9d9b6;
+}
+.ve-layer-lane.image > button {
+  background: #e9e0f3;
+  color: #806194;
+  border-color: #d6c3e6;
+}
+.ve-layer-lane > button:focus-visible {
+  outline: 2px solid #864bd1;
+  outline-offset: 2px;
+}
+
+.ve-source-download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 28px;
+  color: #9b83b1;
+  flex-shrink: 0;
+}
+.ve-source-download:hover {
+  color: #794bc5;
+  background: #f0e8f7;
+  border-radius: 4px;
+}
