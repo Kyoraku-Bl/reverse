@@ -353,6 +353,7 @@ async function main() {
         process.stdout.write(`✓ ${id} ${Object.keys(doc.tf).join("/")} (${doc.symbol})\n`);
       } catch (e) {
         failed.push(id + ": " + e.message);
+        PARTIAL[id] = ["failed: " + e.message];
         process.stdout.write(`✗ ${id} ${e.message}\n`);
       }
     }
@@ -373,7 +374,7 @@ async function main() {
     failed,
     partial: PARTIAL,
   };
-  await fs.writeFile(path.join(path.dirname(OUT), "_diag.json"), JSON.stringify(report, null, 1));
+  await fs.writeFile(path.join(path.dirname(OUT), "data-status.json"), JSON.stringify(report, null, 1));
 
   if (!ok.length) {
     console.error("No instrument could be fetched — leaving the previous snapshot untouched.");
