@@ -1,0 +1,46 @@
+{
+ "failed": [
+  "the snapshot script wrote no report"
+ ],
+ "ok": 0,
+ "partial": {},
+ "probe": {
+  "binance_vision": {
+   "bytes": 896,
+   "json": false,
+   "ms": 613,
+   "status": 200
+  },
+  "relay_allorigins": {
+   "bytes": 7258,
+   "json": false,
+   "ms": 19421,
+   "status": 522
+  },
+  "relay_codetabs": {
+   "bytes": 7246,
+   "json": false,
+   "ms": 19510,
+   "status": 522
+  },
+  "relay_jina": {
+   "bytes": 1823,
+   "json": true,
+   "ms": 628,
+   "status": 200
+  },
+  "yahoo_query1": {
+   "bytes": 1704,
+   "json": true,
+   "ms": 142,
+   "status": 200
+  },
+  "yahoo_query2": {
+   "bytes": 1704,
+   "json": true,
+   "ms": 85,
+   "status": 200
+  }
+ },
+ "requested": 0
+}
