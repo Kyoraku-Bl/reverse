@@ -12,6 +12,7 @@ export const SPECS: Record<string, Spec> = {
   NQ: { price: 20140, tick: 0.25, pv: 20, market: "futures", name: "Nasdaq 100 fut." },
   ES: { price: 5742, tick: 0.25, pv: 50, market: "futures", name: "S&P 500 fut." },
   MNQ: { price: 20140, tick: 0.25, pv: 2, market: "futures", name: "Micro Nasdaq" },
+  NAS100USD: { price: 20140, tick: 0.1, pv: 1, market: "futures", name: "Nasdaq 100 CFD" },
   CL: { price: 78.4, tick: 0.01, pv: 1000, market: "futures", name: "Crude oil" },
   EURUSD: { price: 1.0862, tick: 0.00001, pv: 100000, market: "forex", name: "Euro / USD" },
   GBPUSD: { price: 1.2944, tick: 0.00001, pv: 100000, market: "forex", name: "Sterling / USD" },

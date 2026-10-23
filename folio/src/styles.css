@@ -251,6 +251,7 @@ h1, h2, h3, h4, p { margin: 0; }
   font: inherit; font-size: 22px; font-weight: 720; letter-spacing: -0.03em; padding: 0 0 2px; outline: none;
 }
 .pnl-edit:focus { border-bottom-color: var(--accent); }
+.points-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .day-view .card { min-width: 0; }
 .account-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .account-cards > * { min-width: 0; overflow: hidden; }

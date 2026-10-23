@@ -159,6 +159,21 @@ export function AppShell() {
   );
 }
 
+function pointDistance(entry: number, price: number) {
+  if (!Number.isFinite(entry) || !Number.isFinite(price)) return 0;
+  return Math.round(Math.abs(entry - price) * 1e8) / 1e8;
+}
+
+function roundToTick(price: number, tick: number) {
+  if (!tick) return Math.round(price * 100) / 100;
+  const steps = Math.round(price / tick);
+  return Math.round(steps * tick * 1e8) / 1e8;
+}
+
+function formatPoints(n: number) {
+  return n.toLocaleString("en-US", { maximumFractionDigits: 5 });
+}
+
 function formatPnlInput(n: number) {
   const rounded = Math.round(n * 100) / 100;
   return rounded > 0 ? `+${rounded.toFixed(2)}` : rounded.toFixed(2);
@@ -183,6 +198,19 @@ function AddTrade({ onClose }: { onClose: () => void }) {
   const [pnlText, setPnlText] = useState<string | null>(null);
   const pnl = readPnl(pnlText, computed);
   const risk = riskDollars(form.symbol, Number(form.qty), Number(form.entry), Number(form.stop));
+  const entryPx = Number(form.entry);
+  const slPoints = pointDistance(entryPx, Number(form.stop));
+  const tpPoints = pointDistance(entryPx, Number(form.target));
+  const tick = SPECS[form.symbol]?.tick ?? 0.01;
+  const applyPoints = (kind: "sl" | "tp", raw: string) => {
+    const distance = Math.abs(Number(raw));
+    if (!Number.isFinite(distance)) return;
+    const long = form.side === "long";
+    const next = kind === "sl"
+      ? (long ? entryPx - distance : entryPx + distance)
+      : (long ? entryPx + distance : entryPx - distance);
+    set(kind === "sl" ? "stop" : "target", roundToTick(next, tick));
+  };
   const pnlEdited = pnlText != null && Math.abs(pnl - computed) > 0.009;
   const save = () => {
     const openedAt = `${form.date}T${form.time}:00Z`;
@@ -244,7 +272,20 @@ function AddTrade({ onClose }: { onClose: () => void }) {
       <div className="grid-3" style={{ gap: 10 }}>
         <Field label="Symbol"><select value={form.symbol} onChange={(e) => set("symbol", e.target.value)}>{SYMBOLS.map((s) => <option key={s}>{s}</option>)}</select></Field>
         <Field label="Side">
-          <select value={form.side} onChange={(e) => set("side", e.target.value)}>
+          <select value={form.side} onChange={(e) => {
+            const side = e.target.value as Side;
+            const entry = Number(form.entry);
+            const sl = pointDistance(entry, Number(form.stop));
+            const tp = pointDistance(entry, Number(form.target));
+            const long = side === "long";
+            const step = SPECS[form.symbol]?.tick ?? 0.01;
+            setForm((f) => ({
+              ...f,
+              side,
+              stop: roundToTick(long ? entry - sl : entry + sl, step),
+              target: roundToTick(long ? entry + tp : entry - tp, step),
+            }));
+          }}>
             <option value="long">Long</option>
             <option value="short">Short</option>
           </select>
@@ -254,6 +295,17 @@ function AddTrade({ onClose }: { onClose: () => void }) {
         <Field label="Exit"><input type="number" value={form.exit} onChange={(e) => set("exit", Number(e.target.value))} /></Field>
         <Field label="Stop"><input type="number" value={form.stop} onChange={(e) => set("stop", Number(e.target.value))} /></Field>
         <Field label="Target"><input type="number" value={form.target} onChange={(e) => set("target", Number(e.target.value))} /></Field>
+      </div>
+      <div className="points-row">
+        <Field label="SL points">
+          <input type="number" min="0" step={tick} value={slPoints} onChange={(e) => applyPoints("sl", e.target.value)} aria-label="Stop-loss points from entry" />
+        </Field>
+        <Field label="TP points">
+          <input type="number" min="0" step={tick} value={tpPoints} onChange={(e) => applyPoints("tp", e.target.value)} aria-label="Take-profit points from entry" />
+        </Field>
+      </div>
+      <p className="faint">{form.side === "long" ? "Long: stop is below entry, target is above." : "Short: stop is above entry, target is below."} {formatPoints(slPoints)} SL pts · {formatPoints(tpPoints)} TP pts.</p>
+      <div className="grid-3" style={{ gap: 10 }}>
         <Field label="Account">
           <select value={form.accountId} onChange={(e) => set("accountId", e.target.value)}>{store.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
         </Field>
