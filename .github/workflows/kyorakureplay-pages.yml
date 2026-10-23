@@ -31,6 +31,10 @@ on:
         description: "Seconds before the snapshot job stops starting new instruments"
         required: false
         default: "600"
+      max_age:
+        description: "Reuse snapshot files younger than this many minutes (0 = refetch all)"
+        required: false
+        default: "20"
 
 permissions:
   contents: write          # only to commit the small snapshot status file
@@ -115,18 +119,22 @@ jobs:
       - name: Fetch real market data (Yahoo Finance + Binance)
         # A provider outage must never block a deploy: the site keeps working
         # with the live feed or the labelled fallback. The script stops itself
-        # after 7 minutes, keeping everything it already fetched, and NAS100 /
-        # NQ futures are fetched first.
+        # after 10 minutes, keeping everything it already fetched. Files
+        # restored from the cache keep their real candles and are refreshed
+        # oldest-first, so the snapshot is complete after a few runs even
+        # though one run cannot re-fetch all 103 instruments.
         continue-on-error: true
-        timeout-minutes: 11
+        timeout-minutes: 14
         env:
           ONLY: ${{ inputs.only }}
-          DEADLINE: ${{ inputs.deadline || '420' }}
+          DEADLINE: ${{ inputs.deadline || '600' }}
+          MAX_AGE: ${{ inputs.max_age || '20' }}
         run: |
           set +e
           node fxreplay/scripts/fetch-market-data.mjs \
             --out "$GITHUB_WORKSPACE/_site/data" --concurrency 8 \
-            --deadline "${DEADLINE:-420}" ${ONLY:+--only "$ONLY"}
+            --deadline "${DEADLINE:-600}" --max-age "${MAX_AGE:-20}" \
+            ${ONLY:+--only "$ONLY"}
           code=$?
           echo "snapshot exit code: $code"
           du -sh _site/data 2>/dev/null || true

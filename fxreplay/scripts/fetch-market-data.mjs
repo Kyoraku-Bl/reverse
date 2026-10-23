@@ -41,6 +41,11 @@ const DEADLINE = Number(opt("deadline", "0"));
 /* A single instrument may not stall the queue: once it has spent this long,
    it keeps whatever timeframes it already has. */
 const PER_INSTRUMENT = Number(opt("per-instrument", "45"));
+/* Files already in --out (restored by the workflow cache) are real candles
+   from an earlier run. Younger than this, they are left alone; the run then
+   spends its deadline on the ones that have waited longest, so coverage stays
+   complete while freshness rotates. 0 = refetch everything. */
+const MAX_AGE = Number(opt("max-age", "20")) * 60 * 1000;
 const STARTED = Date.now();
 
 const UA =
@@ -374,13 +379,33 @@ async function fillBinance(doc, c, want) {
 const PRIORITY = ["NAS100", "NQ", "SPX500", "US30", "GER40", "XAUUSD", "BTCUSD", "ETHUSD"];
 
 async function main() {
-  const ids = ONLY.length ? ONLY : Object.keys(LIVE).sort((a, b) => {
+  await fs.mkdir(OUT, { recursive: true });
+
+  /* What is already on disk, and how old it is. */
+  const EXIST = new Map();
+  try {
+    for (const f of await fs.readdir(OUT)) {
+      if (!/^[A-Za-z0-9]+\.json$/.test(f)) continue;
+      try {
+        const d = JSON.parse(await fs.readFile(path.join(OUT, f), "utf8"));
+        if (d && d.tf && Object.keys(d.tf).length) EXIST.set(f.slice(0, -5), Number(d.fetchedAt) || 0);
+      } catch (e) { /* an unreadable file is simply refetched */ }
+    }
+  } catch (e) { /* first run: nothing to reuse */ }
+
+  /* Never-fetched first, then the stalest; instrument priority only breaks
+     ties, so the flagships still lead on the very first run. */
+  const ids = (ONLY.length ? ONLY : Object.keys(LIVE)).slice().sort((a, b) => {
+    const ea = EXIST.get(a) || 0, eb = EXIST.get(b) || 0;
+    if (!ea !== !eb) return ea ? 1 : -1;
+    if (ea !== eb) return ea - eb;
     const pa = PRIORITY.indexOf(a), pb = PRIORITY.indexOf(b);
     return (pa < 0 ? 99 : pa) - (pb < 0 ? 99 : pb);
   });
-  await fs.mkdir(OUT, { recursive: true });
 
   const ok = [];
+  const refreshed = [];
+  const kept = [];
   const failed = [];
   const PARTIAL = {};
   const SKIPPED = [];
@@ -401,6 +426,8 @@ async function main() {
       perInstrument: PER_INSTRUMENT,
       requested: ids.length,
       ok: ok.length,
+      refreshed: refreshed.length,
+      reused: kept.length,
       done: done === true,
       sweeps,
       skipped: SKIPPED,
@@ -445,19 +472,34 @@ async function main() {
         return;
       }
       const id = ids[cursor++];
+      if (MAX_AGE > 0 && EXIST.has(id) && Date.now() - EXIST.get(id) < MAX_AGE) {
+        if (ok.indexOf(id) === -1) ok.push(id);
+        kept.push(id);
+        continue;
+      }
       try {
         const doc = await buildInstrument(id);
         if (!doc) throw new Error("nothing resolved");
         await fs.writeFile(path.join(OUT, id + ".json"), JSON.stringify(doc));
-        ok.push(id);
+        if (ok.indexOf(id) === -1) ok.push(id);
+        refreshed.push(id);
+        EXIST.set(id, doc.fetchedAt || Date.now());
         DOCS.set(id, doc);
         if (doc.errors) PARTIAL[id] = doc.errors;
         await writeStatus(false);
         process.stdout.write(`✓ ${id} ${Object.keys(doc.tf).join("/")} (${doc.symbol})\n`);
       } catch (e) {
-        failed.push(id + ": " + e.message);
-        PARTIAL[id] = ["failed: " + e.message];
-        process.stdout.write(`✗ ${id} ${e.message}\n`);
+        if (EXIST.has(id)) {
+          /* real candles from an earlier run stay on the site */
+          if (ok.indexOf(id) === -1) ok.push(id);
+          kept.push(id);
+          PARTIAL[id] = ["refresh failed, kept the previous file: " + e.message];
+          process.stdout.write(`↺ ${id} ${e.message} (kept previous)\n`);
+        } else {
+          failed.push(id + ": " + e.message);
+          PARTIAL[id] = ["failed: " + e.message];
+          process.stdout.write(`✗ ${id} ${e.message}\n`);
+        }
       }
     }
   }
@@ -482,7 +524,7 @@ async function main() {
     return ALL_TF.filter((tf) => !doc.tf[tf] && !thin.has(tf));
   };
   while (timeLeft() && Date.now() - STARTED < DEADLINE * 1000 - 20000 && sweeps < 2) {
-    const queue = ok.filter((id) => missingTfs(DOCS.get(id)).length);
+    const queue = ok.filter((id) => DOCS.get(id) && missingTfs(DOCS.get(id)).length);
     if (!queue.length) break;
     sweeps++;
     phase = "sweeping " + sweeps;
@@ -534,17 +576,29 @@ async function main() {
     console.error("No instrument could be fetched — leaving the previous snapshot untouched.");
     process.exit(1);
   }
+  /* The index describes what the folder actually holds, not just this run:
+     a snapshot assembled over several runs is still a complete one. */
+  const shipped = [];
+  try {
+    for (const f of await fs.readdir(OUT)) {
+      if (/^[A-Za-z0-9]+\.json$/.test(f) && f !== "_index.json") shipped.push(f.slice(0, -5));
+    }
+  } catch (e) { /* keep the fetch list */ }
   await fs.writeFile(
     path.join(OUT, "_index.json"),
     JSON.stringify({
       generatedAt: Date.now(),
-      count: ok.length,
-      truncated: DEADLINE > 0 && ids.length > ok.length + failed.length,
+      count: shipped.length,
+      refreshedNow: refreshed.length,
+      truncated: DEADLINE > 0 && ids.length > refreshed.length + kept.length + failed.length,
       failed,
-      instruments: ok,
+      instruments: shipped.length ? shipped.sort() : ok.sort(),
     }, null, 0)
   );
-  console.log(`\n${ok.length} instruments written to ${path.relative(ROOT, OUT)}${failed.length ? `, ${failed.length} failed` : ""}`);
+  console.log(
+    `\n${shipped.length || ok.length} instruments in ${path.relative(process.cwd(), OUT)} ` +
+    `(${refreshed.length} refreshed, ${kept.length} reused${failed.length ? `, ${failed.length} failed` : ""})`
+  );
 }
 
 main().catch(async (e) => {
