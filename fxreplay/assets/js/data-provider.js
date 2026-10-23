@@ -347,6 +347,7 @@
         label: (cfg.provider || snap.provider) === "binance" ? "Binance" : "Yahoo Finance",
         fetchedAt: (cfg.fetchedAt || snap.fetchedAt || Date.now()),
         transport: "snapshot",
+        derivedFrom: cfg.derivedFrom || null,
         currency: null
       }
     });
@@ -354,6 +355,66 @@
     series.snapshot = true;
     series.stale = !!stale;
     return series;
+  }
+
+  /* Some snapshots miss a coarser interval (Yahoo refuses 15m or 4H for a
+     future). Rather than showing a simulated chart, build that interval from
+     a finer one that did arrive — same real candles, grouped. */
+  var TF_MIN = { "1m": 1, "5m": 5, "15m": 15, "30m": 30, "1H": 60, "4H": 240, "1D": 1440 };
+
+  function deriveBars(snap, tf) {
+    var want = TF_MIN[tf];
+    if (!want || !snap.tf) return null;
+    var base = null, size = 0;
+    Object.keys(snap.tf).forEach(function (b) {
+      var m = TF_MIN[b];
+      if (!m || m >= want || want % m || want / m > 12) return;
+      var cfg = snap.tf[b];
+      if (!cfg || !cfg.bars || cfg.bars.length < 30) return;
+      if (m > size) { size = m; base = b; }
+    });
+    if (!base) return null;
+    var bucket = want * 60;
+    var out = [], cur = null;
+    snap.tf[base].bars.forEach(function (r) {
+      var t = r[0] < 1e12 ? r[0] : Math.floor(r[0] / 1000);
+      var k = Math.floor(t / bucket) * bucket;
+      if (!cur || cur[0] !== k) {
+        if (cur) out.push(cur);
+        cur = [k, r[1], r[2], r[3], r[4], r[5] || 0];
+      } else {
+        if (r[2] > cur[2]) cur[2] = r[2];
+        if (r[3] < cur[3]) cur[3] = r[3];
+        cur[4] = r[4];
+        cur[5] += r[5] || 0;
+      }
+    });
+    if (cur) out.push(cur);
+    if (out.length < 30) return null;
+    var src = snap.tf[base];
+    var shim = { id: snap.id, symbol: snap.symbol, provider: snap.provider, fetchedAt: snap.fetchedAt, tf: {} };
+    shim.tf[tf] = {
+      interval: tf,
+      provider: src.provider || snap.provider,
+      symbol: src.symbol || snap.symbol,
+      fetchedAt: src.fetchedAt || snap.fetchedAt,
+      currency: src.currency || null,
+      bars: out,
+      derivedFrom: base
+    };
+    return shim;
+  }
+
+  function shapedSnap(snap, tf) {
+    if (!snap || !snap.tf) return null;
+    if (snap.tf[tf]) return snap;
+    var key = "drv:" + (snap.fetchedAt || 0) + ":" + tf;
+    var hit = mem.get(key);
+    if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.snap;
+    var shim = deriveBars(snap, tf);
+    if (!shim) return null;
+    mem.set(key, { snap: shim, at: Date.now() });
+    return shim;
   }
 
   function snapshotAge(snap) {
@@ -516,13 +577,14 @@
     var tried = [];
 
     return loadSnapshot(id).then(function (snap) {
-      if (snap && cfgFor(snap, tf) && snapshotAge(snap) < SNAP_FRESH) {
-        var fresh = seriesFromSnapshot(asset, id, tf, snap, false);
+      var shaped = shapedSnap(snap, tf);
+      if (shaped && snapshotAge(shaped) < SNAP_FRESH) {
+        var fresh = seriesFromSnapshot(asset, id, tf, shaped, false);
         if (fresh) { remember(id, tf, fresh); return fresh; }
       }
       var liveTry = liveFromCandidates(id, tf, list, tried, 0, asset);
-      if (snap && cfgFor(snap, tf)) {
-        var saved = seriesFromSnapshot(asset, id, tf, snap, true);
+      if (shaped) {
+        var saved = seriesFromSnapshot(asset, id, tf, shaped, true);
         if (saved) {
           /* An older snapshot only costs a short wait: five seconds of live
              attempt, then the real prices we already have. The live call keeps
@@ -540,8 +602,8 @@
         }
       }
       return liveTry.catch(function (err) {
-        if (snap) {
-          var older = seriesFromSnapshot(asset, id, tf, snap, true);
+        if (shaped) {
+          var older = seriesFromSnapshot(asset, id, tf, shaped, true);
           if (older) { remember(id, tf, older); return older; }
         }
         status.lastError = err && err.message;

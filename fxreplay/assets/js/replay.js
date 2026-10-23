@@ -506,7 +506,8 @@
     el.innerHTML = live
       ? '<span class="src-dot"></span>' + (stale ? "CACHED" : snap ? "SNAPSHOT" : "LIVE") + " · " + (src && src.label ? src.label : "feed")
       : '<span class="src-dot"></span>SIMULATED';
-    var how = src && src.transport === "snapshot" ? " · site snapshot"
+    var how = src && src.transport === "snapshot"
+      ? " · site snapshot" + (src.derivedFrom ? " (grouped from " + src.derivedFrom + " candles)" : "")
       : src && src.transport === "relay" ? " · via public relay"
       : src && src.transport === "direct" ? " · direct from the exchange" : "";
     var when = src && src.fetchedAt ? fmtFull(src.fetchedAt) : "just now";
