@@ -1772,6 +1772,9 @@
     $("#lgH").textContent = fmtP(bar.h);
     $("#lgL").textContent = fmtP(bar.l);
     $("#lgC").textContent = fmtP(bar.c);
+    /* the OHLC row takes the colour of the candle, like the big terminals */
+    var ohlc = $(".lg-ohlc");
+    if (ohlc) ohlc.className = "lg-ohlc " + (bar.c >= bar.o ? "up" : "down");
     var chgEl = $("#lgChg");
     chgEl.textContent = signed(chg, 2) + "%";
     if ($("#lgVol")) $("#lgVol").textContent = fmtVol(bar.v || 0);

@@ -184,6 +184,8 @@ html[data-theme="light"] .rp-legend{background:rgba(255,255,255,.72)}
 .rp-legend .lg-ohlc{display:flex;align-items:center;gap:4px}
 .rp-legend .lg-ohlc i{font-style:normal;color:rgba(139,147,171,.7)}
 .rp-legend .lg-ohlc b{font-weight:500;color:var(--txt-2)}
+.rp-legend .lg-ohlc.up b{color:var(--mint)}
+.rp-legend .lg-ohlc.down b{color:var(--rose)}
 .rp-legend .lg-chg{font-weight:600}
 .rp-legend .lg-chg.up{color:var(--mint)}
 .rp-legend .lg-chg.down{color:var(--rose)}

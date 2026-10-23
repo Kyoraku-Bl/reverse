@@ -1188,7 +1188,8 @@
           market: a.market,
           broker: a.venue,
           res: "1m → 1D",
-          since: a.market === "Futures" ? 2012 : a.market === "Forex" ? 2003 : 2008,
+          /* what the public feed actually serves, not a marketing number */
+          since: "10y daily",
           plan: "Free"
         };
       });
