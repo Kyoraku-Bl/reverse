@@ -89,6 +89,24 @@ real market snapshot into `_site/data`, and publishes to Pages. Because the
 snapshot ships with the site, the terminal always has real candles even when a
 visitor's browser cannot reach a public feed.
 
+The snapshot is built up over runs, not replaced blindly: `_site/data` is kept
+in the Actions cache, a run leaves files younger than 20 minutes alone, and it
+refreshes the oldest instruments first, so one run that Yahoo throttles cannot
+blank the other 60 charts. `market-data-status.json` (committed by the job)
+records `ok` (instruments with real candles on disk after the run),
+`refreshed`, `reused`, the intervals left out per instrument (`partial`), the
+throttling counter (`net`) and a `canary` request that separates "Yahoo is
+down" from "the script is broken". `_site/data/_index.json` lists every file
+the deployment actually holds.
+
+Badge on the chart: `LIVE · Yahoo Finance` (fetched by this browser),
+`SNAPSHOT · Yahoo Finance` (the CI file, younger than 40 minutes),
+`CACHED · Yahoo Finance` (that same file, older — the tooltip shows the exact
+fetch time), and `SIMULATED` only when no public source could be reached *and*
+no saved file exists. Two Eurex bond futures (FGBL / FGBM) have no public
+symbol, so they are the only instruments that routinely show the simulated
+label.
+
 **Any other static host** — copy the `fxreplay/` folder. Without `/api` the
 terminal falls back to the public relays, then to the last cached prices, then
 to the clearly labelled simulated series (`api/yahoo.js` and `api/binance.js`
