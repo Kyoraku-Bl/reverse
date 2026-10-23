@@ -23,18 +23,30 @@
     auto: "fxr-auto"
   };
 
+  /* The workspace is per account: trades, sessions, journal and prefs are
+     stored as "fxr:<account>:<key>". Only the session (fxr-user) and the theme
+     stay global, because they are what decides *which* account is reading. */
+  var A = window.KRAcct;
+  var GLOBAL_KEY = { "fxr-user": 1, "fxr-theme": 1 };
+  function scoped(key) { return A && !GLOBAL_KEY[key]; }
   function read(key, fallback) {
     try {
+      if (scoped(key)) return A.get(key, fallback);
       var raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : fallback;
     } catch (e) { return fallback; }
   }
   function write(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); return true; }
-    catch (e) { return false; }
+    try {
+      if (scoped(key)) return A.set(key, value);
+      localStorage.setItem(key, JSON.stringify(value)); return true;
+    } catch (e) { return false; }
   }
   function drop(key) {
-    try { localStorage.removeItem(key); } catch (e) {}
+    try {
+      if (scoped(key)) { A.remove(key); return; }
+      localStorage.removeItem(key);
+    } catch (e) {}
   }
   function pad(n) { return n < 10 ? "0" + n : "" + n; }
   function iso(date) { return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()); }
@@ -85,7 +97,7 @@
     "ES1": "Futures", "USOIL": "Energy"
   };
   var MARKET_ICON = {
-    Forex: "€", Metals: "Au", Indices: "NQ", Crypto: "₿", Futures: "ES", Energy: "CL"
+    Forex: "€", Metals: "Au", Indices: "IDX", Crypto: "₿", Futures: "ES", Energy: "CL"
   };
   var MARKET_TONE = { Forex: "", Metals: "amber", Indices: "", Crypto: "amber", Futures: "mint", Energy: "amber" };
   var RISK_PER_R = 1000;
@@ -591,8 +603,10 @@
     if (greenEl) greenEl.textContent = green + " / 7";
   }
 
-  function marketBadge(sym) {
-    var m = MARKETS[sym] || "Forex";
+  function marketBadge(sym, market) {
+    /* the session/trade record already knows its market; the label map is
+       only a fallback for rows that predate that field */
+    var m = market || MARKETS[sym] || "Forex";
     var tone = MARKET_TONE[m] || "";
     return '<span class="sym-ico' + (tone ? " sym-ico--" + tone : "") + '">' + (MARKET_ICON[m] || "€") + "</span>";
   }
@@ -608,7 +622,7 @@
     tbody.innerHTML = rows.map(function (t) {
       return "<tr>" +
         '<td class="mono">' + fmtDate(t.date) + "</td>" +
-        '<td><span class="sym-cell">' + marketBadge(t.sym) + escapeHtml(t.sym) + "</span></td>" +
+        '<td><span class="sym-cell">' + marketBadge(t.sym, t.market) + escapeHtml(t.sym) + "</span></td>" +
         "<td>" + escapeHtml(t.setup) + "</td>" +
         "<td>" + escapeHtml(t.session) + "</td>" +
         '<td class="ta-end"><span class="res ' + (t.r > 0 ? "up" : t.r < 0 ? "down" : "be") + '">' + signed(t.r) + "</span></td>" +
@@ -887,7 +901,7 @@
       if (empty) empty.hidden = true;
       grid.innerHTML = state.sessions.map(function (s) {
         return '<article class="session-card" data-id="' + s.id + '">' +
-          '<div class="sc-head"><div class="sc-sym">' + marketBadge(s.sym) + escapeHtml(s.sym) + "</div>" +
+          '<div class="sc-head"><div class="sc-sym">' + marketBadge(s.sym, s.market) + escapeHtml(s.sym) + "</div>" +
           '<span class="chip ' + (s.state === "live" ? "chip--mint" : "") + '">' + (s.state === "live" ? '<span class="live-dot"></span> In progress' : "Complete") + "</span></div>" +
           '<div class="sc-tags"><span class="chip">' + escapeHtml(s.tf) + "</span><span class=\"chip\">" + escapeHtml(s.session) + "</span><span class=\"chip\">" + escapeHtml(s.setup) + "</span></div>" +
           '<div class="sc-meta"><div><small>Trades</small><b>' + s.trades + "</b></div>" +
@@ -947,7 +961,7 @@
         body.innerHTML = shown.map(function (t) {
           return "<tr>" +
             '<td class="mono">' + fmtDate(t.date) + "</td>" +
-            '<td><span class="sym-cell">' + marketBadge(t.sym) + escapeHtml(t.sym) + "</span></td>" +
+            '<td><span class="sym-cell">' + marketBadge(t.sym, t.market) + escapeHtml(t.sym) + "</span></td>" +
             "<td>" + escapeHtml(t.market) + "</td>" +
             '<td><span class="dir-pill dir-pill--' + (t.dir > 0 ? "long" : "short") + '">' + (t.dir > 0 ? "Long" : "Short") + "</span></td>" +
             "<td>" + escapeHtml(t.setup) + (t.note ? ' <span class="note-flag" title="' + escapeHtml(t.note) + '">✎</span>' : "") + "</td>" +

@@ -65,16 +65,22 @@ const { KRSymbols, KRMarket } = loadScripts(["assets/js/symbol-map.js", "assets/
 const LIVE = KRSymbols.LIVE;
 
 /* ---------- what we ask each provider for ---------- */
+/* Yahoo serves a fixed amount of intraday history per interval and answers
+   422 when asked for more: 1m ≈ 7 days, 5m/15m = 60 days, 60m = 730 days.
+   These ranges sit inside those limits on purpose. */
 const YAHOO_TF = {
   "1m": { interval: "1m", range: "5d" },
   "5m": { interval: "5m", range: "1mo" },
-  "15m": { interval: "15m", range: "3mo" },
+  "15m": { interval: "15m", range: "2mo" },
   "1H": { interval: "60m", range: "2y" },
   "4H": { interval: "60m", range: "2y", aggregate: 4 },
   "1D": { interval: "1d", range: "10y" },
 };
 const BINANCE_TF = { "1m": "1m", "5m": "5m", "15m": "15m", "1H": "1h", "4H": "4h", "1D": "1d" };
-const BAR_LIMIT = { "1m": 600, "5m": 700, "15m": 700, "1H": 1000, "4H": 700, "1D": 1400 };
+/* How far back each file goes. The chart's 1D / 5D / 1M / 3M / 6M / 1Y / All
+   buttons need real candles across those spans, so each interval keeps the
+   whole range its provider serves rather than a token sample. */
+const BAR_LIMIT = { "1m": 1800, "5m": 1800, "15m": 1800, "1H": 3000, "4H": 1500, "1D": 2600 };
 
 /* Mirrors rotate on rate limits. The env overrides exist so the job can be
    exercised against a local mock (see tests/data-check.mjs). */
@@ -205,18 +211,37 @@ function parseYahoo(res) {
   return out;
 }
 
+/* Binance serves at most 1000 candles per request, so a longer history is
+   walked backwards page by page (never more than three). */
 async function binance(symbol, interval, limit) {
+  const page = 1000;
+  const pages = Math.max(1, Math.min(3, Math.ceil(limit / page)));
+  const map = (k) => {
+    let t = Number(k[0]);
+    if (t > 1e12) t = Math.floor(t / 1000);
+    return [t, round(+k[1]), round(+k[2]), round(+k[3]), round(+k[4]), Math.round(+k[5])];
+  };
+  const first = await binancePage(symbol, interval, Math.min(page, limit));
+  let rows = first;
+  let oldest = first.length ? first[0][0] : 0;
+  for (let p = 1; p < pages && oldest; p++) {
+    const older = await binancePage(symbol, interval, page, oldest * 1000 - 1);
+    if (!older.length) break;
+    rows = older.concat(rows);
+    oldest = older[0][0];
+  }
+  return rows.map(map);
+}
+
+async function binancePage(symbol, interval, limit, endTime) {
+  const tail = endTime ? `&endTime=${endTime}` : "";
   const urls = BINANCE_HOSTS.map(
-    (h) => `${h}/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`
+    (h) => `${h}/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}${tail}`
   );
   const body = await race(urls, 6500);
   const rows = JSON.parse(body);
   if (!Array.isArray(rows)) throw new Error("not an array");
-  return rows.map((k) => {
-    let t = Number(k[0]);
-    if (t > 1e12) t = Math.floor(t / 1000);
-    return [t, round(+k[1]), round(+k[2]), round(+k[3]), round(+k[4]), Math.round(+k[5])];
-  });
+  return rows;
 }
 
 /* keep six significant digits: enough for every instrument, a third of the bytes */
@@ -585,6 +610,26 @@ async function main() {
       if (/^[A-Za-z0-9]+\.json$/.test(f) && f !== "_index.json") shipped.push(f.slice(0, -5));
     }
   } catch (e) { /* keep the fetch list */ }
+  /* A tiny quote file for the terminal's watchlist: last close and the close
+     before it, per instrument. ~8 KB for all 103, and it always agrees with
+     the candles because it is read from the files that just shipped. */
+  const quotes = {};
+  const Q_TF = ["1D", "4H", "1H", "15m", "5m", "1m"];
+  for (const id of (shipped.length ? shipped : ok)) {
+    try {
+      const doc = JSON.parse(await fs.readFile(path.join(OUT, id + ".json"), "utf8"));
+      const tf = Q_TF.filter((k) => doc.tf && doc.tf[k] && doc.tf[k].bars && doc.tf[k].bars.length > 1)[0];
+      if (!tf) continue;
+      const bars = doc.tf[tf].bars;
+      const last = bars[bars.length - 1], prev = bars[bars.length - 2];
+      quotes[id] = { sym: doc.symbol || id, last: last[4], prev: prev[4], t: last[0], tf, provider: doc.provider || "yahoo" };
+    } catch (e) { /* one unreadable file must not stop the rest */ }
+  }
+  await fs.writeFile(
+    path.join(OUT, "_quotes.json"),
+    JSON.stringify({ generatedAt: Date.now(), quotes })
+  );
+
   await fs.writeFile(
     path.join(OUT, "_index.json"),
     JSON.stringify({

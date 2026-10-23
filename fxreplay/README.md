@@ -57,6 +57,44 @@ This is the real product surface: a full-viewport chart, not a marketing mock.
 
 **Keyboard**: `Space` play/pause · `←` `→` step · `V T H L R F` lines · `P O Y G` forecasting · `A` anchored VWAP · `Shift+A` anchored profile · `Z` volume profile · `M` measure · `C` chart type · `B` / `S` buy / sell · `Alt+H` hide drawings · `Alt+L` lock · `Del` delete drawing · `Esc` cancel · `Ctrl+Z` undo · `Ctrl+Shift+Z` redo
 
+### Accounts: one workspace per email
+
+`assets/js/account.js` loads before everything else and turns every storage
+key into a per-account one. `fxr-auto` is really `fxr:u19j2kfe:auto`, where the
+short id is a hash of the signed-in email, so:
+
+- the same email always gets the same replay position, drawings, trades,
+  notes, dashboard journal and session cards;
+- a second account on the same browser starts **empty** (no inherited charts,
+  no inherited trades) and writing in it never touches the first one;
+- the password for an email is checked on login; a wrong one is refused. The
+  accounts live in this browser (`fxr-accounts`), nothing is uploaded, and the
+  digest is a convenience lock, not encryption — a static site has nowhere
+  secret to keep a password;
+- whatever existed before accounts existed (`fxr-auto`, `fxr-draw:…`) is
+  inherited once by the first account that opens the app, so no work is lost.
+
+Signing in is not required to look around: the terminal works as `guest`, and
+a guest's drawings come along when they create an account.
+
+### The chart
+
+- Candles, line and area (`C` cycles them), EMA 21 / EMA 50 / VWAP and a
+  **volume histogram** pinned under the price area (`Vol` in the legend).
+- **1D · 5D · 1M · 3M · 6M · 1Y · All** under the replay bar set how much
+  history is on screen; free zooming (scroll, drag, double-click) clears the
+  choice. When the source has less than the span asked for, the toast says so
+  instead of pretending.
+- Zoomed out to hundreds of bars the renderer switches to 1-pixel high-low
+  bars, then to a close line, so the chart stays readable instead of becoming
+  a smear.
+- Right rail: **watchlist** (real last price + change from `data/_quotes.json`,
+  written by the same job as the candles), **object tree** (every drawing,
+  selectable and deletable) and **journal** (the open position and every closed
+  trade of this session).
+- Bottom bar: buy/sell at the replay price, paper equity, replay controls,
+  visible range, jump-to-date, clock.
+
 ### Auto-save
 
 Nothing in the terminal is a scratch pad. Every change is written to

@@ -52,6 +52,41 @@
   function saveUser(user) {
     try { localStorage.setItem("fxr-user", JSON.stringify(user)); } catch (e) {}
   }
+  /* accounts.js keeps one record per email in this browser. It is what makes
+     "your Gmail = your data" true: the same email always resolves to the same
+     storage namespace, and a different one starts (and stays) empty. */
+  const A = window.KRAcct;
+  function adoptWorkspace() {
+    if (!A) return;
+    try { A.adopt(); } catch (e) {}
+  }
+  function hashPass(mail, pw) {
+    return A ? A.verify(mail, pw) : Promise.resolve({ state: "new" });
+  }
+  /* the success card reports this account's real numbers, never samples */
+  function paintWorkspace() {
+    if (!A) return;
+    var live = A.get("auto", null);
+    var sessions = A.get("sessions", []) || [];
+    var trades = A.get("trades", []) || [];
+    var done = sessions.filter(function (x) { return x && x.state !== "live"; });
+    var r = $("#successReplay");
+    if (r) {
+      r.textContent = live && live.live
+        ? live.live.sym + " · " + live.live.tf + " · " + (live.live.progress || 0) + "% replayed"
+        : "No replay session saved yet";
+    }
+    var t = $("#successTrades");
+    if (t) {
+      var wins = trades.filter(function (x) { return (x.r || 0) > 0; }).length;
+      var net = trades.reduce(function (sum, x) { return sum + (Number(x.r) || 0); }, 0);
+      t.textContent = trades.length
+        ? trades.length + " journal trades · " + (wins ? Math.round((wins / trades.length) * 100) : 0) + "% win · " + (net > 0 ? "+" : "") + Math.round(net * 10) / 10 + "R"
+        : "Empty journal — no demo trades";
+    }
+    var ss = $("#successSessions");
+    if (ss) ss.textContent = done.length + (done.length === 1 ? " completed session" : " completed sessions");
+  }
   const capitalize = (w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w);
   const firstName = (name) => capitalize((name || "").trim().split(/\s+/)[0]) || "trader";
 
@@ -142,17 +177,20 @@
     const original = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = 'Creating your account…';
-    setTimeout(() => {
+    setTimeout(async () => {
       const plan = PLAN_LABEL[planKey] || "Free";
+      try { await (A ? A.remember(name, email, pass ? pass.value : "") : null); } catch (err) {}
       saveUser({ name, email, plan, createdAt: new Date().toISOString() });
+      adoptWorkspace();
       btn.disabled = false;
       btn.innerHTML = original;
       $("#successName").textContent = firstName(name);
       $("#successEmail").textContent = email;
       $("#formState").style.display = "none";
+      paintWorkspace();
       $("#successState").classList.add("show");
       window.scrollTo({ top: 0, behavior: "smooth" });
-      toast("Free account created — everything is unlocked");
+      toast("Account created — your workspace is saved under " + email);
     }, 750);
   });
 
@@ -184,20 +222,35 @@
     const original = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = "Verifying…";
-    setTimeout(() => {
+    setTimeout(async () => {
       const name = stored?.email?.toLowerCase() === email.toLowerCase() ? stored.name : email.split("@")[0];
+      let check = { state: "ok" };
+      try { check = await hashPass(email, pass.value); } catch (err) {}
+      if (check.state === "bad") {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        show("passwordError", true);
+        mark(pass, true);
+        pass.focus();
+        toast("That email already has a workspace here — the password does not match", "rose");
+        return;
+      }
+      const rec = A && A.accounts ? A.accounts()[check.uid] || {} : {};
       saveUser({
-        name,
+        name: rec.name || name,
         email,
         plan: stored?.plan || "Free",
-        createdAt: stored?.createdAt || new Date().toISOString(),
+        createdAt: rec.createdAt || stored?.createdAt || new Date().toISOString(),
       });
+      adoptWorkspace();
       btn.disabled = false;
       btn.innerHTML = original;
-      $("#successName").textContent = firstName(name);
+      $("#successName").textContent = firstName(rec.name || name);
       $("#formState").style.display = "none";
+      paintWorkspace();
       $("#successState").classList.add("show");
       window.scrollTo({ top: 0, behavior: "smooth" });
+      if (check.state === "new") toast("New workspace for " + email + " — everything you do is saved under it");
     }, 700);
   });
 

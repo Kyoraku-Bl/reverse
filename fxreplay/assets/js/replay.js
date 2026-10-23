@@ -30,14 +30,24 @@
     });
   };
 
+  /* Every key goes through the account layer: "fxr-auto" is really
+     "fxr:<account>:auto", so a second trader on the same browser starts
+     empty instead of inheriting the first one's session. */
+  var A = window.KRAcct;
   var store = {
     get: function (key, fallback) {
+      if (A) return A.get(key, fallback);
       try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
       catch (e) { return fallback; }
     },
     set: function (key, value) {
+      if (A) return A.set(key, value);
       try { localStorage.setItem(key, JSON.stringify(value)); return true; }
       catch (e) { return false; }
+    },
+    drop: function (key) {
+      if (A) { A.remove(key); return; }
+      try { localStorage.removeItem(key); } catch (e) {}
     }
   };
 
@@ -70,8 +80,9 @@
     pos: null,
     trades: [],
     notes: "",
-    show: { ema1: true, ema2: true, vwap: true },
+    show: { ema1: true, ema2: true, vwap: true, vol: true },
     chartType: "candles",
+    range: "",
     liveId: "",
     risk: 100,
     start: Date.now(),
@@ -86,6 +97,16 @@
   var ctx = canvas.getContext("2d");
   var PAD = { l: 14, t: 16, r: 74, b: 30 };
   var AXIS_FONT = "11px 'JetBrains Mono', ui-monospace, monospace";
+  /* volume strip under the candles, as a share of the chart height */
+  var VOL_FRAC = 0.19;
+  var MAX_BARS = 4200;
+  var RANGE_MS = {
+    "1D": 864e5, "5D": 5 * 864e5, "1M": 30 * 864e5, "3M": 91 * 864e5,
+    "6M": 182 * 864e5, "1Y": 365 * 864e5
+  };
+  var TF_MS = {
+    "1m": 6e4, "5m": 3e5, "15m": 9e5, "1H": 36e5, "4H": 144e5, "1D": 864e5
+  };
 
   /* ---------------- theme ---------------- */
   function isLight() { return root.dataset.theme === "light"; }
@@ -97,6 +118,7 @@
       cross: "rgba(16,24,40,.32)",
       up: "#0f9d6b", down: "#d93b57",
       upFill: "rgba(15,157,107,.16)", downFill: "rgba(217,59,87,.14)",
+      volUp: "rgba(15,157,107,.38)", volDown: "rgba(217,59,87,.34)",
       ema1: "#6d54e6", ema2: "#2f6be0", vwap: "#b07a12",
       watermark: "rgba(16,24,40,.05)",
       tagText: "#ffffff",
@@ -108,6 +130,7 @@
       cross: "rgba(255,255,255,.28)",
       up: "#38e2a0", down: "#ff5d7d",
       upFill: "rgba(56,226,160,.15)", downFill: "rgba(255,93,125,.15)",
+      volUp: "rgba(56,226,160,.34)", volDown: "rgba(255,93,125,.3)",
       ema1: "#a78bfa", ema2: "#5d8bff", vwap: "#ffc861",
       watermark: "rgba(255,255,255,.035)",
       tagText: "#04070f",
@@ -413,6 +436,7 @@
     syncHistory();
   }
   function saveDrawings() {
+    refreshDock();
     store.set(drawKey(), S.drawings);
     syncHistory();
   }
@@ -589,14 +613,89 @@
 
   function range() {
     var n = S.n;
-    var bars = clamp(Math.round(S.bars), 25, Math.min(900, n));
+    var bars = clamp(Math.round(S.bars), 25, Math.min(MAX_BARS, n));
     var right = clamp(S.right, bars - 1, S.cursor);
     var left = right - bars + 1;
     if (left < 0) { left = 0; right = Math.min(S.cursor, n - 1); }
     return { left: left, right: right, bars: Math.max(2, right - left + 1) };
   }
+  /* Visible span driven by the 1D / 5D / 1M / … buttons: the number of
+     candles is what a calendar span means at this timeframe. */
+  function rangeBars(key) {
+    if (!S.n) return null;
+    if (key === "ALL") return S.n;
+    var span = RANGE_MS[key];
+    var step = TF_MS[S.tf] || 6e4;
+    if (!span) return null;
+    return clamp(Math.round(span / step), 25, MAX_BARS);
+  }
+  /* what this instrument can actually show for that span */
+  function rangeFits(key) {
+    var want = rangeBars(key);
+    if (want === null) return 0;
+    return Math.min(want, S.cursor + 1, S.n);
+  }
+  function applyRange(key, quiet) {
+    if (!S.n) return;
+    var want = rangeBars(key);
+    if (!want) return;
+    var bars = Math.min(want, S.cursor + 1);
+    S.range = key;
+    S.bars = bars;
+    S.right = S.cursor;
+    S.follow = true;
+    var live = $("#liveBtn");
+    if (live) live.hidden = true;
+    markRange(true);
+    scheduleDraw();
+    if (quiet) return;
+    autoSaveNow();
+    if (key === "ALL") {
+      toast("Whole history in view — " + S.n + " " + S.tf + " candles");
+    } else if (want > S.n) {
+      /* be straight about it: the source only serves so much per interval */
+      toast(S.tf + " data starts " + fmtDay(S.data[0].t) + " — showing the " + S.n + " candles the feed has");
+    } else {
+      toast(key + " in view");
+    }
+  }
+  var rangeMark = "";
+  function markRange(force) {
+    var group = $("#rangeGroup");
+    if (!group) return;
+    var r = range();
+    var stamp = [S.tf, S.n, r.bars, S.range].join(":");
+    if (!force && stamp === rangeMark) return;
+    rangeMark = stamp;
+    var buttons = $$("#rangeGroup [data-range]");
+    buttons.forEach(function (b) { b.classList.remove("on"); });
+    /* A span the trader picked stays lit even when the source cannot supply
+       the whole window (you only ever see what the data has). Free zooming
+       clears the choice, and then the nearest span is highlighted. */
+    if (S.range) {
+      var chosen = buttons.filter(function (b) { return b.dataset.range === S.range; })[0];
+      if (chosen) { chosen.classList.add("on"); return; }
+    }
+    var best = null, bestD = Infinity;
+    buttons.forEach(function (b) {
+      var want = rangeBars(b.dataset.range);
+      if (want === null) return;
+      var d = Math.abs(Math.min(want, S.cursor + 1, S.n) - r.bars);
+      if (d < bestD) { bestD = d; best = b; }
+    });
+    if (best && bestD <= Math.max(2, Math.round(r.bars * 0.03))) best.classList.add("on");
+  }
+
   function geom() {
     return { x0: PAD.l, y0: PAD.t, x1: S.W - PAD.r, y1: S.H - PAD.b };
+  }
+  /* The price area stops above the volume strip; every y conversion goes
+     through this box, so drawings, indicators and the crosshair never dip
+     into the histogram. */
+  function plotBox() {
+    var g = geom();
+    var h = S.show.vol === false ? 0 : Math.round((g.y1 - g.y0) * VOL_FRAC);
+    return { x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1 - h, volTop: g.y1 - h, hasVol: h > 0 };
   }
   function xAt(i) {
     var g = geom(), r = range();
@@ -607,7 +706,7 @@
     return r.left + ((x - g.x0) / (g.x1 - g.x0)) * (r.bars - 1);
   }
   function visibleStats() {
-    var r = range(), g = geom();
+    var r = range(), g = plotBox();
     var lo = Infinity, hi = -Infinity;
     var from = Math.max(0, Math.floor(r.left));
     var to = Math.min(S.cursor, Math.ceil(r.right));
@@ -757,6 +856,37 @@
         ctx.lineJoin = "round";
         ctx.stroke();
       }
+    } else if (barW < 2.2) {
+      /* hundreds of bars on one screen: draw the high-low line only, 1 px
+         wide, which is what the big terminals do at this density */
+      for (var wc = from; wc <= to; wc++) {
+        var wbar = S.data[wc];
+        if (!wbar) continue;
+        var wx = Math.round(xAt(wc)) + 0.5;
+        if (wx < g.x0 || wx > g.x1) continue;
+        ctx.strokeStyle = wbar.c >= wbar.o ? pal.up : pal.down;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(wx, yPrice(wbar.h, sc));
+        ctx.lineTo(wx, yPrice(wbar.l, sc));
+        ctx.stroke();
+      }
+    } else if (barW < 0.9) {
+      /* zoomed out to hundreds of bars: a close line reads better than
+         sub-pixel candles (this is what every terminal does) */
+      var linePts = [];
+      for (var lp = from; lp <= to; lp++) {
+        var lbar = S.data[lp];
+        if (lbar) linePts.push([xAt(lp), yPrice(lbar.c, sc)]);
+      }
+      if (linePts.length > 1) {
+        ctx.beginPath();
+        linePts.forEach(function (pt, i) { i ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1]); });
+        ctx.strokeStyle = isLight() ? "#3f6bd8" : "#8fb4ff";
+        ctx.lineWidth = 1.2;
+        ctx.lineJoin = "round";
+        ctx.stroke();
+      }
     } else for (var c = from; c <= to; c++) {
       var bar = S.data[c];
       if (!bar) continue;
@@ -784,6 +914,49 @@
         } else {
           ctx.fillRect(cx - drawW / 2, top, drawW, hgt);
         }
+      }
+    }
+
+    /* ---- volume histogram, pinned under the candles ---- */
+    var pb = sc.g;
+    if (pb.hasVol) {
+      var volTop = pb.volTop;
+      var vmax = 0, vs, ve;
+      vs = Math.max(0, Math.floor(r.left));
+      ve = Math.min(S.cursor, Math.ceil(r.right));
+      for (var vi = vs; vi <= ve; vi++) {
+        var vb = S.data[vi];
+        if (vb && (vb.v || 0) > vmax) vmax = vb.v || 0;
+      }
+      if (vmax > 0) {
+        var volH = g.y1 - volTop - 6;
+        var vw = Math.max(1, Math.min(barW * 0.68, 14));
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(g.x0, volTop + 1, plotW, volH + 4);
+        ctx.clip();
+        for (var vj = vs; vj <= ve; vj++) {
+          var vbar = S.data[vj];
+          if (!vbar || !vbar.v) continue;
+          var vh = (vbar.v / vmax) * volH;
+          if (vh < 0.6) vh = 0.6;
+          ctx.fillStyle = vbar.c >= vbar.o ? pal.volUp : pal.volDown;
+          ctx.fillRect(xAt(vj) - vw / 2, g.y1 - vh, vw, vh);
+        }
+        ctx.restore();
+      }
+      ctx.strokeStyle = pal.axisLine;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(g.x0, Math.round(volTop) + 0.5);
+      ctx.lineTo(g.x1, Math.round(volTop) + 0.5);
+      ctx.stroke();
+      if (vmax > 0) {
+        ctx.font = AXIS_FONT;
+        ctx.fillStyle = pal.axis;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(fmtVol(vmax), g.x1 + 9, volTop + 4);
       }
     }
 
@@ -849,7 +1022,7 @@
     /* ---- crosshair ---- */
     if (S.hover && S.hover.x >= g.x0 && S.hover.x <= g.x1 && S.hover.y >= g.y0 && S.hover.y <= g.y1) {
       var hx = Math.round(xAt(clamp(Math.round(iAt(S.hover.x)), Math.ceil(r.left), S.cursor))) + 0.5;
-      var hy = Math.round(S.hover.y) + 0.5;
+      var hy = Math.round(clamp(S.hover.y, pb.y0, pb.y1)) + 0.5;
       ctx.save();
       ctx.strokeStyle = pal.cross;
       ctx.setLineDash([3, 4]);
@@ -889,6 +1062,16 @@
         ctx.fillText(tl, tx + lw / 2, g.y1 + 13);
       }
     }
+    markRange(false);
+  }
+
+  /* 12.8K / 3.4M — the axis is 54 px wide, so keep it short */
+  function fmtVol(v) {
+    if (!v) return "0";
+    if (v >= 1e9) return (v / 1e9).toFixed(1) + "B";
+    if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
+    if (v >= 1e3) return (v / 1e3).toFixed(v >= 1e4 ? 0 : 1) + "K";
+    return String(Math.round(v));
   }
 
   function roundRect(x, y, w, h, r) {
@@ -1591,10 +1774,13 @@
     $("#lgC").textContent = fmtP(bar.c);
     var chgEl = $("#lgChg");
     chgEl.textContent = signed(chg, 2) + "%";
+    if ($("#lgVol")) $("#lgVol").textContent = fmtVol(bar.v || 0);
     chgEl.className = "lg-chg " + (chg > 0 ? "up" : chg < 0 ? "down" : "");
 
     $("#buyPrice").textContent = fmtP(bar.c + a.spread / 2);
     $("#sellPrice").textContent = fmtP(bar.c - a.spread / 2);
+    if ($("#rbBuyPx")) $("#rbBuyPx").textContent = fmtP(bar.c + a.spread / 2);
+    if ($("#rbSellPx")) $("#rbSellPx").textContent = fmtP(bar.c - a.spread / 2);
     var qty = K.sizeFor(a, S.risk);
     $("#buyQty").textContent = fmtQty(qty) + " · risk $" + S.risk;
     $("#sellQty").textContent = fmtQty(qty) + " · risk $" + S.risk;
@@ -1611,6 +1797,7 @@
     var realized = S.trades.reduce(function (sum, t) { return sum + t.pnl; }, 0);
     var open = S.pos ? K.pnl(a, S.pos.entry, bar.c, S.pos.dir, S.pos.qty) : 0;
     $("#acctEquity").textContent = money(100000 + realized + open);
+    if ($("#rbEquity")) $("#rbEquity").textContent = money(100000 + realized + open);
     var openEl = $("#acctOpen");
     openEl.textContent = money(open);
     openEl.style.color = open > 0 ? "var(--mint)" : open < 0 ? "var(--rose)" : "";
@@ -1739,6 +1926,7 @@
     var n = S.trades.length;
     var wins = S.trades.filter(function (t) { return t.r > 0; }).length;
     var net = S.trades.reduce(function (a, t) { return a + t.r; }, 0);
+    refreshDock();
     $("#sTrades").textContent = String(n);
     $("#sWin").textContent = n ? Math.round((wins / n) * 100) + "%" : "—";
     var nr = $("#sNetR");
@@ -1787,6 +1975,7 @@
       notes: S.notes || "",
       show: S.show,
       chartType: S.chartType,
+      range: S.range || "",
       setup: $("#setupSelect") ? $("#setupSelect").value : "",
       session: sessionName(),
       netR: Math.round(net * 10) / 10,
@@ -1853,6 +2042,10 @@
     paintSaveChip("saved");
   }
 
+  function refreshDock() {
+    if (dockPane) renderDock();
+  }
+
   function scheduleAutoSave(ms) {
     if (!autoReady) return;
     paintSaveChip("saving");
@@ -1888,7 +2081,8 @@
       S.show = {
         ema1: live.show.ema1 !== false,
         ema2: live.show.ema2 !== false,
-        vwap: live.show.vwap !== false
+        vwap: live.show.vwap !== false,
+        vol: live.show.vol !== false
       };
     }
     if (live.chartType === "line" || live.chartType === "area") S.chartType = live.chartType;
@@ -2205,7 +2399,7 @@
     var pt = localPoint(e);
     var r = range();
     var factor = e.deltaY > 0 ? 1.14 : 0.88;
-    var nb = clamp(Math.round(r.bars * factor), 25, Math.min(900, S.n));
+    var nb = clamp(Math.round(r.bars * factor), 25, Math.min(MAX_BARS, S.n));
     if (nb === r.bars) return;
     var g = geom();
     var f = clamp((pt.x - g.x0) / (g.x1 - g.x0), 0, 1);
@@ -2213,6 +2407,7 @@
     var nright = idx + (1 - f) * (nb - 1);
     nright = clamp(nright, nb - 1, S.cursor);
     S.bars = nb;
+    S.range = "";
     S.right = nright;
     S.follow = S.right >= S.cursor - 0.5;
     $("#liveBtn").hidden = S.follow;
@@ -2344,6 +2539,7 @@
       applySeries(series);
       S.cursor = clamp(Math.round(S.n * keep), 20, S.n - 2);
       S.right = S.cursor;
+      if (S.range) applyRange(S.range, true);
       syncUI();
       scheduleDraw();
       autoSaveNow();
@@ -2508,8 +2704,154 @@
     closePosition: closePosition,
     selectSymbol: selectSymbol,
     setTF: setTF,
-    setCursor: setCursor
+    setCursor: setCursor,
+    _debug: { range: range, rangeBars: rangeBars, markRange: markRange, RANGE_MS: RANGE_MS, TF_MS: TF_MS }
   };
+
+  /* ---------------- right rail: watchlist, objects, journal ----------------
+     One small file, data/_quotes.json, gives the watchlist a real last price
+     per instrument. It is written by the same snapshot job that writes the
+     candles, so the numbers here always match the chart. */
+  var QUOTES = null;
+  var dockPane = "";
+
+  function loadQuotes() {
+    if (QUOTES) return Promise.resolve(QUOTES);
+    return fetch("data/_quotes.json", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { QUOTES = j && j.quotes ? j.quotes : null; return QUOTES; })
+      .catch(function () { return null; });
+  }
+
+  function dockOpen(pane) {
+    var dock = $("#dock");
+    if (!dock) return;
+    if (pane === dockPane) { dock.hidden = true; dockPane = ""; paintRail(); return; }
+    dockPane = pane;
+    dock.hidden = false;
+    paintRail();
+    renderDock();
+  }
+  function paintRail() {
+    $$("#rail [data-pane]").forEach(function (b) {
+      b.classList.toggle("on", b.dataset.pane === dockPane);
+    });
+  }
+  function renderDock() {
+    var body = $("#dockBody"), title = $("#dockTitle");
+    if (!body) return;
+    if (dockPane === "watch") { title.textContent = "Watchlist"; renderWatch(body); }
+    else if (dockPane === "objects") { title.textContent = "Object tree"; renderObjects(body); }
+    else if (dockPane === "journal") { title.textContent = "Journal"; renderJournal(body); }
+  }
+
+  var WATCH = ["NAS100", "NQ", "ES", "US30", "GER40", "EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "USOIL", "BTCUSD", "ETHUSD"];
+
+  function renderWatch(body) {
+    body.innerHTML = '<p class="dock-empty">Loading prices…</p>';
+    loadQuotes().then(function (q) {
+      if (dockPane !== "watch") return;
+      var ids = WATCH.filter(function (id) { return K.get(id); });
+      body.innerHTML = "";
+      ids.forEach(function (id) {
+        var a = K.get(id);
+        var row = document.createElement("button");
+        row.className = "dock-row" + (id === S.symbolId ? " on" : "");
+        var px = q && q[id];
+        var chg = px && px.prev ? ((px.last - px.prev) / px.prev) * 100 : null;
+        var priceTxt = px ? fmtP(px.last) : "—";
+        var chgTxt = chg === null ? "no quote" : (chg > 0 ? "+" : "") + chg.toFixed(2) + "%";
+        var dir = chg === null ? "" : chg >= 0 ? "up" : "down";
+        row.innerHTML = '<span class="dr-ico">' + a.icon + "</span>" +
+          '<span class="dr-main"><b>' + a.label + "</b><small>" + a.market + " · " + esc(a.venue || a.name) + "</small></span>" +
+          '<span class="dr-px ' + dir + '">' + priceTxt + "<small>" + chgTxt + "</small></span>";
+        row.addEventListener("click", function () {
+          if (id !== S.symbolId) { selectSymbol(id); }
+          renderDock();
+        });
+        body.appendChild(row);
+      });
+      if (!body.children.length) body.innerHTML = '<p class="dock-empty">No instruments mapped.</p>';
+    });
+  }
+
+  function esc(v) {
+    return String(v === undefined || v === null ? "" : v).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  var TYPE_LABEL = {
+    trend: "Trend line", hline: "Horizontal line", vline: "Vertical line", rect: "Zone",
+    fib: "Fibonacci", measure: "Measure", long: "Long position", short: "Short position",
+    forecast: "Forecast", bars: "Bars pattern", avwap: "Anchored VWAP",
+    vprofile: "Volume profile", avprofile: "Anchored volume profile"
+  };
+
+  function renderObjects(body) {
+    var list = S.drawings || [];
+    body.innerHTML = "";
+    if (!list.length) {
+      body.innerHTML = '<p class="dock-empty">Nothing drawn yet. Pick a tool on the left rail and drag on the chart — every object lands here.</p>';
+      return;
+    }
+    list.forEach(function (d, i) {
+      var row = document.createElement("button");
+      row.className = "dock-row" + (d === S.selected ? " on" : "");
+      var when = d.a && S.data[Math.round(d.a.i)] ? fmtFull(S.data[Math.round(d.a.i)].t) : "";
+      row.innerHTML = '<span class="dr-ico">' + (i + 1) + "</span>" +
+        '<span class="dr-main"><b>' + esc(TYPE_LABEL[d.type] || d.type) + "</b><small>" + esc(when) + "</small></span>" +
+        '<svg class="ic ic--sm dr-x"><use href="#i-trash"/></svg>';
+      row.addEventListener("click", function (e) {
+        if (e.target.closest(".dr-x")) {
+          S.drawings = S.drawings.filter(function (x) { return x !== d; });
+          if (S.selected === d) S.selected = null;
+          saveDrawings();
+          scheduleDraw();
+          renderDock();
+          toast("Object deleted");
+          return;
+        }
+        S.selected = d;
+        S.hidden = false;
+        scheduleDraw();
+        renderDock();
+      });
+      body.appendChild(row);
+    });
+    var foot = document.createElement("p");
+    foot.className = "dock-empty";
+    foot.textContent = list.length + " object" + (list.length === 1 ? "" : "s") + " · saved with the chart";
+    body.appendChild(foot);
+  }
+
+  function renderJournal(body) {
+    body.innerHTML = "";
+    if (S.pos) {
+      var open = document.createElement("div");
+      open.className = "dock-row on";
+      var last = S.data[S.cursor];
+      var r = last ? ((last.c - S.pos.entry) * S.pos.dir) / asset().stop : 0;
+      open.innerHTML = '<span class="dr-tag ' + (r >= 0 ? "up" : "down") + '">' + (S.pos.dir > 0 ? "Long" : "Short") + "</span>" +
+        '<span class="dr-main"><b>' + esc(asset().label) + "</b><small>entry " + fmtP(S.pos.entry) + " · open</small></span>" +
+        '<span class="dr-px ' + (r >= 0 ? "up" : "down") + '">' + signed(r, 1) + "R</span>";
+      body.appendChild(open);
+    }
+    var trades = S.trades || [];
+    if (!trades.length) {
+      if (!S.pos) body.innerHTML = '<p class="dock-empty">No trades in this session yet. Buy or sell and close the position — it is journaled here and on your dashboard.</p>';
+      return;
+    }
+    trades.slice().reverse().forEach(function (t) {
+      var row = document.createElement("div");
+      row.className = "dock-row";
+      var note = t.note ? " · " + String(t.note).slice(0, 40) : "";
+      row.innerHTML = '<span class="dr-tag ' + (t.r >= 0 ? "up" : "down") + '">' + (t.dir > 0 ? "L" : "S") + "</span>" +
+        '<span class="dr-main"><b>' + esc(t.sym || asset().label) + "</b><small>" + esc(fmtP(t.entry)) + " → " + esc(fmtP(t.exit)) + esc(note) + "</small></span>" +
+        '<span class="dr-px ' + (t.r >= 0 ? "up" : "down") + '">' + signed(t.r, 1) + "R</span>";
+      body.appendChild(row);
+    });
+  }
 
   /* ---------------- boot ---------------- */
   function boot() {
@@ -2545,8 +2887,10 @@
       syncDataMode();
       if (live && live.sym === initial.id && live.tf === tf) {
         applyAutoView(live);
+        if (live.range) applyRange(live.range, true);
         if (live.updatedAt) toast("Resumed where you left off — " + fmtFull(live.updatedAt));
       }
+      markRange(true);
       autoReady = true;
       paintSaveChip("saved");
       scheduleAutoSave(1200);
@@ -2591,6 +2935,9 @@
       });
     }
     if ($("#typeBtn")) $("#typeBtn").addEventListener("click", cycleChartType);
+    $$("#rangeGroup [data-range]").forEach(function (b) {
+      b.addEventListener("click", function () { applyRange(b.dataset.range); });
+    });
     if ($("#setupSelect")) $("#setupSelect").addEventListener("change", function () { scheduleAutoSave(200); });
     window.addEventListener("beforeunload", function () {
       if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; writeAuto(); }
@@ -2820,6 +3167,57 @@
 
     /* end session */
     $("#endBtn").addEventListener("click", endSession);
+
+    /* right rail + dock */
+    $$("#rail [data-pane]").forEach(function (b) {
+      b.addEventListener("click", function () { dockOpen(b.dataset.pane); });
+    });
+    if ($("#dockClose")) $("#dockClose").addEventListener("click", function () { dockPane = ""; $("#dock").hidden = true; paintRail(); });
+    if ($("#railTrade")) $("#railTrade").addEventListener("click", function () { toggleSide(); });
+    if ($("#railFull")) $("#railFull").addEventListener("click", function () {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+    });
+    if ($("#rbBuy")) $("#rbBuy").addEventListener("click", function () { openPosition(1); });
+    if ($("#rbSell")) $("#rbSell").addEventListener("click", function () { openPosition(-1); });
+
+    /* account chip: who is signed in, and what is stored for them */
+    (function initAcct() {
+      var btn = $("#acctBtn"), pop = $("#acctPop");
+      if (!btn || !pop) return;
+      var u = A && A.user ? A.user() : null;
+      var name = u && (u.name || u.email) ? (u.name || String(u.email).split("@")[0]) : "Guest";
+      var mail = u && u.email ? u.email : "not signed in";
+      $("#acctName").textContent = name;
+      $("#acctMail").textContent = mail;
+      $("#acctNameLg").textContent = name;
+      $("#acctMailLg").textContent = mail;
+      var ini = A && A.initials ? A.initials() : "G";
+      $("#acctAv").textContent = ini;
+      $("#acctAvLg").textContent = ini;
+      if (u && u.email) {
+        $("#acctNote").textContent = "Drawings, trades, notes and this replay position are stored under " + u.email + " on this browser.";
+        $("#acctAuthLink").hidden = true;
+        $("#acctOut").hidden = false;
+      }
+      function closePop() { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); }
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var open = pop.hidden;
+        pop.hidden = !open;
+        btn.setAttribute("aria-expanded", String(open));
+      });
+      document.addEventListener("click", function (e) {
+        if (!pop.hidden && !pop.contains(e.target) && !btn.contains(e.target)) closePop();
+      });
+      var out = $("#acctOut");
+      if (out) out.addEventListener("click", function () {
+        autoSaveNow();
+        if (A) A.signOut();
+        toast("Logged out — your work stays saved under that email");
+        setTimeout(function () { location.href = "login.html"; }, 500);
+      });
+    })();
 
     /* keyboard */
     document.addEventListener("keydown", function (e) {

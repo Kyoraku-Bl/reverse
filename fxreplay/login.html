@@ -175,9 +175,9 @@
         <h3>Welcome back, <span id="successName">trader</span>.</h3>
         <p>Restoring your workspace — replay session, journal and prop challenge.</p>
         <div class="success-steps">
-          <div><svg class="ic"><use href="#i-chart"/></svg> EUR/USD replay · 62% complete</div>
-          <div><svg class="ic"><use href="#i-check"/></svg> 84 journal trades synced</div>
-          <div><svg class="ic"><use href="#i-check"/></svg> Prop challenge · day 12 of 30</div>
+          <div><svg class="ic"><use href="#i-chart"/></svg> <span id="successReplay">No replay session saved yet</span></div>
+          <div><svg class="ic"><use href="#i-check"/></svg> <span id="successTrades">0 journal trades</span></div>
+          <div><svg class="ic"><use href="#i-check"/></svg> <span id="successSessions">0 sessions</span></div>
         </div>
         <a class="btn btn-primary" href="dashboard.html">Open my dashboard <svg class="ic"><use href="#i-arrow"/></svg></a>
         <p class="auth-footer">Not you? <a href="#" id="editLogin">Use another account</a></p>
@@ -189,6 +189,7 @@
 </div>
 
 <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
+<script src="assets/js/account.js"></script>
 <script src="assets/js/auth.js"></script>
 </body>
 </html>

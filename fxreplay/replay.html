@@ -69,6 +69,11 @@
     <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M4 4l16 16"/><path d="M9.6 6.9A9.7 9.7 0 0 1 12 6.5c6 0 9.5 5.5 9.5 5.5a17 17 0 0 1-3.1 3.7M6.4 8.4A16.6 16.6 0 0 0 2.5 12S6 17.5 12 17.5c1 0 1.9-.2 2.7-.4"/><path d="M9.9 10a3 3 0 0 0 4.2 4.2"/></symbol>
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5"/></symbol>
     <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.3-1.2"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.2" r="3.9"/><path d="M4.5 20.5c.6-3.9 3.7-6.2 7.5-6.2s6.9 2.3 7.5 6.2"/></symbol>
+    <symbol id="i-tree" viewBox="0 0 24 24"><path d="M4 6h6M4 12h6M4 18h6"/><path d="M14 6h6M14 12h6M14 18h6" opacity=".45"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M6 3.5h9l4.5 4.5v12.5h-13.5z"/><path d="M9 12h7M9 16h5"/></symbol>
+    <symbol id="i-news" viewBox="0 0 24 24"><rect x="3.5" y="5" width="14" height="14" rx="2"/><path d="M17.5 9h1.7A1.3 1.3 0 0 1 20.5 10.3v6.2a2.5 2.5 0 0 1-2.5 2.5"/><path d="M7 9h7M7 12.5h7M7 16h4"/></symbol>
+    <symbol id="i-watch" viewBox="0 0 24 24"><path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/></symbol>
   </defs>
 </svg>
 
@@ -113,6 +118,24 @@
       <div class="tz-menu" id="tzMenu" role="listbox" aria-label="Time zone" hidden>
         <div class="tz-search"><input id="tzSearch" type="search" placeholder="Search time zone" autocomplete="off" /></div>
         <div class="tz-list" id="tzList"></div>
+      </div>
+    </div>
+
+    <div class="rp-acct" id="acctWrap">
+      <button class="acct-btn" id="acctBtn" aria-haspopup="true" aria-expanded="false" title="Your account — data is saved per email">
+        <span class="acct-av" id="acctAv">G</span>
+        <span class="acct-txt"><b id="acctName">Guest</b><small id="acctMail">not signed in</small></span>
+        <svg class="ic ic--xs"><use href="#i-chev"/></svg>
+      </button>
+      <div class="acct-pop" id="acctPop" hidden>
+        <div class="acct-pop-head">
+          <span class="acct-av acct-av--lg" id="acctAvLg">G</span>
+          <span><b id="acctNameLg">Guest</b><small id="acctMailLg">nothing saved yet</small></span>
+        </div>
+        <p class="acct-pop-note" id="acctNote">Sign in and every drawing, trade and note is stored under your email — on this browser.</p>
+        <a class="acct-item" href="dashboard.html"><svg class="ic ic--sm"><use href="#i-chart"/></svg> Dashboard</a>
+        <a class="acct-item" id="acctAuthLink" href="login.html"><svg class="ic ic--sm"><use href="#i-user"/></svg> <span>Sign in</span></a>
+        <button class="acct-item acct-item--danger" id="acctOut" hidden><svg class="ic ic--sm"><use href="#i-back"/></svg> Log out</button>
       </div>
     </div>
 
@@ -171,10 +194,12 @@
         <i>O</i><b id="lgO">—</b><i>H</i><b id="lgH">—</b><i>L</i><b id="lgL">—</b><i>C</i><b id="lgC">—</b>
       </span>
       <span class="lg-chg" id="lgChg">—</span>
+      <span class="lg-vol">Vol <b id="lgVol">—</b></span>
       <span class="lg-ind" id="indGroup">
         <button type="button" class="lg-ind-btn on" data-ind="ema1" title="Toggle EMA 21"><i style="background:#a78bfa"></i>EMA 21</button>
         <button type="button" class="lg-ind-btn on" data-ind="ema2" title="Toggle EMA 50"><i style="background:#5d8bff"></i>EMA 50</button>
         <button type="button" class="lg-ind-btn on" data-ind="vwap" title="Toggle VWAP"><i style="background:#ffc861"></i>VWAP</button>
+        <button type="button" class="lg-ind-btn on" data-ind="vol" title="Toggle the volume histogram"><i style="background:#7f8aa8"></i>Vol</button>
       </span>
       <button type="button" class="lg-type" id="typeBtn" title="Chart type — candles, line or area (C)">Candles</button>
       <span class="src-badge" id="srcBadge" hidden></span>
@@ -186,6 +211,23 @@
     </div>
     <div class="rp-hint" id="drawHint" hidden></div>
   </section>
+
+  <aside class="rp-rail" id="rail" aria-label="Panels">
+    <button class="rail-btn" data-pane="watch" title="Watchlist" aria-label="Watchlist"><svg class="ic"><use href="#i-watch"/></svg></button>
+    <button class="rail-btn" data-pane="objects" title="Object tree — every drawing on this chart" aria-label="Object tree"><svg class="ic"><use href="#i-layers"/></svg></button>
+    <button class="rail-btn" data-pane="journal" title="Journal — this session's trades" aria-label="Journal"><svg class="ic"><use href="#i-note"/></svg></button>
+    <span class="rail-sep" aria-hidden="true"></span>
+    <button class="rail-btn" id="railTrade" title="Trade panel" aria-label="Trade panel"><svg class="ic"><use href="#i-wallet"/></svg></button>
+    <button class="rail-btn" id="railFull" title="Fullscreen" aria-label="Fullscreen"><svg class="ic"><use href="#i-expand"/></svg></button>
+  </aside>
+
+  <div class="rp-dock" id="dock" hidden>
+    <div class="dock-head">
+      <span id="dockTitle">Watchlist</span>
+      <button class="icon-btn" id="dockClose" aria-label="Close panel"><svg class="ic ic--sm"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="dock-body" id="dockBody"></div>
+  </div>
 
   <aside class="rp-side" id="sidePanel" aria-label="Trade panel">
     <div class="side-head">
@@ -247,6 +289,11 @@
 </main>
 
 <footer class="rp-bottom">
+  <div class="rb-orders">
+    <button class="rb-order rb-order--buy" id="rbBuy"><span>Buy</span><b id="rbBuyPx">—</b></button>
+    <button class="rb-order rb-order--sell" id="rbSell"><span>Sell</span><b id="rbSellPx">—</b></button>
+  </div>
+
   <div class="rb-controls">
     <button class="rb-btn" id="rewindBtn" title="Previous candle (←)" aria-label="Previous candle"><svg class="ic"><use href="#i-step-back"/></svg></button>
     <button class="rb-play" id="playBtn" title="Play / pause (Space)" aria-label="Play replay"><svg class="ic"><use href="#i-play"/></svg></button>
@@ -267,9 +314,20 @@
     <span class="rb-date mono" id="endDate">—</span>
   </div>
 
+  <div class="rb-range" id="rangeGroup" role="group" aria-label="Visible history">
+    <button data-range="1D" title="One day of candles">1D</button>
+    <button data-range="5D" title="One week">5D</button>
+    <button data-range="1M" title="One month">1M</button>
+    <button data-range="3M" title="Three months">3M</button>
+    <button data-range="6M" title="Six months">6M</button>
+    <button data-range="1Y" title="One year">1Y</button>
+    <button data-range="ALL" title="Every candle the source has">All</button>
+  </div>
+
   <button class="btn-rp btn-rp--ghost btn-rp--sm" id="jumpBtn"><svg class="ic ic--sm"><use href="#i-clock"/></svg> <span id="cursorDate">Jump to date</span></button>
 
   <span class="rb-clock mono" id="sessionClock" title="Session time">00:00</span>
+  <span class="rb-equity mono" id="rbEquity" title="Paper account equity">$100,000.00</span>
   <button class="icon-btn rb-full" id="fullBtn" title="Fullscreen" aria-label="Toggle fullscreen"><svg class="ic"><use href="#i-expand"/></svg></button>
 </footer>
 
@@ -350,7 +408,9 @@
         <li><span>Pan chart</span><kbd>Drag</kbd></li>
         <li><span>Buy / sell</span><kbd>B</kbd><kbd>S</kbd></li>
       </ul>
-      <p class="modal-note">Drawings, trades and sessions are stored in your browser only.</p>
+      <p class="modal-note">Everything you do here — drawings, trades, notes, replay position and
+        the visible range — is saved automatically under the email you signed in with, on this
+        browser. A different account on the same browser starts with an empty workspace.</p>
       <div class="src-panel">
         <p class="src-panel-title">Chart tools</p>
         <ul class="tool-list">
@@ -360,6 +420,9 @@
           <li><b>Bars pattern</b><span>copy a block of candles and replay it elsewhere</span></li>
           <li><b>Anchored VWAP</b><span>click any bar to anchor a volume-weighted average</span></li>
           <li><b>Volume profile</b><span>fixed range or anchored histogram with POC</span></li>
+          <li><b>Volume histogram</b><span>toggle <em>Vol</em> in the legend — it sits under the candles and the price area shrinks to fit</span></li>
+          <li><b>Visible range</b><span>1D / 5D / 1M / 3M / 6M / 1Y / All under the replay bar</span></li>
+          <li><b>Watchlist · objects · journal</b><span>the three buttons on the right rail</span></li>
         </ul>
       </div>
       <div class="src-panel" id="srcPanel">
@@ -373,6 +436,7 @@
 
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
+<script src="assets/js/account.js"></script>
 <script src="assets/js/market-data.js"></script>
 <script src="assets/js/symbol-map.js"></script>
 <script src="assets/js/data-provider.js"></script>

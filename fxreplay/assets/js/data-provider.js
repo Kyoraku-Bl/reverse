@@ -30,11 +30,13 @@
   --------------------------------------------------------- */
   /* Yahoo: interval + how far back to ask. We only ever keep the last
      3000 bars, but the range has to be wide enough to fill them. */
+  /* Yahoo caps intraday history per interval (1m ≈ 7d, 5m/15m 60d,
+     60m 730d) and errors out above it, so these stay inside the cap. */
   var YAHOO = {
     "1m": { interval: "1m", range: "5d" },
     "5m": { interval: "5m", range: "1mo" },
-    "15m": { interval: "15m", range: "3mo" },
-    "1H": { interval: "60m", range: "1y" },
+    "15m": { interval: "15m", range: "2mo" },
+    "1H": { interval: "60m", range: "2y" },
     "4H": { interval: "60m", range: "2y", aggregate: 4 },
     "1D": { interval: "1d", range: "10y" }
   };
@@ -42,7 +44,7 @@
     "1m": "1m", "5m": "5m", "15m": "15m", "1H": "1h", "4H": "4h", "1D": "1d"
   };
 
-  var BAR_LIMIT = 3000;
+  var BAR_LIMIT = 3200;   /* one instrument can carry 2 years of hourly candles */
   var TTL = { "1m": 45000, "5m": 120000, "15m": 240000, "1H": 420000, "4H": 600000, "1D": 900000 };
 
   var mem = new Map();          /* id:tf -> { series, at } */

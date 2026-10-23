@@ -195,8 +195,8 @@
         <p>We sent a confirmation link to <b id="successEmail">your email</b>. Verify it, then jump straight into your replay session.</p>
         <div class="success-steps">
           <div><svg class="ic"><use href="#i-check"/></svg> Free plan activated</div>
-          <div><svg class="ic"><use href="#i-check"/></svg> Journal workspace created</div>
-          <div><svg class="ic"><use href="#i-check"/></svg> 3 replay sessions saved</div>
+          <div><svg class="ic"><use href="#i-check"/></svg> <span id="successTrades">Empty journal — no demo trades</span></div>
+          <div><svg class="ic"><use href="#i-check"/></svg> <span id="successSessions">0 sessions saved</span></div>
         </div>
         <a class="btn btn-primary" href="dashboard.html">Go to my dashboard <svg class="ic"><use href="#i-arrow"/></svg></a>
         <p class="auth-footer">Wrong email? <a href="#" id="editSignup">Edit details</a></p>
@@ -208,6 +208,7 @@
 </div>
 
 <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
+<script src="assets/js/account.js"></script>
 <script src="assets/js/auth.js"></script>
 </body>
 </html>
