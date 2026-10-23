@@ -500,10 +500,11 @@
     var src = S.series && S.series.source;
     var live = S.series && !S.series.synthetic;
     var stale = live && S.series.stale;
+    var snap = !!(live && src && src.transport === "snapshot");
     el.hidden = false;
-    el.className = "src-badge " + (stale ? "src-badge--cache" : live ? "src-badge--live" : "src-badge--sim");
+    el.className = "src-badge " + (stale || snap ? "src-badge--cache" : live ? "src-badge--live" : "src-badge--sim");
     el.innerHTML = live
-      ? '<span class="src-dot"></span>' + (stale ? "CACHED" : "LIVE") + " · " + (src && src.label ? src.label : "feed")
+      ? '<span class="src-dot"></span>' + (stale ? "CACHED" : snap ? "SNAPSHOT" : "LIVE") + " · " + (src && src.label ? src.label : "feed")
       : '<span class="src-dot"></span>SIMULATED';
     var how = src && src.transport === "snapshot" ? " · site snapshot"
       : src && src.transport === "relay" ? " · via public relay"

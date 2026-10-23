@@ -520,7 +520,26 @@
         var fresh = seriesFromSnapshot(asset, id, tf, snap, false);
         if (fresh) { remember(id, tf, fresh); return fresh; }
       }
-      return liveFromCandidates(id, tf, list, tried, 0, asset).catch(function (err) {
+      var liveTry = liveFromCandidates(id, tf, list, tried, 0, asset);
+      if (snap && cfgFor(snap, tf)) {
+        var saved = seriesFromSnapshot(asset, id, tf, snap, true);
+        if (saved) {
+          /* An older snapshot only costs a short wait: five seconds of live
+             attempt, then the real prices we already have. The live call keeps
+             running and lands in the cache if it ever answers. */
+          var liveOrSaved = liveTry.catch(function () { return saved; });
+          return Promise.race([
+            liveOrSaved,
+            new Promise(function (resolve) {
+              setTimeout(function () { resolve(saved); }, 5000);
+            })
+          ]).then(function (res) {
+            if (res === saved) remember(id, tf, saved);
+            return res;
+          });
+        }
+      }
+      return liveTry.catch(function (err) {
         if (snap) {
           var older = seriesFromSnapshot(asset, id, tf, snap, true);
           if (older) { remember(id, tf, older); return older; }
