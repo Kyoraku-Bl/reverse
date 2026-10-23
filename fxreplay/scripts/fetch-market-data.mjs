@@ -425,7 +425,8 @@ async function main() {
       deadline: DEADLINE,
       perInstrument: PER_INSTRUMENT,
       requested: ids.length,
-      ok: ok.length,
+      /* coverage: every instrument with real candles on disk after this run */
+      ok: EXIST.size,
       refreshed: refreshed.length,
       reused: kept.length,
       done: done === true,
