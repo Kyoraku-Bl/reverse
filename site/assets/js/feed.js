@@ -208,7 +208,7 @@
     var bars = rows.map(function (r) {
       return [Math.floor(r[0] / 1000), +r[1], +r[2], +r[3], +r[4], +r[5]];
     });
-    if (tf === "4H") bars = aggregate(bars, 14400);
+    if (tf === "4H" && false) bars = aggregate(bars, 14400); /* Binance serves natively */
     return bars;
   }
 

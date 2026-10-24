@@ -139,7 +139,9 @@ async function fromBinance(t, tf) {
   const rows = await fetchJson(url);
   if (!Array.isArray(rows) || !rows.length) throw new Error("no bars");
   const bars = rows.map((r) => [Math.floor(r[0] / 1000), +r[1], +r[2], +r[3], +r[4], +r[5]]);
-  return { bars: tf === "4H" ? bucket(bars, 14400) : bars, symbol: t.symbol, provider: "binance" };
+  /* Binance already serves native 4H candles; only bucket when we asked for 1H */
+  const needsBucket = tf === "4H" && BINANCE[tf] !== "4h";
+  return { bars: needsBucket ? bucket(bars, 14400) : bars, symbol: t.symbol, provider: "binance" };
 }
 
 /* Databento continuous-contract CSV (encoding=csv keeps the SDK out of CI). */
