@@ -1,0 +1,78 @@
+{
+ "failed": [],
+ "ok": 35,
+ "partial": {
+  "6E": "15m: HTTP 422",
+  "AUDUSD": "15m: HTTP 422",
+  "CL": "15m: HTTP 422",
+  "ES": "15m: HTTP 422",
+  "EURJPY": "15m: HTTP 422",
+  "EURUSD": "15m: HTTP 422",
+  "GBPJPY": "15m: HTTP 422",
+  "GBPUSD": "15m: HTTP 422",
+  "GC": "15m: HTTP 422",
+  "GER40": "15m: HTTP 422",
+  "JP225": "15m: HTTP 422",
+  "MES": "15m: HTTP 422",
+  "MNQ": "15m: HTTP 422",
+  "NAS100": "15m: HTTP 422",
+  "NGAS": "15m: HTTP 422",
+  "NQ": "15m: HTTP 422",
+  "NZDUSD": "15m: HTTP 422",
+  "RTY": "15m: HTTP 422",
+  "SI": "15m: HTTP 422",
+  "SPX500": "15m: HTTP 422",
+  "UK100": "15m: HTTP 422",
+  "UKOIL": "15m: HTTP 422",
+  "US30": "15m: HTTP 422",
+  "USDCAD": "15m: HTTP 422",
+  "USDCHF": "15m: HTTP 422",
+  "USDJPY": "15m: HTTP 422",
+  "USOIL": "15m: HTTP 422",
+  "XAGUSD": "1m: HTTP 404, 5m: HTTP 404, 15m: HTTP 404, 1H: HTTP 404, 4H: HTTP 404, 1D: HTTP 404",
+  "XAUUSD": "1m: HTTP 404, 5m: HTTP 404, 15m: HTTP 404, 1H: HTTP 404, 4H: HTTP 404, 1D: HTTP 404",
+  "YM": "15m: HTTP 422",
+  "ZB": "15m: HTTP 422",
+  "ZN": "15m: HTTP 422"
+ },
+ "probe": {
+  "binance_vision": {
+   "bytes": 882,
+   "json": false,
+   "ms": 847,
+   "status": 200
+  },
+  "relay_allorigins": {
+   "bytes": 177,
+   "json": false,
+   "ms": 431,
+   "status": 500
+  },
+  "relay_codetabs": {
+   "bytes": 7247,
+   "json": false,
+   "ms": 19397,
+   "status": 522
+  },
+  "relay_jina": {
+   "bytes": 1822,
+   "json": true,
+   "ms": 325,
+   "status": 200
+  },
+  "yahoo_query1": {
+   "bytes": 1703,
+   "json": true,
+   "ms": 136,
+   "status": 200
+  },
+  "yahoo_query2": {
+   "bytes": 1703,
+   "json": true,
+   "ms": 68,
+   "status": 200
+  }
+ },
+ "requested": 35,
+ "skipped": 0
+}
