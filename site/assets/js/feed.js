@@ -234,6 +234,14 @@
 
   var cache = {};
   var status = { lastError: null, lastTransport: null };
+  var listeners = [];
+
+  /* Anything that wants the newer copy (the terminal) subscribes here; the
+     snapshot paints first, the exchange's own answer replaces it when it lands. */
+  function onUpgrade(fn) { listeners.push(fn); }
+  function emit(id, tf, doc, err) {
+    listeners.forEach(function (fn) { try { fn(id, tf, doc, err); } catch (e) {} });
+  }
 
   /* Snapshot first: it is the same real data the CI job pulled, just older.
      The second origin is the snapshot the previous deployment already published;
@@ -257,27 +265,34 @@
   function load(id, tf) {
     var asset = BY_ID[id] || ASSETS[0];
     var key = asset.id + "@" + tf;
-    if (cache[key] && Date.now() - cache[key].at < 30000) return Promise.resolve(cache[key].doc);
+    if (cache[key] && Date.now() - cache[key].at < 20000) return Promise.resolve(cache[key].doc);
 
     return snapshot(asset.id).then(function (snap) {
-      var fromSnap = snap && snap.tf && snap.tf[tf] && snap.tf[tf].bars;
+      var block = snap && snap.tf && snap.tf[tf];
+      var fromSnap = block && block.bars;
       if (fromSnap && fromSnap.length) {
-        var fresh = snap.tf[tf].fetchedAt && Date.now() - snap.tf[tf].fetchedAt < 15 * 60000;
-        if (fresh) {
-          var doc = mk(asset, tf, fromSnap, "snapshot", snap.provider || asset.provider, snap.symbol || asset.symbol, snap.tf[tf].fetchedAt);
-          cache[key] = { at: Date.now(), doc: doc };
-          return doc;
-        }
-      }
-      return live(asset, tf).catch(function (err) {
-        status.lastError = String(err && err.message || err);
-        if (fromSnap && fromSnap.length) {
-          return mk(asset, tf, fromSnap, "snapshot", snap.provider || asset.provider, snap.symbol || asset.symbol, snap.tf[tf].fetchedAt);
-        }
-        throw err;
-      }).then(function (doc) {
+        var doc = mk(asset, tf, fromSnap, "snapshot",
+          snap.provider || asset.provider, snap.symbol || asset.symbol, block.fetchedAt);
         cache[key] = { at: Date.now(), doc: doc };
+        /* stale snapshot: paint now, ask the exchange in the background */
+        var fresh = block.fetchedAt && Date.now() - block.fetchedAt < 10 * 60000;
+        if (!fresh) {
+          live(asset, tf).then(function (liveDoc) {
+            cache[key] = { at: Date.now(), doc: liveDoc };
+            emit(asset.id, tf, liveDoc);
+          }).catch(function (err) {
+            status.lastError = String((err && err.message) || err);
+            emit(asset.id, tf, null, err);
+          });
+        }
         return doc;
+      }
+      return live(asset, tf).then(function (liveDoc) {
+        cache[key] = { at: Date.now(), doc: liveDoc };
+        return liveDoc;
+      }).catch(function (err) {
+        status.lastError = String((err && err.message) || err);
+        throw err;
       });
     });
   }
@@ -329,6 +344,7 @@
     get: function (id) { return BY_ID[id] || ASSETS[0]; },
     search: search,
     load: load,
+    onUpgrade: onUpgrade,
     quotes: quotes,
     index: index,
     status: status,

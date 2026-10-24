@@ -116,6 +116,25 @@
     $("#stFeed").textContent = state.feedLine || "—";
   }
 
+  /* the live answer arrives after the snapshot painted: swap the candles in
+     without losing the drawings or the replay position */
+  F.onUpgrade(function (id, tf, doc) {
+    if (id !== state.asset.id || tf !== state.tf) return;
+    if (!doc || !doc.bars || doc.bars.length < 5) return;
+    var wasCursor = chart.cursor;
+    state.bars = doc.bars;
+    state.doc = doc;
+    chart.data = doc.bars;
+    chart.cursor = Math.min(wasCursor == null ? doc.bars.length - 1 : wasCursor, doc.bars.length - 1);
+    chart.offset = Math.min(chart.offset, doc.bars.length - 1);
+    chart.draw();
+    setPill("live", "LIVE · " + doc.provider, doc.symbol + " · fetched " + new Date(doc.fetchedAt).toLocaleTimeString());
+    state.feedLine = doc.provider + " " + doc.symbol + " · live";
+    renderLegend();
+    renderStatus();
+    renderPositions();
+  });
+
   function setPill(kind, text, title) {
     var p = $("#srcPill");
     p.className = "pill " + kind;
@@ -141,6 +160,7 @@
       var alive = doc.transport === "live";
       setPill(alive ? "live" : "snap", alive ? "LIVE · " + doc.provider : "SNAPSHOT · " + doc.provider,
         doc.symbol + " · fetched " + new Date(doc.fetchedAt).toLocaleTimeString());
+      if (!alive) setPill("snap", "SNAPSHOT · " + doc.provider, doc.symbol + " · asking the exchange…");
       var age = Date.now() - doc.fetchedAt;
       var minutes = Math.max(0, Math.round(age / 60000));
       var ageText = age < 36e5 ? minutes + " min old"
