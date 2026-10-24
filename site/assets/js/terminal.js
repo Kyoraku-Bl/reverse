@@ -163,8 +163,11 @@
       setPill("dead", "no data", String(err && err.message || err));
       state.feedLine = "unreachable";
       $("#chartNote").hidden = false;
-      $("#chartNote").textContent = "The feed could not be reached for " + a.id +
-        ". Nothing is drawn, because a chart with invented candles is worse than no chart. Retry in a moment or pick another instrument.";
+      $("#chartNote").innerHTML = "The feed could not be reached for " + esc(a.id) +
+        ". Nothing is drawn, because a chart with invented candles is worse than no chart. " +
+        '<button class="btn btn--sm btn--ghost" id="retryBtn" style="margin-left:6px;height:26px">Retry</button>';
+      var rb = $("#retryBtn");
+      if (rb) rb.onclick = function () { load(); };
       renderStatus();
       renderLegend();
       throw err;
