@@ -70,8 +70,59 @@ try {
   );
   assert.equal(
     await page.locator('[data-studio-action="dictate-chat"]').isDisabled(),
+    false,
+  );
+  // A first click explains consent instead of leaving microphone buttons disabled.
+  await click('[data-studio-action="dictate-chat"]');
+  assert.ok(await page.locator("#allow-speaking-microphone").isVisible());
+  assert.equal(
+    await page.evaluate(() => Boolean(window.__speech || window.__testStream)),
+    false,
+  );
+  await page.locator('.dialog .btn[data-action="close-dialog"]').click();
+  assert.equal((await saved())?.consent || false, false);
+  await click('[data-studio-mode="challenge"]');
+  assert.equal(
+    await page.locator('[data-studio-action="record"]').isDisabled(),
+    false,
+  );
+  await click('[data-studio-action="record"]');
+  await page.locator("#allow-speaking-microphone").click();
+  await page.waitForFunction(() =>
+    document
+      .querySelector(".speaking-capture-status")
+      ?.textContent.includes("Recording locally"),
+  );
+  assert.equal((await saved()).consent, true);
+  await page.waitForTimeout(300);
+  await click('[data-studio-action="stop"]');
+  await page.locator("#speaking-playback").waitFor();
+  assert.equal(
+    await page.evaluate(() =>
+      window.__testStream.getTracks().every((t) => t.readyState === "ended"),
+    ),
     true,
   );
+  // Permission failures leave a clear recovery path and a retryable Record button.
+  await page.evaluate(() => {
+    window.__workingGetUserMedia = navigator.mediaDevices.getUserMedia;
+    navigator.mediaDevices.getUserMedia = () =>
+      Promise.reject(new DOMException("Blocked", "NotAllowedError"));
+  });
+  await click('[data-studio-action="record"]');
+  await page.locator(".speaking-mic-help").waitFor();
+  assert.match(
+    await page.locator(".speaking-capture-status").textContent(),
+    /site controls/,
+  );
+  assert.equal(
+    await page.locator('[data-studio-action="record"]').isDisabled(),
+    false,
+  );
+  await page.evaluate(
+    () => (navigator.mediaDevices.getUserMedia = window.__workingGetUserMedia),
+  );
+  await click('[data-studio-mode="chat"]');
   await page.locator("#speaking-chat-input").fill("I am agree with this idea.");
   await page.locator('#speaking-chat-form [type="submit"]').click();
   assert.match(

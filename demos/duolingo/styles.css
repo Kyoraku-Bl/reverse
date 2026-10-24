@@ -3657,3 +3657,33 @@ select {
 .speaking-consent-reminder {
   font-size: 11px !important;
 }
+
+.speaking-mic-help {
+  margin: 0 20px 20px;
+  padding: 16px 18px;
+  border: 1px solid #e2d2b8;
+  border-radius: 12px;
+  background: #fbf4e8;
+  color: #71583b;
+  font-size: 11px;
+  line-height: 1.85;
+}
+.speaking-mic-help strong {
+  font-size: 12px;
+}
+.speaking-mic-help ol {
+  padding-left: 18px;
+  margin: 10px 0;
+}
+.speaking-mic-help a {
+  font-weight: 650;
+  text-underline-offset: 3px;
+}
+.speaking-mic-help p {
+  margin: 10px 0 0;
+}
+.speaking-repeat > .speaking-mic-help,
+.speaking-challenge > .speaking-mic-help {
+  margin: 0 0 20px;
+  text-align: left;
+}

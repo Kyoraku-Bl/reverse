@@ -295,3 +295,37 @@ test("recognition errors, unsupported environments and timeout leave no active s
   f.capture.recognize("en-GB");
   assert.match(f.errors.at(-1), /unavailable/);
 });
+
+test("insecure pages and iframe policy blocks explain why capture cannot start", async () => {
+  const insecure = fakeEnv();
+  insecure.env.isSecureContext = false;
+  await insecure.capture.record();
+  assert.equal(insecure.capture.kind, "idle");
+  assert.equal(insecure.stops(), 0);
+  assert.match(insecure.errors[0], /requires HTTPS/);
+  const blocked = fakeEnv();
+  blocked.env.document = { permissionsPolicy: { allowsFeature: () => false } };
+  await blocked.capture.record();
+  blocked.capture.recognize("en-GB");
+  assert.equal(blocked.capture.kind, "idle");
+  assert.equal(blocked.capture.recognition, null);
+  assert.equal(blocked.errors.length, 2);
+  assert.match(blocked.errors[0], /embedded preview/);
+});
+
+test("missing and busy microphones produce actionable errors and remain retryable", async () => {
+  for (const [name, message] of [
+    ["NotFoundError", /No microphone was found/],
+    ["NotReadableError", /Close other recording apps/],
+  ]) {
+    const f = fakeEnv({ getUserMedia: () => Promise.reject({ name }) });
+    await f.capture.record();
+    assert.equal(f.capture.kind, "idle");
+    assert.match(f.errors[0], message);
+    f.env.navigator.mediaDevices.getUserMedia = () => Promise.resolve(f.stream);
+    await f.capture.record();
+    assert.equal(f.capture.kind, "recording");
+    f.capture.cancel();
+    assert.equal(f.stops(), 1);
+  }
+});

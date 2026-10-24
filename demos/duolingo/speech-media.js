@@ -64,8 +64,25 @@ export class SpeechCapture {
       }
     } else this.cancel();
   }
+  microphoneContextAllowed() {
+    if (this.env.isSecureContext === false) {
+      this.onError(
+        "Microphone access requires HTTPS. Open the public Bloom site in a new tab, then try Record again.",
+      );
+      return false;
+    }
+    const policy =
+      this.env.document?.permissionsPolicy || this.env.document?.featurePolicy;
+    if (policy?.allowsFeature && !policy.allowsFeature("microphone")) {
+      this.onError(
+        "This page or embedded preview blocks microphone access. Open the public Bloom site directly in a new tab to record.",
+      );
+      return false;
+    }
+    return true;
+  }
   async record() {
-    if (this.kind !== "idle") return;
+    if (this.kind !== "idle" || !this.microphoneContextAllowed()) return;
     if (
       !this.env.navigator?.mediaDevices?.getUserMedia ||
       !this.env.MediaRecorder
@@ -122,14 +139,22 @@ export class SpeechCapture {
       if (token !== this.generation) return;
       this.cancel();
       this.onError(
-        error?.name === "NotAllowedError"
-          ? "Microphone permission was denied. You can still type, listen, and practise aloud."
-          : "Could not access the microphone. Check device settings or try another browser.",
+        {
+          NotAllowedError:
+            "Microphone permission was denied. Allow Microphone in the site controls beside the address bar, check your device’s privacy settings, then press Record again.",
+          NotFoundError:
+            "No microphone was found. Connect or enable a microphone, check your device’s audio input, then press Record again.",
+          NotReadableError:
+            "Your microphone could not be opened. Close other recording apps, check your device’s microphone permissions, then try again.",
+          SecurityError:
+            "Your browser or device blocks microphone access. Open the public HTTPS site directly and check microphone permissions.",
+        }[error?.name] ||
+          "Could not access the microphone. Check device settings or try another browser.",
       );
     }
   }
   recognize(locale) {
-    if (this.kind !== "idle") return;
+    if (this.kind !== "idle" || !this.microphoneContextAllowed()) return;
     const Recognition =
       this.env.SpeechRecognition || this.env.webkitSpeechRecognition;
     if (!Recognition) {

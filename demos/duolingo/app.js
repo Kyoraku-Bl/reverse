@@ -994,6 +994,19 @@ const studio = new SpeakingStudio({
   },
   speak,
   notify: toast,
+  requestVoiceConsent: (action, onConfirm) => {
+    const recording = action === "record";
+    openDialog(
+      recording ? "Ready to record your voice?" : "Ready to dictate?",
+      `<p>${recording ? "Your recording stays in this tab for playback. Bloom does not upload it, and it is discarded when you leave Speaking Studio or start another take." : "Dictation uses your browser’s speech service, which may send audio to its provider and need an internet connection. Check the transcript before sending it."}</p><p>Enabling voice controls also makes the other microphone options available. Recording stays local; optional browser dictation may use a provider’s online service. You can turn voice controls off anytime using the checkbox in Speaking Studio.</p><p><strong>Next, choose Allow if your browser asks to use your microphone.</strong></p><div class="dialog-actions"><button class="btn light" data-action="close-dialog">Not now</button><button class="btn" id="allow-speaking-microphone">${recording ? "Enable & start recording" : "Enable & start dictation"}</button></div>`,
+      () => {
+        $("#allow-speaking-microphone").onclick = () => {
+          closeDialog();
+          onConfirm();
+        };
+      },
+    );
+  },
 });
 const initialRoute =
   location.hash === "#speaking-privacy" ? "speaking" : location.hash.slice(1);

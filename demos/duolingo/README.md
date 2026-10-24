@@ -93,7 +93,7 @@ Open **Speaking** (the microphone icon) or use `/#speaking` directly. Both langu
 
 ### Microphone and privacy
 
-Voice controls are off until the learner explicitly enables them after reading the disclosure. Browser/OS microphone permission is a separate requirement. The production Permissions-Policy allows the microphone on the app’s own origin, but never the camera or geolocation. Use the public HTTPS site directly; an embedded preview may not delegate microphone permission.
+Record and Dictate buttons are clickable immediately. The first press opens a clear consent dialog; confirming enables voice controls and starts the browser microphone request in that same click. The disclosure checkbox remains an alternative opt-in, not a prerequisite hidden elsewhere on the page. Only an already-active capture temporarily disables other capture buttons. Browser/OS microphone permission is a separate requirement. The production Permissions-Policy allows the microphone on the app’s own origin, but never the camera or geolocation. Use the public HTTPS site directly; an embedded preview may not delegate microphone permission.
 
 **Browser dictation** uses `SpeechRecognition`/`webkitSpeechRecognition` if available, with `en-GB` or `fr-FR`. It may send audio to the browser provider’s network service and may require internet or be subject to provider restrictions. It is not an app-hosted speech model and cannot be promised to work offline or without provider limits. Chrome/Edge are suggested, but support varies by device. Results are placed into a draft and are never automatically sent to the bot; review the text and press Send yourself. Typed chat and recording/self-review remain alternatives when dictation is unsupported or fails.
 
@@ -111,3 +111,9 @@ node demos/duolingo/tests/speaking.browser.mjs
 The optional browser test uses simulated speech-recognition results to test integration, language settings, transcript review, and fallback behavior. It tests real Chromium MediaRecorder with browser-generated fake microphone input, including blob playback, track release, cancellation, and URL revocation. **These tests do not establish real-device microphone quality, provider speech-recognition availability, human pronunciation accuracy, or comprehensive grammar correction.** Try the live site on your actual device to confirm its voice-service support.
 
 Speaking implementation is isolated in `speaking-content.js` (authored prompts, explicit text rules, bounded word alignment), `speech-media.js` (capture resource lifecycle), and `speaking.js` (Studio UI and local history).
+
+### Recording recovery
+
+If recording fails, the Studio distinguishes an insecure page, an iframe/Permissions-Policy block, a denied permission, a missing microphone, and a busy/unreadable device. It shows site/OS permission instructions and a direct link to the public HTTPS site. Retry with Record after fixing the device or browser setting; no account, payment, or hidden checkbox is needed. The app cannot override browser or operating-system permission decisions.
+
+Regression checks include first-click consent (including cancellation without capture), challenge-mode recording without ticking the checkbox, real Chromium MediaRecorder with fake input, actionable denial/retry, and simulated missing/busy devices and iframe/insecure contexts. Physical microphones on the user’s device are not verified by these automated tests.
