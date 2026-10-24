@@ -91,3 +91,7 @@ cd site && python3 -m http.server 8010
 ```
 
 A static server is enough; there is no build step and no dependency at runtime.
+
+## Status
+
+Rebuilt 2026-10-24. See the commit log for what changed.

@@ -171,8 +171,29 @@ body.terminal { height: 100vh; overflow: hidden; background: var(--bg); }
 .sym-item .v { color: var(--muted); font-size: 10.5px; font-family: var(--mono); flex: none; }
 .sym-group { padding: 10px 10px 4px; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
 
+/* ---------------- responsive ---------------- */
+@media (max-width: 1180px) {
+  .rail { display: none; }
+  .work { grid-template-columns: 46px 1fr; }
+}
 @media (max-width: 860px) {
-  .tbar .brand span, .tbar .seg--ranges, .statusbar .right { display: none; }
+  .tbar { gap: 6px; padding: 0 8px; overflow-x: auto; scrollbar-width: none; }
+  .tbar::-webkit-scrollbar { display: none; }
+  .tbar .brand span:not(.brand__mark), .tbar__sep, .seg--ranges { display: none; }
   .work { grid-template-columns: 1fr; }
   .tools { display: none; }
+  .statusbar .right { display: none; }
+  .legend { left: 8px; top: 6px; }
+  .legend__ohlc { font-size: 10.5px; gap: 7px; flex-wrap: wrap; max-width: 78vw; }
+  .replaybar { left: 8px; right: 8px; transform: none; bottom: 34px; overflow-x: auto; scrollbar-width: none; }
+  .replaybar::-webkit-scrollbar { display: none; }
+  .replaybar__pos { font-size: 10.5px; padding: 0 4px; }
+  .chart-note { left: 8px; right: 8px; max-width: none; bottom: 8px; }
+  .ticket { display: none; }
+}
+@media (max-width: 560px) {
+  .sym-btn { max-width: 150px; }
+  .sym-btn small { display: none; }
+  .sym-btn > span > b { font-size: 12.5px; }
+  .tbar__right .pill span:last-child { max-width: 74px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
