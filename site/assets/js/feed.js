@@ -172,11 +172,11 @@
     return res.json();
   }
 
-  /* Try the host proxy, then the exchange itself, then public relays. The first
-     one that answers with candles wins; the caller is told which it was. */
-  function fetchUpstream(url, direct) {
+  /* Try the exchange itself first (Binance allows CORS), then public relays.
+     The first one that answers with candles wins. */
+  function fetchUpstream(url, allowDirect) {
     var chain = [];
-    if (direct) chain.push(direct);
+    if (allowDirect) chain.push(function (u) { return u; });
     RELAYS.forEach(function (fn) { chain.push(fn); });
     var i = 0;
     function next() {
@@ -285,14 +285,14 @@
   function live(asset, tf) {
     var t0 = Date.now();
     if (asset.provider === "binance") {
-      return fetchUpstream(binanceUrl(asset.symbol, tf)).then(function (rows) {
+      return fetchUpstream(binanceUrl(asset.symbol, tf), true).then(function (rows) {
         var bars = parseBinance(rows, tf);
         if (!bars.length) throw new Error("no bars");
         status.lastTransport = "binance";
         return mk(asset, tf, bars, "live", "binance", asset.symbol, t0);
       });
     }
-    return fetchUpstream(yahooUrl(asset.symbol, tf)).then(function (doc) {
+    return fetchUpstream(yahooUrl(asset.symbol, tf), false).then(function (doc) {
       var bars = parseYahoo(doc, tf);
       if (!bars.length) throw new Error("no bars");
       status.lastTransport = status.lastTransport || "relay";
