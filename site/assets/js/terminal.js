@@ -141,8 +141,13 @@
       var alive = doc.transport === "live";
       setPill(alive ? "live" : "snap", alive ? "LIVE · " + doc.provider : "SNAPSHOT · " + doc.provider,
         doc.symbol + " · fetched " + new Date(doc.fetchedAt).toLocaleTimeString());
-      var minutes = Math.max(0, Math.round((Date.now() - doc.fetchedAt) / 60000));
-      state.feedLine = doc.provider + " " + doc.symbol + " · " + (alive ? "live" : minutes + " min old");
+      var age = Date.now() - doc.fetchedAt;
+      var minutes = Math.max(0, Math.round(age / 60000));
+      var ageText = age < 36e5 ? minutes + " min old"
+        : age < 864e5 ? Math.round(age / 36e5) + " h old"
+        : Math.round(age / 864e5) + " d old";
+      state.feedLine = doc.provider + " " + doc.symbol + " · " + (alive ? "live" : ageText);
+      if (!alive) setPill("snap", "SNAPSHOT · " + doc.provider, doc.symbol + " · " + ageText);
       $("#chartNote").hidden = true;
       persist({ symbol: a.id, tf: state.tf });
       renderLegend();

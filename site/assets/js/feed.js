@@ -235,10 +235,22 @@
   var cache = {};
   var status = { lastError: null, lastTransport: null };
 
-  /* Snapshot first: it is the same real data the CI job pulled, just older. */
+  /* Snapshot first: it is the same real data the CI job pulled, just older.
+     The second origin is the snapshot the previous deployment already published;
+     it is the same exchange data, one refresh behind, and it keeps real candles
+     on screen while this deployment has none of its own. */
+  var LEGACY = "https://kyoraku-bl.github.io/reverse/data/";
+
+  function snapshotPath(base, id) {
+    return fetch(base + encodeURIComponent(id) + ".json", { cache: "no-store" }).then(json);
+  }
+
   function snapshot(id) {
-    return fetch(BASE + "data/" + encodeURIComponent(id) + ".json", { cache: "no-store" })
-      .then(json)
+    return snapshotPath(BASE + "data/", id)
+      .catch(function () {
+        if (BASE.indexOf("kyoraku-bl.github.io") !== -1) throw new Error("no local snapshot");
+        return snapshotPath(LEGACY, id);
+      })
       .catch(function () { return null; });
   }
 
