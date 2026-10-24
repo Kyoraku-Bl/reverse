@@ -49,8 +49,8 @@
     ["GBPCHF", "GBP/CHF", "British Pound / Swiss Franc", "Forex", 1.1242, 5, 0.00001, 100000, 0.00014, 0.0019, 0.00006, "£", "FX"],
 
     /* ---- Indices (CFD style) ---- */
-    ["NAS100", "NAS100", "Nasdaq 100", "Indices", 20142.5, 1, 0.1, 1, 0.00045, 24, 1.4, "NQ", "IDX"],
-    ["SPX500", "SPX500", "S&P 500", "Indices", 5421.2, 1, 0.1, 1, 0.00032, 14, 0.6, "ES", "IDX"],
+    ["NAS100", "NAS100", "Nasdaq 100", "Indices", 20142.5, 1, 0.1, 1, 0.00045, 24, 1.4, "NQ", "Nasdaq"],
+    ["SPX500", "SPX500", "S&P 500", "Indices", 5421.2, 1, 0.1, 1, 0.00032, 14, 0.6, "ES", "Cboe"],
     ["US30", "US30", "Dow Jones 30", "Indices", 39412.0, 1, 1, 1, 0.00030, 90, 2.4, "YM", "IDX"],
     ["US2000", "US2000", "Russell 2000", "Indices", 2042.4, 1, 0.1, 1, 0.00040, 8, 0.6, "RTY", "IDX"],
     ["GER40", "GER40", "DAX 40", "Indices", 18242.5, 1, 0.1, 1, 0.00038, 60, 1.2, "DAX", "IDX"],
@@ -350,13 +350,50 @@
     var riskPerUnit = asset.stop * asset.mult;
     return Math.max(0.01, Math.round((riskUsd / riskPerUnit) * 100) / 100);
   }
+  /* The names traders actually type — FX Replay says NAS100USD, TradingView
+     says NQ1!, CME says NQ. All of them have to find the instrument. */
+  var ALIASES = {
+    NAS100: "nas100usd nasdaq100 nasdaq 100 ndx us100 n100 ustec ndx100",
+    NQ: "nq1! nasdaq futures e-mini nasdaq emini nasdaq100 us100",
+    ES: "es1! spx sp500 s&p500 emini sp e-mini s&p",
+    MES: "mes1! micro sp",
+    MNQ: "mnq1! micro nasdaq",
+    US30: "ym1! dow dow30 djia",
+    GER40: "dax dax40 de40 gdaxi",
+    UK100: "ftse ftse100 uk100",
+    JP225: "nikkei nikkei225 jp225",
+    XAUUSD: "gold xau",
+    XAGUSD: "silver xag",
+    USOIL: "wti crude oil cl",
+    UKOIL: "brent oil",
+    BTCUSD: "bitcoin btc btcusd",
+    ETHUSD: "ethereum eth"
+  };
+
+  /* Search ranks what the trader typed, not where it hides in the blob:
+     0 = the symbol itself (NAS100USD, NQ, ES1!, gold), 1 = it starts a word,
+     2 = it appears anywhere. Without this "ES" listed USDJPY/EURJPY first. */
   function search(query) {
     var q = String(query || "").trim().toLowerCase();
     if (!q) return ASSETS.slice();
-    return ASSETS.filter(function (a) {
-      return (a.id + " " + a.label + " " + a.name + " " + a.market + " " + a.venue)
-        .toLowerCase().indexOf(q) !== -1;
+    var scored = [];
+    ASSETS.forEach(function (a, i) {
+      var id = a.id.toLowerCase();
+      var label = String(a.label).toLowerCase();
+      var words = (id + " " + label + " " + String(a.name).toLowerCase() + " " + (ALIASES[a.id] || ""))
+        .split(/[\s,]+/).filter(Boolean);
+      var hay = id + " " + label + " " + a.name + " " + a.market + " " + a.venue + " " + (ALIASES[a.id] || "");
+      hay = hay.toLowerCase();
+      var rank;
+      if (id === q || label === q || words.indexOf(q) !== -1) rank = 0;
+      else if (id.indexOf(q) === 0 || label.indexOf(q) === 0 ||
+               words.some(function (w) { return w.indexOf(q) === 0; })) rank = 1;
+      else if (hay.indexOf(q) !== -1) rank = 2;
+      else return;
+      scored.push({ a: a, r: rank, i: i });
     });
+    scored.sort(function (x, y) { return x.r - y.r || x.i - y.i; });
+    return scored.map(function (x) { return x.a; });
   }
   function byMarket() {
     var out = {};

@@ -770,6 +770,13 @@ html[data-theme="light"] .tool-flyout{background:rgba(255,255,255,.99);box-shado
 
 .tool-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
 .tool-list li{display:flex;align-items:baseline;gap:8px;font-size:.72rem;color:var(--txt-2)}
+.cov-list{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:3px}
+.cov-list li{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:.68rem;color:var(--muted);padding:4px 7px;border-radius:6px;background:rgba(255,255,255,.025)}
+html[data-theme="light"] .cov-list li{background:rgba(16,24,40,.03)}
+.cov-list li b{font-family:var(--font-mono);font-size:.64rem;color:var(--txt-2);font-weight:500;white-space:nowrap}
+.cov-list li span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cov-list .cov-miss b{color:var(--amber)}
+.cov-list .cov-foot{background:none;padding-left:0}
 .tool-list li b{color:var(--txt);font-weight:600;flex:none}
 .tool-list li span{color:var(--muted)}
 

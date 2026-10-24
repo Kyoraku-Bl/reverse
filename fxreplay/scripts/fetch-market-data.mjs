@@ -401,7 +401,12 @@ async function fillBinance(doc, c, want) {
 /* ---------- run ---------- */
 /* Headline instruments first: if the runner runs out of time, the two tickers
    the terminal opens by default (NAS100 and NQ futures) are always present. */
-const PRIORITY = ["NAS100", "NQ", "SPX500", "US30", "GER40", "XAUUSD", "BTCUSD", "ETHUSD"];
+const PRIORITY = ["NAS100", "NQ", "ES", "SPX500", "US30", "GER40", "XAUUSD", "BTCUSD", "ETHUSD"];
+/* The three the trader actually backtests on. They are fetched first *and*
+   get their own repair pass below, so a throttled run can never leave them
+   without a timeframe. */
+const CRITICAL = (opt("critical", "NAS100,NQ,ES") || "").split(",").map((s) => s.trim()).filter(Boolean);
+const CRITICAL_BUDGET = Number(opt("critical-budget", "240")) * 1000;
 
 async function main() {
   await fs.mkdir(OUT, { recursive: true });
@@ -434,6 +439,7 @@ async function main() {
   const failed = [];
   const PARTIAL = {};
   const SKIPPED = [];
+  const critical = {};          /* filled by the critical repair pass */
   const DOCS = new Map();          /* id -> the document that was written */
   const ALL_TF = Object.keys(YAHOO_TF);
   let cursor = 0;
@@ -457,6 +463,7 @@ async function main() {
       done: done === true,
       sweeps,
       skipped: SKIPPED,
+      critical,
       net: { throttle: net.throttle, cooldowns: net.cooldowns },
       canary,
       failed,
@@ -590,6 +597,61 @@ async function main() {
       }
     };
     await Promise.all(Array.from({ length: Math.min(6, CONCURRENCY) }, sweepWorker));
+  }
+
+  /* ---- critical instruments ----
+     NAS100, NQ and ES are the three a strategy is usually tested on. If the
+     deadline or Yahoo's throttling left a gap on any of them, this pass keeps
+     trying — with its own small overtime budget — until every timeframe is
+     there or the budget runs out. The result is written into the status file
+     so "is the data actually complete?" has an explicit answer. */
+  for (const id of CRITICAL) {
+    let doc = DOCS.get(id) || null;
+    if (!doc) {
+      try {
+        const fresh = await buildInstrument(id);
+        if (fresh) {
+          await fs.writeFile(path.join(OUT, id + ".json"), JSON.stringify(fresh));
+          DOCS.set(id, fresh);
+          doc = fresh;
+          if (ok.indexOf(id) === -1) ok.push(id);
+          refreshed.push(id);
+        }
+      } catch (e) { /* reported below */ }
+    }
+    for (let round = 0; doc && round < 3; round++) {
+      const want = missingTfs(doc);
+      if (!want.length) break;
+      if (Date.now() - STARTED > DEADLINE * 1000 + CRITICAL_BUDGET) break;
+      await sleep(1200 + round * 1800);
+      try {
+        const patch = await buildInstrument(id, want);
+        if (!patch) continue;
+        Object.assign(doc.tf, patch.tf);
+        doc.errors = (doc.errors || []).filter((e) => !want.some((tf) => e.indexOf(" " + tf + ":") !== -1));
+        if (!doc.errors.length) delete doc.errors;
+        doc.fetchedAt = Date.now();
+        await fs.writeFile(path.join(OUT, id + ".json"), JSON.stringify(doc));
+        if (doc.errors) PARTIAL[id] = doc.errors;
+        else delete PARTIAL[id];
+        process.stdout.write(`★ ${id} repaired: ${Object.keys(patch.tf).join("/")}\n`);
+      } catch (e) { /* still throttled — next round */ }
+    }
+    if (doc && missingTfs(doc).indexOf("4H") !== -1 && doc.tf["1H"]) {
+      const src = doc.tf["1H"];
+      const bars = dedupe(aggregate(src.bars, 4)).slice(-(BAR_LIMIT["4H"] || 900));
+      if (bars.length >= 30) {
+        doc.tf["4H"] = { interval: "4H", provider: "yahoo", symbol: src.symbol || doc.symbol, fetchedAt: Date.now(), currency: src.currency || null, bars };
+        await fs.writeFile(path.join(OUT, id + ".json"), JSON.stringify(doc));
+      }
+    }
+    critical[id] = doc
+      ? { ok: ALL_TF.every((tf) => !!doc.tf[tf]), tf: ALL_TF.filter((tf) => !!doc.tf[tf]) }
+      : { ok: false, tf: [], error: "not fetched" };
+    process.stdout.write(
+      `★ ${id}: ${critical[id].ok ? "complete" : "missing " + ALL_TF.filter((tf) => !doc?.tf?.[tf]).join("/")}` +
+      (doc ? ` (${ALL_TF.filter((tf) => doc.tf[tf]).length}/${ALL_TF.length} timeframes)` : "") + "\n"
+    );
   }
 
   /* A machine-readable report travels with the site, so a failed run can be

@@ -146,6 +146,7 @@
     <button class="src-toggle" id="dataMode" aria-label="Market data mode" title="Switch between live market data and the offline engine">
       <span class="src-dot"></span><span id="dataModeLabel">Live data</span>
     </button>
+    <button class="icon-btn" id="csvBtn" title="Download these candles as CSV (real prices, for your own backtest)" aria-label="Download CSV"><svg class="ic"><use href="#i-download"/></svg></button>
     <button class="icon-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme"><svg class="ic"><use href="#i-moon"/></svg></button>
     <button class="icon-btn" id="helpBtn" title="Keyboard shortcuts" aria-label="Keyboard shortcuts"><svg class="ic"><use href="#i-info"/></svg></button>
     <a class="btn-rp btn-rp--ghost" href="dashboard.html" id="backBtn"><svg class="ic ic--sm"><use href="#i-back"/></svg> <span>Dashboard</span></a>
@@ -430,6 +431,7 @@
         <p class="src-panel-copy" id="srcPanelCopy">Checking feeds…</p>
         <ul class="src-list" id="srcPanelList"></ul>
       </div>
+      <div class="src-panel" id="coverageBox"></div>
     </div>
   </div>
 </dialog>

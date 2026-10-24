@@ -113,24 +113,26 @@
   function palette() {
     return isLight() ? {
       grid: "rgba(16,24,40,.07)",
+      daySep: "rgba(16,24,40,.10)",
       axis: "rgba(104,113,138,.92)",
       axisLine: "rgba(16,24,40,.12)",
       cross: "rgba(16,24,40,.32)",
-      up: "#0f9d6b", down: "#d93b57",
-      upFill: "rgba(15,157,107,.16)", downFill: "rgba(217,59,87,.14)",
-      volUp: "rgba(15,157,107,.38)", volDown: "rgba(217,59,87,.34)",
+      up: "#089981", down: "#f23645",
+      upFill: "rgba(8,153,129,.16)", downFill: "rgba(242,54,69,.14)",
+      volUp: "rgba(8,153,129,.42)", volDown: "rgba(242,54,69,.38)",
       ema1: "#6d54e6", ema2: "#2f6be0", vwap: "#b07a12",
       watermark: "rgba(16,24,40,.05)",
       tagText: "#ffffff",
       panel: "rgba(255,255,255,.9)"
     } : {
       grid: "rgba(255,255,255,.055)",
+      daySep: "rgba(255,255,255,.10)",
       axis: "rgba(139,147,171,.92)",
       axisLine: "rgba(255,255,255,.09)",
       cross: "rgba(255,255,255,.28)",
-      up: "#38e2a0", down: "#ff5d7d",
-      upFill: "rgba(56,226,160,.15)", downFill: "rgba(255,93,125,.15)",
-      volUp: "rgba(56,226,160,.34)", volDown: "rgba(255,93,125,.3)",
+      up: "#26a69a", down: "#ef5350",
+      upFill: "rgba(38,166,154,.15)", downFill: "rgba(239,83,80,.15)",
+      volUp: "rgba(38,166,154,.46)", volDown: "rgba(239,83,80,.42)",
       ema1: "#a78bfa", ema2: "#5d8bff", vwap: "#ffc861",
       watermark: "rgba(255,255,255,.035)",
       tagText: "#04070f",
@@ -454,7 +456,7 @@
     S.n = S.data.length;
     S.cursor = opts.cursor !== undefined ? opts.cursor : Math.round(S.n * 0.6);
     S.cursor = clamp(S.cursor, 20, S.n - 2);
-    S.bars = opts.bars || clamp(Math.round(S.W / 8), 90, 210);
+    S.bars = opts.bars || defaultBars();
     S.right = S.cursor;
     S.follow = true;
     S.hover = null;
@@ -581,9 +583,12 @@
     var live = DP.liveCount ? DP.liveCount() : 0;
     var total = K.ASSETS.length;
     var st = DP.status || {};
-    copy.innerHTML = "<b>" + live + "/" + total + "</b> instruments are mapped to a public symbol — " +
-      "Yahoo Finance for indices, futures, metals, energy and spot FX; Binance for crypto. " +
-      "The badge on the chart shows the provider, the exact ticker and the fetch time.";
+    var v = asset().venue || "";
+    copy.innerHTML = "<b>" + live + "/" + total + "</b> instruments are mapped to a symbol that really " +
+      "trades on an exchange — CME Globex for NQ, ES, MNQ, MES and the other futures; " +
+      "Nasdaq for the NAS100 index; Binance for crypto. CME futures carry a ~10 minute delay on the " +
+      "free feed, the badge on the chart shows the ticker and the fetch time." +
+      (v ? "<br><br><b>" + esc(asset().label) + "</b> trades on <b>" + esc(v) + "</b>." : "");
     if ((st.mode === "live") && !(st.yahoo || st.binance)) {
       copy.innerHTML += " This preview has no network access, so every instrument falls back to the offline engine.";
     }
@@ -609,6 +614,73 @@
     list.innerHTML = rows.map(function (r) {
       return "<li><span>" + r[0] + "</span><b>" + r[1] + "</b></li>";
     }).join("");
+    renderCoverage();
+  }
+
+  /* ---- CSV export ----
+     The same real candles the chart is drawing, as a file that opens in
+     Excel, pandas or any backtester: time,open,high,low,close,volume. */
+  function downloadCsv() {
+    if (!S.n) { toast("No candles loaded yet", true); return; }
+    var a = asset();
+    var rows = ["time,open,high,low,close,volume"];
+    for (var i = 0; i <= S.cursor; i++) {
+      var b = S.data[i];
+      if (!b) continue;
+      rows.push([new Date(b.t).toISOString(), b.o, b.h, b.l, b.c, b.v || 0].join(","));
+    }
+    var src = (S.series && S.series.source && S.series.source.provider) || "feed";
+    var name = S.symbolId + "_" + S.tf + "_" + src + ".csv";
+    var blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(function () { URL.revokeObjectURL(url); link.remove(); }, 400);
+    toast("Downloaded " + name + " · " + (rows.length - 1).toLocaleString("en-US") + " candles");
+  }
+
+  /* "Do I actually have data for this instrument?" answered with numbers:
+     one row per timeframe of the file that shipped with the site. */
+  function renderCoverage() {
+    var box = $("#coverageBox");
+    if (!box) return;
+    var id = S.symbolId;
+    box.innerHTML = '<p class="src-panel-title">This instrument\'s data — ' + esc(asset().label) + "</p>" +
+      '<ul class="cov-list" id="covList"><li><span>Loading…</span><b>—</b></li></ul>';
+    fetch("data/" + encodeURIComponent(id) + ".json", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (snap) {
+        var list = $("#covList");
+        if (!list) return;
+        if (!snap || !snap.tf) {
+          list.innerHTML = '<li><span>No snapshot file for ' + esc(id) + '</span><b>live feed only</b></li>';
+          return;
+        }
+        var order = ["1m", "5m", "15m", "1H", "4H", "1D"];
+        list.innerHTML = order.map(function (tf) {
+          var c = snap.tf[tf];
+          if (!c || !c.bars || !c.bars.length) {
+            return '<li class="cov-miss"><span>' + tf + "</span><b>not in this run</b></li>";
+          }
+          var a = c.bars[0][0] * 1000, b = c.bars[c.bars.length - 1][0] * 1000;
+          return '<li><span>' + tf + " · " + c.bars.length.toLocaleString("en-US") + " candles</span><b>" +
+            fmtDay(a) + " → " + fmtDay(b) + "</b></li>";
+        }).join("") +
+          '<li class="cov-foot"><span>Source</span><b>' + esc((snap.provider || "yahoo") === "binance" ? "Binance · " + snap.symbol : "Yahoo Finance · " + snap.symbol) + "</b></li>";
+      })
+      .catch(function () {
+        var list = $("#covList");
+        if (list) list.innerHTML = '<li><span>Could not read the snapshot file</span><b>offline</b></li>';
+      });
+  }
+
+  /* A fresh chart opens on roughly 150 candles — dense like a terminal at
+     first load, not a thin line of 90. */
+  function defaultBars() {
+    return clamp(Math.round(S.W / 9), 120, 240);
   }
 
   function range() {
@@ -785,8 +857,40 @@
       ctx.moveTo(g.x0, y);
       ctx.lineTo(g.x1, y);
       ctx.stroke();
+      /* tick mark on the scale edge, the way a terminal draws it */
+      ctx.beginPath();
+      ctx.moveTo(g.x1 + 1, y);
+      ctx.lineTo(g.x1 + 4, y);
+      ctx.stroke();
       ctx.fillStyle = pal.axis;
-      ctx.fillText(K.fmt(p, asset().digits), g.x1 + 9, y);
+      ctx.fillText(K.fmt(p, asset().digits), g.x1 + 8, y);
+    }
+
+    /* ---- session separators ----
+       Intraday charts get a faint line wherever the calendar day changes, so
+       overnight gaps and session starts are visible at a glance. */
+    if (S.tf !== "1D" && barW > 2.5) {
+      ctx.save();
+      ctx.strokeStyle = pal.daySep;
+      ctx.setLineDash([2, 4]);
+      ctx.lineWidth = 1;
+      var sepPrev = null;
+      for (var si = Math.max(0, Math.floor(r.left)); si <= Math.min(S.cursor, Math.ceil(r.right)); si++) {
+        var sb = S.data[si];
+        if (!sb) continue;
+        var sepDay = zParts(sb.t).day + "/" + zParts(sb.t).month;
+        if (sepPrev !== null && sepDay !== sepPrev) {
+          var sx = Math.round(xAt(si)) + 0.5;
+          if (sx > g.x0 + 2 && sx < g.x1 - 2) {
+            ctx.beginPath();
+            ctx.moveTo(sx, g.y0);
+            ctx.lineTo(sx, g.y1);
+            ctx.stroke();
+          }
+        }
+        sepPrev = sepDay;
+      }
+      ctx.restore();
     }
 
     /* ---- vertical grid + time axis ---- */
@@ -2418,7 +2522,7 @@
   }, { passive: false });
 
   canvas.addEventListener("dblclick", function () {
-    S.bars = clamp(Math.round(S.W / 8), 90, 210);
+    S.bars = defaultBars();
     S.right = S.cursor;
     S.follow = true;
     $("#liveBtn").hidden = true;
@@ -2873,13 +2977,13 @@
 
     S.W = Math.max(1, wrap.getBoundingClientRect().width);
     resize();
-    S.bars = clamp(Math.round(S.W / 8), 90, 210);
+    S.bars = defaultBars();
 
     /* Paint instantly with the built-in engine, then swap in real candles. */
     S.symbolId = initial.id;
     S.tf = tf;
     applySeries(K.syntheticSeries(initial.id, tf));
-    S.bars = clamp(Math.round(S.W / 8), 90, 210);
+    S.bars = defaultBars();
     setLoading(true);
     var bootLoad = (DP && DP.ready) ? DP.ready(initial.id, tf) : Promise.resolve(K.syntheticSeries(initial.id, tf));
     bootLoad.then(function (series) {
@@ -3170,6 +3274,8 @@
 
     /* end session */
     $("#endBtn").addEventListener("click", endSession);
+
+    if ($("#csvBtn")) $("#csvBtn").addEventListener("click", downloadCsv);
 
     /* right rail + dock */
     $$("#rail [data-pane]").forEach(function (b) {

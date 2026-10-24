@@ -214,6 +214,29 @@ Every one of the 103 instruments is mapped to a public ticker. The terminal load
 - Caching: in-memory TTL per timeframe (45 s for 1m → 15 min for 1D), plus a `localStorage` tail of the last 1,200 bars per instrument/timeframe kept for 6 h so a refresh or an offline moment still shows the last real prices.
 - The proxy is two files: `api/yahoo.js` and `api/binance.js` (Vercel serverless functions, also mirrored by `server.py` for local use). Both allowlist intervals/ranges, time out at 9 s, cache at the CDN edge and never expose a key because none is needed. Requests rotate between mirrors — `query1`/`query2.finance.yahoo.com` and `data-api.binance.vision`/`api.binance.com`, the last one because Binance refuses to serve some regions from `api.binance.com`.
 
+### NAS100, NQ and ES — the three symbols people backtest first
+
+| Terminal symbol | What it actually is | Ticker | Venue | Delay |
+| --- | --- | --- | --- | --- |
+| `NAS100` (`NAS100USD`, `us100`, `ustec`) | Nasdaq-100 **index** — the CFD quote everyone knows | `^NDX` | Nasdaq (via Yahoo Finance) | ~15 min |
+| `NQ` (`NQ1!`, `nasdaq futures`) | E-mini Nasdaq-100 **future**, front month | `NQ=F` | CME Globex | ~10 min |
+| `ES` (`ES1!`, `spx`) | E-mini S&P 500 **future**, front month | `ES=F` | CME Globex | ~10 min |
+
+They ship in `data/<ID>.json` with six timeframes each (1m, 5m, 15m, 1H, 4H, 1D). The hourly
+job rebuilds them every 30 minutes in CI, and since the 2026-10 run it also has a **critical
+repair pass**: `NAS100, NQ, ES` are fetched first, and any timeframe that hits the provider's
+rate limit is retried up to three more times at the end of the run instead of being dropped.
+`market-data-status.json` records the result under `critical` so a gap is visible, not silent.
+
+Two ways to check the numbers yourself:
+
+- **"This instrument's data" panel** in the terminal's help dialog lists, for the open symbol,
+  every timeframe with its candle count and first → last date; a missing timeframe says
+  *not in this run* instead of showing a shorter chart without telling you.
+- **CSV button** in the terminal top bar downloads exactly the candles on the chart
+  (`time,open,high,low,close,volume`, ISO timestamps) so you can backtest in pandas, Excel,
+  TradingView or any engine. The filename carries the symbol, timeframe and provider.
+
 ## Honesty note
 
 Prices are real public market data; the *trading* is paper trading. Accounts, drawings, trades and sessions live in `localStorage` only — nothing is sent anywhere except the symbol you are looking at, to the public price API. The synthetic engine still exists so the site never shows a blank chart, but whenever it is used the UI labels it **SIMULATED**. The KyorakuReplay brand is fictional and this is an independent design study of **fxreplay.com**, not affiliated with FX Replay Inc.
