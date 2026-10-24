@@ -1,3 +1,4 @@
+import { SpeakingStudio } from "./speaking.js";
 import {
   LEVELS,
   LANGUAGES,
@@ -48,6 +49,7 @@ let page = "learn",
   toastTimer,
   modalReturnFocus;
 const iconPaths = {
+  mic: '<rect x="8" y="2" width="8" height="13" rx="4"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/>',
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
   book: '<path d="M3 4h6l3 2 3-2h6v15h-6l-3 2-3-2H3zM12 6v15"/>',
   grid: '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
@@ -124,12 +126,17 @@ function illustration() {
 const navItems = [
   ["learn", "home", "My learning"],
   ["explore", "grid", "Explore courses"],
+  ["speaking", "mic", "Speaking"],
   ["review", "layers", "Word studio"],
   ["notebook", "note", "My notebook"],
   ["progress", "chart", "My progress"],
   ["settings", "settings", "Settings"],
 ];
 const titles = {
+  speaking: [
+    "Find your voice, one conversation at a time.",
+    "English & French speaking practice · A1 to C1 · always free",
+  ],
   learn: [
     "Your little daily adventure.",
     "A few new words today. A whole new world tomorrow.",
@@ -169,14 +176,15 @@ function render() {
   const today = localDay(),
     active = streak(state.activity);
   $("#app").innerHTML =
-    `<div class="layout"><aside class="sidebar">${brand()}<div class="nav-label">YOUR LITTLE WORLD</div><nav class="nav" aria-label="Main navigation">${navItems.map(([key, i, label]) => `<button class="nav-item ${page === key ? "active" : ""}" data-nav="${key}" ${page === key ? 'aria-current="page"' : ""}>${icon(i)}<span>${label}</span>${key === "explore" ? '<span class="badge">FREE</span>' : ""}</button>`).join("")}</nav><div class="sidebar-spacer"></div><div class="sidebar-note"><span class="tiny-flower" aria-hidden="true">✿</span><strong>Good things take practice.</strong><p>No rush. No paywalls.<br>Just a little growth, every day.</p></div><div class="sidebar-footer"><button class="user-mini" data-nav="settings"><span class="avatar">${esc(state.name[0].toUpperCase())}</span><div><strong>${state.name === "friend" ? "A curious human" : esc(state.name)}</strong><small>Lifelong learner</small></div>${icon("settings")}</button></div></aside><div class="workspace"><header class="topbar"><div class="breadcrumbs">Your workspace ${icon("chevron")} <b>${esc(navItems.find((n) => n[0] === page)[2])}</b></div><div class="mobile-brand"><span class="brand-mark" aria-hidden="true">✿</span>bloom</div><div class="topbar-right"><span class="free-label">${icon("leaf")} Free to learn. Free to grow.</span><button class="streak-pill" data-action="streak" aria-label="${active} day learning streak">${icon("leaf")} ${active} day${active === 1 ? "" : "s"}</button><button class="avatar" data-nav="settings" aria-label="Open your settings">${esc(state.name[0].toUpperCase())}</button></div></header><main id="main" tabindex="-1"><div class="page-head"><div><h1>${esc(title)}${page === "learn" ? '<span class="greeting-flower" aria-hidden="true">✳</span>' : ""}</h1><p>${esc(subtitle)}</p></div><span class="date-label">${icon("calendar")}${new Date().toLocaleDateString("en-GB", { weekday: "short", month: "short", day: "numeric" })}</span></div>${!storageAvailable ? '<p class="storage-warning">Browser storage is unavailable. Progress will last only while this tab stays open.</p>' : ""}${page === "learn" ? dashboard() : page === "explore" ? explorePage() : page === "review" ? reviewPage() : page === "notebook" ? notebookPage() : page === "progress" ? progressPage() : settingsPage()}</main><footer class="page-footer"><span>${icon("leaf")} Made for curious minds. Open to everyone.</span><span>English & French · A1 to C1 · 100% free</span></footer></div></div>`;
+    `<div class="layout"><aside class="sidebar">${brand()}<div class="nav-label">YOUR LITTLE WORLD</div><nav class="nav" aria-label="Main navigation">${navItems.map(([key, i, label]) => `<button class="nav-item ${page === key ? "active" : ""}" data-nav="${key}" ${page === key ? 'aria-current="page"' : ""}>${icon(i)}<span>${label}</span>${key === "explore" ? '<span class="badge">FREE</span>' : ""}</button>`).join("")}</nav><div class="sidebar-spacer"></div><div class="sidebar-note"><span class="tiny-flower" aria-hidden="true">✿</span><strong>Good things take practice.</strong><p>No rush. No paywalls.<br>Just a little growth, every day.</p></div><div class="sidebar-footer"><button class="user-mini" data-nav="settings"><span class="avatar">${esc(state.name[0].toUpperCase())}</span><div><strong>${state.name === "friend" ? "A curious human" : esc(state.name)}</strong><small>Lifelong learner</small></div>${icon("settings")}</button></div></aside><div class="workspace"><header class="topbar"><div class="breadcrumbs">Your workspace ${icon("chevron")} <b>${esc(navItems.find((n) => n[0] === page)[2])}</b></div><div class="mobile-brand"><span class="brand-mark" aria-hidden="true">✿</span>bloom</div><div class="topbar-right"><span class="free-label">${icon("leaf")} Free to learn. Free to grow.</span><button class="streak-pill" data-action="streak" aria-label="${active} day learning streak">${icon("leaf")} ${active} day${active === 1 ? "" : "s"}</button><button class="avatar" data-nav="settings" aria-label="Open your settings">${esc(state.name[0].toUpperCase())}</button></div></header><main id="main" tabindex="-1"><div class="page-head"><div><h1>${esc(title)}${page === "learn" ? '<span class="greeting-flower" aria-hidden="true">✳</span>' : ""}</h1><p>${esc(subtitle)}</p></div><span class="date-label">${icon("calendar")}${new Date().toLocaleDateString("en-GB", { weekday: "short", month: "short", day: "numeric" })}</span></div>${!storageAvailable ? '<p class="storage-warning">Browser storage is unavailable. Progress will last only while this tab stays open.</p>' : ""}${page === "learn" ? dashboard() : page === "explore" ? explorePage() : page === "review" ? reviewPage() : page === "notebook" ? notebookPage() : page === "progress" ? progressPage() : page === "speaking" ? '<div id="speaking-studio"></div>' : settingsPage()}</main><footer class="page-footer"><span>${icon("leaf")} Made for curious minds. Open to everyone.</span><span>English & French · A1 to C1 · 100% free</span></footer></div></div>`;
   if (page === "explore") bindSearch();
+  if (page === "speaking") studio.mount($("#speaking-studio"));
 }
 function dashboard() {
   const next = nextLesson(),
     resume = state.session && !["complete"].includes(state.session.stage),
     level = LEVELS.find((l) => l.id === state.levels[state.language]);
-  return `<div class="dashboard-grid"><div class="main-column"><section class="hero"><div class="hero-copy"><div class="eyebrow"><span></span>GROW A LITTLE, EVERY DAY</div><h2>A little practice.<br>A world of possibility.</h2><p>Free English & French, from A1 to C1 practice. No account, no payments. Just pick a language and begin.</p><button class="btn" ${resume ? 'data-action="resume"' : `data-start="${next.id}"`}>${resume ? "Pick up where you left off" : "Start learning for free"} ${icon("arrow")}</button></div><div class="hero-stamp">${icon("spark")} Small steps. Real growth.</div><div class="hero-art">${illustration()}</div></section><div class="quick-guide"><span>New here?</span> Pick English or French below. Start at A1, or choose any level. Progress saves automatically.</div><div class="section-heading"><h2>Your languages</h2><span class="meta">Two languages. Endless possibilities.</span></div><div class="language-grid">${Object.entries(
+  return `<div class="dashboard-grid"><div class="main-column"><section class="hero"><div class="hero-copy"><div class="eyebrow"><span></span>GROW A LITTLE, EVERY DAY</div><h2>A little practice.<br>A world of possibility.</h2><p>Free English & French, from A1 to C1 practice. No account, no payments. Just pick a language and begin.</p><button class="btn" ${resume ? 'data-action="resume"' : `data-start="${next.id}"`}>${resume ? "Pick up where you left off" : "Start learning for free"} ${icon("arrow")}</button></div><div class="hero-stamp">${icon("spark")} Small steps. Real growth.</div><div class="hero-art">${illustration()}</div></section><div class="quick-guide"><span>New here?</span> Pick English or French below. Start at A1, or choose any level. Progress saves automatically.</div><button class="speaking-shortcut" data-nav="speaking">${icon("mic")}<span><strong>Give your words a voice.</strong><small>Meet Pip · free speaking practice, A1–C1</small></span>${icon("arrow")}</button><div class="section-heading"><h2>Your languages</h2><span class="meta">Two languages. Endless possibilities.</span></div><div class="language-grid">${Object.entries(
     LANGUAGES,
   )
     .map(
@@ -350,11 +358,13 @@ function progressPage() {
     )}</div><div class="panel" style="margin-top:22px"><h2 style="margin-bottom:15px">Practice, not perfection.</h2><p class="info-copy">You’ve completed <strong>${counts} practice session${counts === 1 ? "" : "s"}</strong> across <strong>${Object.keys(state.activity).length} active day${Object.keys(state.activity).length === 1 ? "" : "s"}</strong>. Completing a lesson records participation; quiz scores measure only those six questions. They do not certify CEFR proficiency. Your next step might be a real conversation, an article, or simply revisiting a tricky word.</p><button class="btn light" data-nav="learn">Keep growing ${icon("arrow")}</button></div>`;
 }
 function settingsPage() {
-  return `<div class="settings"><section class="panel"><h2>A familiar face</h2><form id="profile-form"><div class="field"><label for="display-name">What should we call you?</label><input id="display-name" value="${esc(state.name)}" required maxlength="30" autocomplete="given-name"><small>Saved only in this browser. No account or email needed.</small></div><button class="btn" type="submit">Save your name ${icon("check")}</button></form></section><section class="panel"><h2>Your learning rhythm</h2><div class="setting-row"><div>Daily goal<p>${state.goal} lesson${state.goal === 1 ? "" : "s"} per day · change it anytime</p></div><button class="btn light" data-action="goal">Adjust</button></div><div class="setting-row"><div>Pronunciation audio<p>Uses your browser’s available English and French voices.</p></div><button class="toggle ${state.sound ? "on" : ""}" data-action="sound" role="switch" aria-label="Pronunciation audio" aria-checked="${state.sound}"><span></span></button></div><p class="info-copy">Playback is always started by you, never automatically. Voices and availability depend on your browser and operating system. No microphone recording is used. Some device voices may use a network speech service.</p></section><section class="panel"><h2>Yours, and yours alone.</h2><p class="info-copy">All 50 lessons, 300 questions, 50 writing prompts, and review tools are free. No subscriptions, ads, hearts, payments, or premium tiers. Progress and notes stay in this browser’s local storage. Clearing browser data removes them. Bloom does not upload your learning data.</p><p class="info-copy">Original, CEFR-inspired material for A1–C1 practice. This is not an accredited or comprehensive curriculum, a placement test, or a guarantee of fluency. Writing and speaking benefit from feedback from a qualified teacher or fluent speaker.</p><button class="btn light" data-action="export">${icon("download")} Export my progress</button><p class="info-copy" style="margin-top:13px">The export is a personal JSON record; in-app import is not currently available.</p></section><section class="panel"><h2>A fresh page</h2><p class="info-copy">Reset all Bloom progress, notes, reviews, and settings in this browser. Your old Duolingo-style demo data is kept separate and is not changed.</p><button class="btn light" data-action="reset">Reset my learning data</button></section></div>`;
+  return `<div class="settings"><section class="panel"><h2>A familiar face</h2><form id="profile-form"><div class="field"><label for="display-name">What should we call you?</label><input id="display-name" value="${esc(state.name)}" required maxlength="30" autocomplete="given-name"><small>Saved only in this browser. No account or email needed.</small></div><button class="btn" type="submit">Save your name ${icon("check")}</button></form></section><section class="panel"><h2>Your learning rhythm</h2><div class="setting-row"><div>Daily goal<p>${state.goal} lesson${state.goal === 1 ? "" : "s"} per day · change it anytime</p></div><button class="btn light" data-action="goal">Adjust</button></div><div class="setting-row"><div>Pronunciation audio<p>Uses your browser’s available English and French voices.</p></div><button class="toggle ${state.sound ? "on" : ""}" data-action="sound" role="switch" aria-label="Pronunciation audio" aria-checked="${state.sound}"><span></span></button></div><p class="info-copy">Playback is always started by you, never automatically. Voices and availability depend on your browser and operating system. Speaking Studio offers optional microphone controls with a separate consent choice. Local recordings stay in the tab; browser dictation may use a provider’s network speech service. Some playback voices may also use a network service.</p></section><section class="panel"><h2>Yours, and yours alone.</h2><p class="info-copy">All 50 lessons, 300 questions, 50 writing prompts, and review tools are free. No subscriptions, ads, hearts, payments, or premium tiers. Progress and notes stay in this browser’s local storage. Clearing browser data removes them. Bloom does not run a server database. Browser dictation may send audio to your browser provider; see the Speaking Studio privacy notice.</p><p class="info-copy">Original, CEFR-inspired material for A1–C1 practice. This is not an accredited or comprehensive curriculum, a placement test, or a guarantee of fluency. Writing and speaking benefit from feedback from a qualified teacher or fluent speaker.</p><button class="btn light" data-action="export">${icon("download")} Export my progress</button><p class="info-copy" style="margin-top:13px">The export is a personal JSON record; in-app import is not currently available.</p></section><section class="panel"><h2>A fresh page</h2><p class="info-copy">Reset all Bloom progress, notes, reviews, speaking history, and settings in this browser. Your old Duolingo-style demo data is kept separate and is not changed.</p><button class="btn light" data-action="reset">Reset my learning data</button></section></div>`;
 }
 function navigate(next) {
   if (!titles[next]) return;
+  studio.leave();
   page = next;
+  history.replaceState(null, "", `#${next}`);
   review = null;
   render();
   window.scrollTo({ top: 0, behavior: "instant" });
@@ -416,7 +426,7 @@ function noteDialog(id = null, lessonId = null) {
     },
   );
 }
-function speak(text, language = state.language) {
+function speak(text, language = state.language, rate = 0.85) {
   if (!state.sound)
     return toast("Pronunciation audio is off. You can turn it on in Settings.");
   if (!("speechSynthesis" in window))
@@ -424,7 +434,7 @@ function speak(text, language = state.language) {
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = LANGUAGES[language].locale;
-  utterance.rate = 0.85;
+  utterance.rate = rate;
   utterance.onerror = (e) => {
     if (e.error !== "interrupted" && e.error !== "canceled")
       toast(
@@ -664,9 +674,18 @@ function dispatch(action) {
     case "add-note":
       return noteDialog();
     case "export": {
-      const blob = new Blob([JSON.stringify(state, null, 2)], {
-          type: "application/json",
-        }),
+      const blob = new Blob(
+          [
+            JSON.stringify(
+              { ...state, speaking: studio.exportData() },
+              null,
+              2,
+            ),
+          ],
+          {
+            type: "application/json",
+          },
+        ),
         url = URL.createObjectURL(blob),
         a = document.createElement("a");
       a.href = url;
@@ -679,10 +698,11 @@ function dispatch(action) {
     case "reset":
       return openDialog(
         "Turn to a fresh page?",
-        `<p>This permanently removes your Bloom progress, writing, notes, and preferences from this browser. Export your record first if you’d like a copy.</p><div class="dialog-actions"><button class="btn light" data-action="close-dialog">Keep my garden</button><button class="btn danger" data-action="confirm-reset">Yes, reset everything</button></div>`,
+        `<p>This permanently removes your Bloom progress, writing, notes, speaking history, and preferences from this browser. Export your record first if you’d like a copy.</p><div class="dialog-actions"><button class="btn light" data-action="close-dialog">Keep my garden</button><button class="btn danger" data-action="confirm-reset">Yes, reset everything</button></div>`,
       );
     case "confirm-reset":
       state = defaults();
+      studio.reset();
       save();
       closeDialog();
       page = "learn";
@@ -962,5 +982,21 @@ document.addEventListener("keydown", (event) => {
 $("#modal-root").addEventListener("click", (event) => {
   if (event.target.classList.contains("overlay")) closeDialog();
 });
+const studio = new SpeakingStudio({
+  preferences: () => ({
+    language: state.language,
+    level: state.levels[state.language],
+  }),
+  changePreferences: (language, level) => {
+    state.language = language;
+    state.levels[language] = level;
+    save();
+  },
+  speak,
+  notify: toast,
+});
+const initialRoute =
+  location.hash === "#speaking-privacy" ? "speaking" : location.hash.slice(1);
+if (Object.hasOwn(titles, initialRoute)) page = initialRoute;
 render();
-if (state.session) showLesson();
+if (state.session && page !== "speaking") showLesson();

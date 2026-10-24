@@ -36,7 +36,7 @@ A1 starts with introductions, routines, food, directions, and descriptions. A2 i
 
 The labels are **CEFR-inspired intended difficulty**, not accreditation, a placement result, an exhaustive A1–C1 syllabus, or a guarantee of reaching C1. Five lessons at each level are curated practice, not a replacement for a complete language programme. Add substantial real-world reading, listening, conversation, and feedback from qualified teachers or fluent speakers. The support language is English; French examples, passages, and samples are in French.
 
-Writing is **self-reviewed**, not automatically or professionally graded. The samples are deliberately short illustrations, not full model essays at every level. Speaking practice is reading aloud; the app does not record speech or assess pronunciation. Quiz completion records practice, not mastery or a qualification.
+Writing is **self-reviewed**, not automatically or professionally graded. The samples are deliberately short illustrations, not full model essays at every level. Speaking Studio adds optional local recording, browser dictation, and guided conversation. It does not assess pronunciation acoustically or provide a teacher’s evaluation. Quiz completion records practice, not mastery or a qualification.
 
 ## Learning tools
 
@@ -53,14 +53,14 @@ Writing is **self-reviewed**, not automatically or professionally graded. The sa
 
 Everything is saved in this browser’s `localStorage` under `bloom-language-learning-v1`. No account or server database exists. Clearing browser data removes progress. Export creates a personal JSON record; in-app restore/import is not currently implemented. The previous demo’s `duo-demo-progress` key is untouched. If storage is blocked or full, a message explains that progress is temporary.
 
-Pronunciation uses browser speech synthesis and available device voices. Playback is manually initiated. Some voices require a device/network speech service; audio availability and quality vary. The application itself makes no requests to Duolingo or paid learning APIs. All app styles, SVGs, and course data are served locally without external fonts or assets.
+Pronunciation uses browser speech synthesis and available device voices. Playback is manually initiated. Some voices require a device/network speech service; audio availability and quality vary. Browser dictation in Speaking Studio may send audio to your browser provider. The application itself makes no requests to Duolingo or paid learning APIs. All app styles, SVGs, and course data are served locally without external fonts or assets.
 
 ## Tests
 
 Dependency-free curriculum and persistence tests:
 
 ```sh
-node --test demos/duolingo/tests/course.test.js
+node --test demos/duolingo/tests/*.test.js
 ```
 
 Optional real Chromium smoke test, with the server running and Playwright installed in your test environment:
@@ -80,3 +80,34 @@ The smoke test covers French C1 and English A1 lessons, correct/incorrect feedba
 - `app.js`: views, lesson flow, review interactions, and browser integration
 - `styles.css`: responsive design and accessible focus/contrast rules
 - `tests/`: curriculum/state regression tests and optional browser smoke test
+
+## Speaking Studio — English & French, A1–C1
+
+Open **Speaking** (the microphone icon) or use `/#speaking` directly. Both languages have five levels, each with a speaking goal, a conversation starter, four follow-up prompts, a longer speaking challenge, and three listen-and-repeat exercises: **30 distinct sound-focused practice phrases** in total.
+
+### Three practice modes
+
+- **Conversation bot:** Pip is a free **local, rule-based bot**, not a generative AI or a factual knowledge assistant. Pick one of seven topic areas or enter your own subject. It offers level-appropriate prepared questions, optional spoken replies, and a few explicit standard-grammar suggestions. No suggestion does **not** mean the response is error-free. There is no application quota on the number of messages, no account, no model download, and no API key. Each turn has a 1,200-character bound; the latest 25 turns per language/level are retained in local storage, with older turns rolling off.
+- **Listen & repeat:** Listen at normal or slower speed, practise one of three phrases at each level, read a specific sound/phrasing tip, record a take for playback, or use browser dictation. An editable transcript is aligned against the expected words. Highlights show matched, substituted, missing, or extra **words**. This is text comparison, **not an acoustic pronunciation score**; recogniser errors, noise, or different wording can produce mismatches, and a match does not prove correct pronunciation. Self-reported practice checks are saved separately from course XP.
+- **Speaking challenge:** Record an open response to a level-appropriate prompt and self-review its clarity, organisation, and delivery. No automatic grading or transcription of these recordings is performed. Recordings stop after 90 seconds; longer challenges can be practised in separate segments, listening before beginning a new take.
+
+### Microphone and privacy
+
+Voice controls are off until the learner explicitly enables them after reading the disclosure. Browser/OS microphone permission is a separate requirement. The production Permissions-Policy allows the microphone on the app’s own origin, but never the camera or geolocation. Use the public HTTPS site directly; an embedded preview may not delegate microphone permission.
+
+**Browser dictation** uses `SpeechRecognition`/`webkitSpeechRecognition` if available, with `en-GB` or `fr-FR`. It may send audio to the browser provider’s network service and may require internet or be subject to provider restrictions. It is not an app-hosted speech model and cannot be promised to work offline or without provider limits. Chrome/Edge are suggested, but support varies by device. Results are placed into a draft and are never automatically sent to the bot; review the text and press Send yourself. Typed chat and recording/self-review remain alternatives when dictation is unsupported or fails.
+
+**Local recording** uses `getUserMedia` and `MediaRecorder`. Audio is not uploaded by Bloom or saved in local storage. Playback is available in the current tab until a new take, exercise/mode/language change, clearing consent, or navigation discards it. Leaving the section, cancelling a pending request, or withdrawing consent stops active capture; a late permission grant is released immediately. Temporary recording URLs are revoked. Closing/reloading the page loses the audio.
+
+Chat drafts, recent messages, consent choice, and self-reported phrase practice are stored under `bloom-speaking-v1`. Course export includes these records. The Studio’s clear-history button resets only speaking data; the main Settings reset clears both speaking and course data. Browser microphone grants must be managed in browser settings separately.
+
+### Speaking validation
+
+```sh
+node --test demos/duolingo/tests/speaking.test.js
+node demos/duolingo/tests/speaking.browser.mjs
+```
+
+The optional browser test uses simulated speech-recognition results to test integration, language settings, transcript review, and fallback behavior. It tests real Chromium MediaRecorder with browser-generated fake microphone input, including blob playback, track release, cancellation, and URL revocation. **These tests do not establish real-device microphone quality, provider speech-recognition availability, human pronunciation accuracy, or comprehensive grammar correction.** Try the live site on your actual device to confirm its voice-service support.
+
+Speaking implementation is isolated in `speaking-content.js` (authored prompts, explicit text rules, bounded word alignment), `speech-media.js` (capture resource lifecycle), and `speaking.js` (Studio UI and local history).

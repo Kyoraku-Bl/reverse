@@ -2627,4 +2627,1033 @@ select {
   color: #647255;
   background: #f5f8ef;
 }
-.quick-guide span { font-weight: 700; margin-right: 4px; }
+.quick-guide span {
+  font-weight: 700;
+  margin-right: 4px;
+}
+/* Speaking Studio */
+.speaking-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border: 1px solid #dfd9ec;
+  border-radius: 14px;
+  padding: 15px 18px;
+  background: #f0edf7;
+  width: 100%;
+  text-align: left;
+  margin-top: 14px;
+  color: #655277;
+}
+.speaking-shortcut > .icon {
+  width: 23px;
+  height: 23px;
+}
+.speaking-shortcut > .icon:last-child {
+  margin-left: auto;
+  width: 17px;
+}
+.speaking-shortcut strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.speaking-shortcut small {
+  font-size: 10px;
+  color: #796587;
+}
+.speaking-shortcut:hover {
+  background: #e9e2f3;
+}
+.speaking-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 29px;
+  background: linear-gradient(115deg, #eae6f4, #f1f4e4);
+  border: 1px solid #e0ddeb;
+  padding: 29px 34px;
+  border-radius: 22px;
+  overflow: hidden;
+}
+.speaking-emblem {
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  background: #f8f6fc;
+  box-shadow: 0 0 0 12px #ffffff55;
+  display: grid;
+  place-items: center;
+  color: #8c78aa;
+  flex-shrink: 0;
+}
+.speaking-emblem .icon {
+  height: 53px;
+  width: 53px;
+  stroke-width: 1.2;
+}
+.speaking-banner h2 {
+  font-family: Georgia, serif;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -1px;
+  margin: 0 0 12px;
+}
+.speaking-banner p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #697657;
+  margin: 0;
+}
+.speaking-banner .eyebrow {
+  color: #796788;
+  font-size: 8px;
+  margin-bottom: 12px;
+}
+.speaking-free {
+  position: absolute;
+  right: 25px;
+  top: 25px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  background: #ffffff90;
+  color: #5c7344;
+  padding: 7px 9px;
+  border-radius: 6px;
+}
+.speaking-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 25px 0 12px;
+}
+.speaking-languages,
+.speaking-levels {
+  display: flex;
+  padding: 4px;
+  background: #ecefe5;
+  border: 1px solid #e0e6d6;
+  border-radius: 12px;
+  gap: 4px;
+}
+.speaking-languages button,
+.speaking-levels button {
+  font-size: 12px;
+  padding: 10px 17px;
+  border-radius: 8px;
+  color: #58684c;
+}
+.speaking-languages button.active,
+.speaking-levels button.active {
+  background: #fff;
+  box-shadow: 0 1px 5px #33462610;
+  color: #375731;
+  font-weight: 650;
+}
+.speaking-levels button {
+  padding: 10px 16px;
+}
+.speaking-goal {
+  font-size: 12px;
+  color: #68765b;
+  line-height: 1.9;
+  margin: 0 0 22px;
+}
+.speaking-goal strong {
+  font-weight: 650;
+  margin-right: 8px;
+  color: #3e5c34;
+}
+.speaking-modes {
+  display: flex;
+  gap: 25px;
+  border-bottom: 1px solid #dfe5d6;
+  margin-bottom: 17px;
+}
+.speaking-modes button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 12px 2px 15px;
+  border-bottom: 2px solid transparent;
+  color: #5f6e51;
+  margin-bottom: -1px;
+}
+.speaking-modes button.active {
+  color: #6b507d;
+  border-bottom-color: #957aac;
+  font-weight: 650;
+}
+.speaking-modes .icon {
+  width: 16px;
+  height: 16px;
+}
+.speaking-disclosure {
+  background: #f5f3ec;
+  border: 1px solid #e7e4d9;
+  border-radius: 12px;
+  padding: 14px 17px;
+  font-size: 11px;
+  color: #726a53;
+  line-height: 1.85;
+  margin-bottom: 23px;
+}
+.speaking-disclosure > strong:first-child {
+  color: #62573e;
+}
+.speaking-chat-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 23px;
+  align-items: start;
+}
+.speaking-chat {
+  padding: 0;
+  overflow: hidden;
+}
+.speaking-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 19px 21px;
+  border-bottom: 1px solid var(--line);
+  background: #fcfdf9;
+}
+.pip-avatar {
+  width: 37px;
+  height: 37px;
+  border-radius: 13px;
+  background: #e6eeda;
+  display: grid;
+  place-items: center;
+  color: #7a915b;
+  font-size: 30px;
+  flex-shrink: 0;
+}
+.speaking-chat-header h2 {
+  font-size: 13px;
+  margin: 0 0 4px;
+}
+.speaking-chat-header p {
+  font-size: 9px;
+  color: #68775b;
+  margin: 0;
+}
+.speaking-chat-header .text-btn {
+  margin-left: auto;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.speaking-topic {
+  padding: 15px 21px;
+  background: #fafbf6;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.speaking-topic label {
+  font-size: 11px;
+  color: #6c785e;
+}
+.speaking-topic select,
+.speaking-topic input {
+  border: 1px solid #dce3d2;
+  border-radius: 8px;
+  font-size: 11px;
+  padding: 9px 10px;
+  background: white;
+  min-width: 0;
+  max-width: 100%;
+}
+.speaking-topic input {
+  flex: 1;
+  min-width: 150px;
+}
+.speaking-topic .btn {
+  font-size: 10px;
+  padding: 8px 11px;
+}
+.speaking-messages {
+  min-height: 270px;
+  max-height: 510px;
+  overflow: auto;
+  padding: 24px 21px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd8bc #f8faf4;
+}
+.speaking-message {
+  max-width: 90%;
+  margin: 0 0 20px;
+  background: #f1f4ea;
+  border: 1px solid #e6ecdc;
+  border-radius: 0 15px 15px 15px;
+  padding: 13px 16px;
+  overflow-wrap: anywhere;
+}
+.speaking-message.user {
+  margin-left: auto;
+  background: #eeebf6;
+  border-color: #e4dff0;
+  border-radius: 15px 0 15px 15px;
+}
+.message-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 8px;
+  letter-spacing: 0.6px;
+  color: #5b7049;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  gap: 12px;
+}
+.message-meta .audio-btn {
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+}
+.message-meta .audio-btn .icon {
+  height: 12px;
+  width: 12px;
+}
+.speaking-message.user .message-meta {
+  color: #77618c;
+}
+.speaking-message > p {
+  font-size: 13px;
+  line-height: 1.85;
+  white-space: pre-wrap;
+  margin: 0;
+}
+.speaking-correction {
+  border-top: 1px solid #dbe3cd;
+  margin-top: 13px;
+  padding-top: 12px;
+  color: #5a6c43;
+}
+.speaking-correction > strong {
+  font-size: 10px;
+  font-weight: 650;
+}
+.speaking-correction p {
+  font-size: 12px;
+  line-height: 1.9;
+  margin: 8px 0;
+}
+.speaking-correction small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.8;
+}
+.speaking-correction p > span {
+  color: #88674c;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+#speaking-chat-form {
+  padding: 17px 21px;
+  border-top: 1px solid var(--line);
+}
+#speaking-chat-form > label {
+  display: block;
+  font-size: 10px;
+  color: #637650;
+  margin-bottom: 10px;
+}
+#speaking-chat-input,
+#speaking-heard {
+  display: block;
+  resize: vertical;
+  width: 100%;
+  min-height: 88px;
+  border: 1px solid #d9e2ce;
+  border-radius: 11px;
+  padding: 13px;
+  background: #fbfcf8;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #354a2c;
+}
+#speaking-chat-input:disabled {
+  opacity: 0.7;
+}
+.speaking-compose-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 13px;
+  margin-top: 12px;
+}
+.speaking-compose-actions .btn {
+  font-size: 10px;
+  padding: 10px 15px;
+}
+.speaking-capture-status {
+  font-size: 10px;
+  color: #6b775e;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  line-height: 1.8;
+  padding: 0 21px 14px;
+  flex-wrap: wrap;
+}
+.speaking-capture-status .text-btn {
+  margin-left: auto;
+  color: #9d5145;
+}
+.speaking-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #b47465;
+  box-shadow: 0 0 0 4px #f2e7df;
+  flex-shrink: 0;
+}
+.speaking-auto {
+  font-size: 10px;
+  padding: 0 21px 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #66765a;
+}
+.speaking-auto input,
+.speaking-consent input {
+  accent-color: #69874a;
+}
+.speaking-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.speaking-tip-icon {
+  display: grid;
+  place-items: center;
+  background: #f1e9db;
+  border-radius: 11px;
+  width: 40px;
+  height: 40px;
+  font-size: 25px;
+  color: #a58b63;
+  margin-bottom: 16px;
+}
+.speaking-tips h2 {
+  font-size: 16px;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+.speaking-tips p {
+  font-size: 12px;
+  color: #67775b;
+  line-height: 1.9;
+}
+.speaking-tips h3 {
+  font-size: 12px;
+  margin: 21px 0 10px;
+}
+.speaking-tips .panel {
+  padding: 22px;
+}
+.speaking-tip-note {
+  background: #eceaf4;
+  border: 1px solid #e2ddef;
+  border-radius: 15px;
+  padding: 18px;
+  color: #705e82;
+}
+.speaking-tip-note strong {
+  font-size: 12px;
+}
+.speaking-tip-note p {
+  font-size: 11px;
+  color: #756184;
+  margin: 9px 0 0;
+}
+.speaking-privacy {
+  border: 1px solid #e0e6d7;
+  border-radius: 15px;
+  background: #f4f7ee;
+  padding: 22px 24px;
+  margin-top: 25px;
+}
+.speaking-privacy h2 {
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+.speaking-privacy p {
+  font-size: 11px;
+  line-height: 1.9;
+  color: #5c6f4a;
+  margin-bottom: 16px;
+}
+.speaking-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #3e5730;
+}
+.speaking-consent input {
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.speaking-privacy > .text-btn {
+  margin-top: 15px;
+  font-size: 10px;
+  color: #786650;
+}
+.speaking-repeat,
+.speaking-challenge {
+  max-width: 900px;
+  margin: auto;
+  padding: 28px;
+}
+.speaking-repeat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.speaking-repeat-head h2 {
+  font-size: 17px;
+  line-height: 1.5;
+}
+.speaking-repeat-head > span {
+  color: #6c7b60;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.speaking-drill-tabs {
+  display: flex;
+  gap: 9px;
+  margin: 22px 0;
+}
+.speaking-drill-tabs button {
+  border: 1px solid #dfe5d6;
+  border-radius: 8px;
+  font-size: 11px;
+  padding: 9px 13px;
+  color: #536b43;
+}
+.speaking-drill-tabs button.active {
+  background: #edf2e3;
+  border-color: #a7bc8f;
+  font-weight: 650;
+}
+.speaking-target {
+  padding: 26px;
+  border: 1px solid #dfd9ed;
+  border-radius: 18px;
+  background: #f2eff8;
+}
+.speaking-target .eyebrow {
+  color: #756082;
+  font-size: 8px;
+}
+.speaking-target > p {
+  font-family: Georgia, serif;
+  font-size: 26px;
+  line-height: 1.55;
+  color: #5f4f70;
+  margin: 10px 0 23px;
+}
+.speaking-target > div {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.speaking-target .text-btn {
+  font-size: 11px;
+  color: #77628a;
+}
+.speaking-target .btn {
+  font-size: 11px;
+}
+.speaking-sound-tip {
+  background: #f4f7ee;
+  border-left: 3px solid #acbe90;
+  border-radius: 0 11px 11px 0;
+  margin: 20px 0 25px;
+  padding: 15px 19px;
+}
+.speaking-sound-tip > strong {
+  font-size: 12px;
+  color: #547044;
+}
+.speaking-sound-tip > p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #617650;
+  margin: 7px 0 0;
+}
+.speaking-repeat h3 {
+  font-size: 14px;
+  margin: 22px 0 11px;
+}
+.speaking-repeat .info-copy {
+  font-size: 12px;
+}
+.speaking-voice-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 17px 0;
+}
+.speaking-voice-actions .btn {
+  font-size: 11px;
+}
+.speaking-repeat > .speaking-capture-status,
+.speaking-challenge > .speaking-capture-status {
+  padding: 3px 0 15px;
+}
+.speaking-field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #587149;
+  margin: 20px 0 12px;
+}
+#speaking-heard {
+  margin-bottom: 13px;
+}
+.speaking-comparison {
+  border: 1px solid #e0e7d6;
+  background: #fafcf6;
+  border-radius: 12px;
+  padding: 18px;
+  margin: 21px 0;
+}
+.speaking-comparison > strong {
+  font-size: 13px;
+}
+.speaking-comparison > p {
+  font-size: 11px;
+  line-height: 1.9;
+  color: #657950;
+  margin: 10px 0;
+}
+.speaking-word-chips {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 15px 0;
+}
+.speaking-word-chips span {
+  font-size: 11px;
+  border-radius: 6px;
+  padding: 5px 8px;
+  line-height: 1.6;
+}
+.word-match {
+  background: #e5eed9;
+  color: #466135;
+}
+.word-different,
+.word-missing {
+  background: #f5e7d9;
+  color: #855e3e;
+}
+.word-extra {
+  background: #eae7f4;
+  color: #71578b;
+}
+.speaking-self-review {
+  border-top: 1px solid var(--line);
+  margin-top: 27px;
+  padding-top: 8px;
+}
+.speaking-self-review ul {
+  font-size: 12px;
+  color: #60764f;
+  line-height: 2.1;
+  padding-left: 20px;
+  margin-bottom: 23px;
+}
+.speaking-self-review > p {
+  font-size: 10px;
+  color: #697b5b;
+  margin: 12px 0 0;
+}
+.speaking-recording {
+  background: #f4f1f9;
+  border: 1px solid #e6def1;
+  padding: 18px 20px;
+  border-radius: 12px;
+  margin: 16px 0 21px;
+}
+.speaking-recording label {
+  font-size: 11px;
+  color: #735c89;
+  display: block;
+  margin-bottom: 10px;
+}
+.speaking-recording audio {
+  width: 100%;
+  height: 40px;
+}
+.speaking-recording button {
+  display: block;
+  margin-top: 10px;
+  color: #7c607a;
+}
+.speaking-challenge {
+  text-align: center;
+}
+.speaking-challenge-flower {
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: #ece8f5;
+  color: #9279ac;
+  font-size: 57px;
+  margin: 12px auto 23px;
+}
+.speaking-challenge > .eyebrow {
+  justify-content: center;
+  color: #735d88;
+}
+.speaking-challenge > h2 {
+  font-family: Georgia, serif;
+  font-size: 30px;
+  font-weight: 400;
+  margin: 18px 0;
+}
+.speaking-challenge-prompt {
+  font-size: 17px;
+  line-height: 1.9;
+  color: #5b704b;
+  max-width: 580px;
+  margin: 22px auto;
+}
+.speaking-challenge > ol {
+  font-size: 12px;
+  color: #687c56;
+  line-height: 2;
+  text-align: left;
+  max-width: 540px;
+  margin: 25px auto;
+  padding-left: 22px;
+}
+.speaking-challenge > .speaking-capture-status {
+  justify-content: center;
+  margin-top: 18px;
+}
+.speaking-challenge > .speaking-sound-tip {
+  text-align: left;
+  margin-top: 26px;
+}
+.speaking-chat input,
+.speaking-chat textarea,
+.speaking-message {
+  overflow-wrap: anywhere;
+}
+.speaking-banner,
+.speaking-chat-grid,
+.speaking-chat,
+.speaking-tips {
+  min-width: 0;
+}
+@media (max-width: 1180px) {
+  .speaking-chat-grid {
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 18px;
+  }
+  .speaking-banner {
+    padding: 27px;
+    gap: 24px;
+  }
+  .speaking-emblem {
+    width: 94px;
+    height: 94px;
+  }
+  .speaking-chat-header h2 {
+    font-size: 12px;
+  }
+  .speaking-tips .panel {
+    padding: 19px;
+  }
+  .speaking-chat-header {
+    padding: 18px 16px;
+  }
+  .speaking-levels button {
+    padding: 10px 12px;
+  }
+  .speaking-free {
+    right: 18px;
+    top: 17px;
+  }
+}
+@media (max-width: 800px) {
+  .speaking-chat-grid {
+    grid-template-columns: 1fr;
+  }
+  .speaking-tips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .speaking-toolbar {
+    gap: 12px;
+  }
+  .speaking-languages button {
+    padding: 9px 13px;
+  }
+  .speaking-levels button {
+    padding: 9px 12px;
+  }
+  .speaking-banner h2 {
+    font-size: 30px;
+  }
+  .speaking-emblem {
+    width: 86px;
+    height: 86px;
+  }
+  .speaking-free {
+    display: none;
+  }
+  .speaking-messages {
+    max-height: 450px;
+  }
+}
+@media (max-width: 540px) {
+  .speaking-banner {
+    padding: 25px 21px;
+    gap: 18px;
+  }
+  .speaking-emblem {
+    width: 61px;
+    height: 61px;
+    box-shadow: 0 0 0 6px #ffffff55;
+  }
+  .speaking-emblem .icon {
+    height: 32px;
+    width: 32px;
+  }
+  .speaking-banner h2 {
+    font-size: 25px;
+  }
+  .speaking-banner p {
+    font-size: 10px;
+  }
+  .speaking-banner .eyebrow {
+    font-size: 7px;
+    letter-spacing: 0.7px;
+  }
+  .speaking-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 11px;
+    margin-top: 19px;
+  }
+  .speaking-languages button {
+    flex: 1;
+  }
+  .speaking-levels button {
+    flex: 1;
+    padding: 9px 10px;
+  }
+  .speaking-goal {
+    font-size: 11px;
+    line-height: 1.8;
+    margin-bottom: 13px;
+  }
+  .speaking-goal strong {
+    display: block;
+  }
+  .speaking-modes {
+    gap: 10px;
+    justify-content: space-between;
+  }
+  .speaking-modes button {
+    font-size: 10px;
+    gap: 5px;
+    padding-bottom: 12px;
+    line-height: 1.6;
+    flex: 1;
+  }
+  .speaking-modes .icon {
+    height: 16px;
+    width: 16px;
+  }
+  .speaking-disclosure {
+    font-size: 10px;
+    padding: 13px 15px;
+  }
+  .speaking-chat-header {
+    padding: 16px 14px;
+    gap: 9px;
+  }
+  .speaking-chat-header h2 {
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .speaking-chat-header p {
+    font-size: 8px;
+  }
+  .speaking-chat-header .text-btn {
+    font-size: 9px;
+  }
+  .pip-avatar {
+    width: 31px;
+    height: 31px;
+    font-size: 25px;
+    border-radius: 11px;
+  }
+  .speaking-topic {
+    padding: 13px 15px;
+  }
+  .speaking-topic select {
+    flex: 1;
+  }
+  .speaking-topic input {
+    min-width: 160px;
+  }
+  .speaking-messages {
+    padding: 21px 15px;
+    min-height: 230px;
+    max-height: 400px;
+  }
+  .speaking-message {
+    max-width: 96%;
+    padding: 12px 13px;
+  }
+  .speaking-message > p {
+    font-size: 12px;
+  }
+  .speaking-correction p {
+    font-size: 11px;
+  }
+  #speaking-chat-form {
+    padding: 15px;
+  }
+  .speaking-capture-status {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  .speaking-auto {
+    padding: 0 15px 17px;
+    line-height: 1.8;
+  }
+  .speaking-tips {
+    grid-template-columns: 1fr;
+  }
+  .speaking-tips .panel {
+    padding: 20px;
+  }
+  .speaking-privacy {
+    padding: 19px 18px;
+  }
+  .speaking-privacy p {
+    font-size: 10px;
+  }
+  .speaking-consent {
+    font-size: 11px;
+  }
+  .speaking-repeat,
+  .speaking-challenge {
+    padding: 21px 17px;
+  }
+  .speaking-repeat-head h2 {
+    font-size: 15px;
+  }
+  .speaking-repeat-head {
+    align-items: flex-start;
+  }
+  .speaking-repeat-head > span {
+    font-size: 10px;
+  }
+  .speaking-target {
+    padding: 20px 17px;
+  }
+  .speaking-target > p {
+    font-size: 23px;
+  }
+  .speaking-target > div {
+    gap: 12px;
+  }
+  .speaking-target .btn {
+    font-size: 10px;
+    padding: 10px 12px;
+  }
+  .speaking-drill-tabs {
+    gap: 7px;
+    margin-top: 19px;
+  }
+  .speaking-drill-tabs button {
+    font-size: 10px;
+    flex: 1;
+    padding: 9px 7px;
+  }
+  .speaking-sound-tip {
+    padding: 14px 15px;
+  }
+  .speaking-sound-tip > p {
+    font-size: 11px;
+  }
+  .speaking-voice-actions .btn {
+    font-size: 10px;
+    padding: 11px 12px;
+  }
+  .speaking-comparison {
+    padding: 16px 13px;
+  }
+  .speaking-challenge > h2 {
+    font-size: 27px;
+  }
+  .speaking-challenge-prompt {
+    font-size: 15px;
+  }
+  .speaking-shortcut {
+    padding: 14px 15px;
+  }
+  .speaking-shortcut strong {
+    font-size: 12px;
+  }
+  .speaking-shortcut small {
+    font-size: 9px;
+  }
+  .nav-item {
+    width: 54px;
+    min-width: 0;
+  }
+  .nav-item > span:not(.badge) {
+    font-size: 7px;
+  }
+  .nav {
+    gap: 0;
+  }
+  .nav-item[data-nav="speaking"] .icon {
+    color: #806597;
+  }
+}
+.speaking-consent-bar {
+  background: #f0f5e9;
+  border: 1px solid #dbe5ce;
+  border-radius: 12px;
+  padding: 15px 18px;
+  margin: -8px 0 24px;
+}
+.speaking-consent-bar .speaking-consent {
+  font-size: 11px;
+  line-height: 1.9;
+}
+.speaking-consent-bar > a {
+  display: inline-block;
+  margin: 9px 0 0 24px;
+  font-size: 10px;
+  text-underline-offset: 3px;
+  color: #5d734b;
+}
+.speaking-consent-reminder {
+  font-size: 11px !important;
+}
