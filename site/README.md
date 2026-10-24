@@ -86,11 +86,32 @@ Two emails on the same machine never see each other's numbers. Nothing is upload
 ## Run it locally
 
 ```bash
-cd site && python3 -m http.server 8010
-# http://127.0.0.1:8010/
+cd site && python3 serve.py 8010        # http://127.0.0.1:8010/
 ```
 
-A static server is enough; there is no build step and no dependency at runtime.
+`serve.py` is a plain static server with three preview-friendly details: it sends
+`Cache-Control: no-store` so a reload always picks up new JS, it resolves
+extension-less routes (`/terminal` → `terminal.html`), and it adds
+`Access-Control-Allow-Origin: *` so the snapshot can be read from another host.
+`python3 -m http.server 8010` also works if you do not need those.
+
+There is no build step and nothing to install at runtime.
+
+### No data in the chart?
+
+The chart is only ever fed by `data/<ID>.json` (the published snapshot) or by the
+exchange itself. In a sandbox without internet both fail, and the terminal says so
+instead of drawing invented candles — the empty state even has a **Retry** button.
+With a normal connection the feed walks this chain until a real candle appears:
+
+1. `data/<ID>.json` next to the page (served by CI on GitHub Pages)
+2. `https://kyoraku-bl.github.io/reverse/data/<ID>.json` (the previous deployment)
+3. the same file through a CORS reader
+4. the provider directly — Binance (CORS-enabled) or Yahoo through a public relay
+
+The badge names whatever answered: `LIVE · yahoo`, `SNAPSHOT · yahoo` (+ age), or
+`no data`. If the export has no `data/` folder yet, the snapshot step simply misses
+and the live step takes over.
 
 ## Status
 
