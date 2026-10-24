@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · KyorakuReplay</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c6cff'/><path d='M9 22V10l7 8 7-8v12' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="stylesheet" href="assets/css/base.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<header class="nav">
+  <div class="wrap nav__in">
+    <a class="brand" href="index.html"><span class="brand__mark">K</span><span>Kyoraku<em>Replay</em></span></a>
+    <nav class="nav__links">
+      <a href="terminal.html">Terminal</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="index.html#pricing">Pricing</a>
+    </nav>
+    <div class="nav__right">
+      <button class="icon-btn" id="themeBtn" title="Theme"><svg class="ic"><use href="#i-sun"/></svg></button>
+      <span class="nav__user" id="who"><span class="avatar">—</span><span style="font-size:13px">—</span></span>
+      <button class="btn btn--ghost btn--sm" id="logoutBtn">Log out</button>
+    </div>
+  </div>
+</header>
+
+<main class="dash">
+  <div class="wrap">
+    <div class="dash__head">
+      <div>
+        <h1 id="greeting">Dashboard</h1>
+        <p id="subGreeting">Your replay work, per email.</p>
+      </div>
+      <a class="btn btn--primary" href="terminal.html"><span>Open the terminal</span> <svg class="ic ic--sm"><use href="#i-arrow"/></svg></a>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><span>Net P&amp;L</span><b id="kPnl">$0.00</b></div>
+      <div class="kpi"><span>Closed trades</span><b id="kTrades">0</b></div>
+      <div class="kpi"><span>Win rate</span><b id="kWin">—</b></div>
+      <div class="kpi"><span>Open positions</span><b id="kOpen">0</b></div>
+    </div>
+
+    <div class="dash__grid">
+      <section class="panel">
+        <div class="panel__head"><h2>Trade journal</h2><a class="btn btn--ghost btn--sm" href="terminal.html">Back to the chart</a></div>
+        <div class="panel__body" style="padding:0">
+          <table class="tbl"><thead><tr><th>Closed</th><th>Symbol</th><th>Side</th><th class="num">Entry</th><th class="num">Exit</th><th class="num">P&amp;L</th></tr></thead>
+          <tbody id="journalBody"></tbody></table>
+          <p class="empty" id="journalEmpty">No closed trades yet. Open a position in the terminal and close it — it lands here with the real tick math.</p>
+        </div>
+      </section>
+
+      <div style="display:grid;gap:18px;align-content:start">
+        <section class="panel">
+          <div class="panel__head"><h2>Watchlist</h2></div>
+          <div class="panel__body"><div class="watch" id="watchList"></div></div>
+        </section>
+        <section class="panel">
+          <div class="panel__head"><h2>Workspace</h2></div>
+          <div class="panel__body" id="wsBody"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/store.js"></script>
+<script src="assets/js/feed.js"></script>
+<script src="assets/js/dash.js"></script>
+</body>
+</html>

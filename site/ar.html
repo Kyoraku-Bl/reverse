@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KyorakuReplay — عيد الشارتات الحقيقية شمعة بشمعة</title>
+<meta name="description" content="تيرمينال مجاني: شموع حقيقية من CME والمؤشرات والفوركس، إعادة التشغيل شمعة بشمعة، أدوات رسم، ومفكرة صفقات — بلا بيانات وهمية.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c6cff'/><path d='M9 22V10l7 8 7-8v12' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/rtl.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8L7 4Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-candles" viewBox="0 0 24 24"><path d="M6 4v3M6 17v3M6 7h3v10H6zM15 3v4M15 18v3M15 7h3v11h-3z"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4Z"/><path d="m14 6 3 3"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.4 3 7.7 7 9 4-1.3 7-4.6 7-9V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<header class="nav">
+  <div class="wrap nav__in">
+    <a class="brand" href="ar.html"><span class="brand__mark">K</span><span>Kyoraku<em>Replay</em></span></a>
+    <nav class="nav__links">
+      <a href="#features">الميزات</a>
+      <a href="#markets">الأسواق</a>
+      <a href="#data">البيانات</a>
+      <a href="#pricing">الأسعار</a>
+      <a href="#faq">أسئلة</a>
+      <a href="index.html" style="color:var(--accent)">English</a>
+    </nav>
+    <div class="nav__right">
+      <button class="icon-btn" id="themeBtn" title="الوضع"><svg class="ic"><use href="#i-sun"/></svg></button>
+      <span id="authSlot"></span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap hero__in">
+      <div>
+        <span class="eyebrow"><span class="dot"></span> شموع حقيقية · بلا بيانات وهمية</span>
+        <h1>عيد الشارت للخلف<span>وجرّب الاستراتيجية.</span></h1>
+        <p class="lead">NQ و ES و NAS100 و32 أداة أخرى بشموع حقيقية من السوق، محرك إعادة تشغيل شمعة بشمعة، أدوات رسم، ومفكرة صفقات — داخل المتصفح ومجاناً.</p>
+        <div class="hero__cta">
+          <a class="btn btn--primary btn--lg" href="terminal.html?sym=NQ&tf=15m">افتح التيرمينال <svg class="ic ic--sm"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn--ghost btn--lg" href="signup.html">أنشئ حساباً مجانياً</a>
+        </div>
+        <div class="hero__meta">
+          <div><b>35</b><span>أداة</span></div>
+          <div><b>6</b><span>فواصل زمنية</span></div>
+          <div><b>CME</b><span>مصدر العقود</span></div>
+          <div><b>$0</b><span>للأبد</span></div>
+        </div>
+      </div>
+      <div class="hero__chart">
+        <div class="hero__chart-top">
+          <span class="sym" id="heroSym">NQ · إي-ميني ناسداك 100</span>
+          <span id="heroPx" style="font-family:var(--mono);color:var(--txt-2)"></span>
+          <span class="live-pill" id="heroPill"><span class="dot"></span> <span id="heroPillText">جارٍ التحميل</span></span>
+        </div>
+        <canvas id="heroChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <div class="strip">
+    <div class="wrap strip__in" id="ticker"><span style="color:var(--muted);font-size:13px">جارٍ تحميل الأسعار الحقيقية…</span></div>
+  </div>
+
+  <section class="block" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="kicker">التيرمينال</p>
+        <h2>كل ما يحتاجه الاختبار، بلا مقابل.</h2>
+        <p>كل شيء يدور حول حلقة واحدة: ارجع إلى تاريخ، تقدّم شمعة بشمعة، تصرّف بناءً على ما تراه، واكتب السبب.</p>
+      </div>
+      <div class="grid-3">
+        <article class="card">
+          <div class="card__ico"><svg class="ic"><use href="#i-candles"/></svg></div>
+          <h3>OHLCV حقيقية، ستة فواصل</h3>
+          <p>من دقيقة إلى يومي مباشرة من المصدر: عقود CME، مؤشرات ناسداك وشيكاغو، فوركس، وعملات رقمية من Binance. البيانات الناقصة تُعلَن ولا تُختلق.</p>
+        </article>
+        <article class="card">
+          <div class="card__ico"><svg class="ic"><use href="#i-play"/></svg></div>
+          <h3>إعادة تشغيل شمعة بشمعة</h3>
+          <p>أخفِ المستقبل، انتقل إلى أي تاريخ، شغّل بسرعة 0.5× إلى 5×، وتقدّم شمعة بشمعة. تداول الشارت كما طُبع تماماً.</p>
+        </article>
+        <article class="card">
+          <div class="card__ico"><svg class="ic"><use href="#i-pen"/></svg></div>
+          <h3>رسومات تبقى</h3>
+          <p>خطوط اتجاه، خطوط أفقية، مستطيلات، فيبوناتشي، وأداة مركز مع تراجع. تُحفظ لكل رمز ولكل حساب.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="markets" style="background:var(--bg-2);border-block:1px solid var(--line)">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="kicker">الأسواق</p>
+        <h2>من الإي-ميني إلى اليورو.</h2>
+        <p>ابحث بالاسم الذي تستعمله أصلاً — <code style="font-family:var(--mono);font-size:13px">NAS100USD</code> أو <code style="font-family:var(--mono);font-size:13px">NQ1!</code> أو <code style="font-family:var(--mono);font-size:13px">ustec</code> أو <code style="font-family:var(--mono);font-size:13px">spx</code> — وستصل إلى الشارت الصحيح.</p>
+      </div>
+      <div class="symbols" id="symGrid"></div>
+      <p style="margin-top:22px;color:var(--muted);font-size:13.5px">…و25 أداة أخرى بين العقود والمؤشرات والفوركس والعملات الرقمية والمعادن والطاقة.</p>
+    </div>
+  </section>
+
+  <section class="block" id="data">
+    <div class="wrap">
+      <div class="grid-2" style="align-items:center;gap:48px">
+        <div>
+          <p class="kicker">البيانات</p>
+          <h2 style="font-size:clamp(26px,3vw,34px)">من أين تأتي الشموع.</h2>
+          <p style="color:var(--muted);margin-top:14px;font-size:15px">مهمة مجدولة تسحب السلسلة الحقيقية كل 30 دقيقة وتنشرها مع الموقع، فيفتح الشارت فوراً قبل انتهاء طلب البيانات الحيّة. عندما تكون البيانات الحيّة متاحة تتحول الشارة إلى <b style="color:var(--accent-2)">LIVE</b>، وإلا تكتب <b style="color:var(--amber)">SNAPSHOT</b> مع عمرها. لا توجد حالة ثالثة.</p>
+          <ul style="display:grid;gap:10px;margin-top:20px;color:var(--txt-2);font-size:14px">
+            <li style="display:flex;gap:9px"><svg class="ic ic--sm" style="color:var(--accent-2);flex:none;margin-top:3px"><use href="#i-check"/></svg> NQ، ES، MNQ، MES، YM، RTY، CL، GC، SI، 6E، ZB، ZN — CME وCBOT وNYMEX وCOMEX</li>
+            <li style="display:flex;gap:9px"><svg class="ic ic--sm" style="color:var(--accent-2);flex:none;margin-top:3px"><use href="#i-check"/></svg> NAS100، SPX500، US30، GER40، UK100، JP225 — مؤشرات نقدية</li>
+            <li style="display:flex;gap:9px"><svg class="ic ic--sm" style="color:var(--accent-2);flex:none;margin-top:3px"><use href="#i-check"/></svg> 9 أزواج فوركس، ذهب، فضة، WTI، برنت، غاز — سبوت</li>
+            <li style="display:flex;gap:9px"><svg class="ic ic--sm" style="color:var(--accent-2);flex:none;margin-top:3px"><use href="#i-check"/></svg> BTC وETH وSOL — سبوت Binance</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>حالة اللقطة الحيّة</h2><span class="pill" id="dataPill" style="margin-left:auto">جارٍ التحقق</span></div>
+          <div class="panel__body" id="dataBody"><p class="empty">جارٍ قراءة اللقطة المنشورة…</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="background:var(--bg-2);border-block:1px solid var(--line)">
+    <div class="wrap">
+      <div class="section-head"><p class="kicker">الطريقة</p><h2>ثلاث خطوات، ثم يأتي دورك.</h2></div>
+      <div class="steps">
+        <div class="step"><h3>اختر الأداة</h3><p>NQ أو ES أو NAS100، فاصل من دقيقة إلى يومي، والنطاق الذي تريد دراسته.</p></div>
+        <div class="step"><h3>أعد الشارت للخلف</h3><p>انتقل إلى تاريخ واترك المستقبل مخفياً. تقدّم أو شغّل، علّم المستويات، ونفّذ الصفقة.</p></div>
+        <div class="step"><h3>اقرأ المفكرة</h3><p>كل صفقة مغلقة تهبط في لوحتك مع ربح/خسارة محسوب بقيمة النقطة الحقيقية.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="pricing">
+    <div class="wrap">
+      <div class="section-head"><p class="kicker">الأسعار</p><h2>خطة واحدة. صفر.</h2><p>بلا تجربة، بلا بطاقة، بلا ميزة خلف جدار. البيانات بيانات سوق عامة والتيرمينال يعمل في متصفحك.</p></div>
+      <div class="grid-3">
+        <div class="price-card" style="grid-column:span 2">
+          <span class="eyebrow"><span class="dot"></span> مجاني للأبد</span>
+          <div class="amount">$0 <small>/ شهرياً</small></div>
+          <ul>
+            <li><svg class="ic ic--sm"><use href="#i-check"/></svg> كل الأدوات الـ35 وكل الفواصل الستة</li>
+            <li><svg class="ic ic--sm"><use href="#i-check"/></svg> محرك الإعادة، الأدوات، وتصدير CSV لكل سلسلة</li>
+            <li><svg class="ic ic--sm"><use href="#i-check"/></svg> مساحة عمل لكل بريد: قائمة متابعة، مراكز، مفكرة</li>
+            <li><svg class="ic ic--sm"><use href="#i-check"/></svg> وضع ليلي ونهاري، بلا إعلانات ولا تتبّع</li>
+          </ul>
+          <a class="btn btn--primary btn--lg" href="signup.html">ابدأ الآن — يكفي بريدك</a>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;justify-content:center;gap:12px">
+          <div class="card__ico"><svg class="ic"><use href="#i-shield"/></svg></div>
+          <h3>لا شيء مزيّف</h3>
+          <p>تداول ورقي فقط. الحسابات في متصفحك. إن تعطّل المزوّد قال الشارت ذلك — ولا يرسم أبداً شمعة مختلقة ليبقى مشغولاً.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="faq" style="background:var(--bg-2);border-block:1px solid var(--line)">
+    <div class="wrap">
+      <div class="section-head"><p class="kicker">أسئلة</p><h2>أجوبة مباشرة.</h2></div>
+      <div class="faq">
+        <details open><summary>هل البيانات حقيقية؟</summary><p>نعم. كل شمعة هي OHLCV الخاصة بالسوق. العقود والمؤشرات تأتي من CME وCboe عبر واجهة Yahoo Finance، والعملات الرقمية من واجهة Binance العامة. وعند تفعيل مصدر CME المدفوع (Databento) تأتي العقود مباشرة من Globex.</p></details>
+        <details><summary>لماذا يختلف NAS100 عن NQ؟</summary><p>NAS100 هو المؤشر النقدي ناسداك 100، أما NQ فهو العقد الآجل على نفس المؤشر. يتحركان معاً لكن العقد يحمل أساساً ويتداول قرابة 24 ساعة.</p></details>
+        <details><summary>كم تاريخاً أحصل عليه؟</summary><p>حتى 1,800–3,000 شمعة داخل اليوم لكل فاصل، ونحو عشر سنوات من الشموع اليومية، حسب ما يقدّمه المزوّد لذلك الرمز. زر CSV يصدّر ما يحمله الشارت بالضبط.</p></details>
+        <details><summary>هل أحتاج حساباً؟</summary><p>يمكنك الإعادة كزائر. الحساب يحفظ قائمة متابعتك ورسوماتك ومراكزك ومفكرتك تحت بريدك في هذا المتصفح.</p></details>
+        <details><summary>هل هذا FX Replay؟</summary><p>لا. KyorakuReplay دراسة مستقلة مستوحاة من أدوات الإعادة، وليست تابعة لـ FX Replay أو TradingView.</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap footer__in">
+    <div>
+      <a class="brand" href="ar.html" style="margin-bottom:10px"><span class="brand__mark">K</span><span>Kyoraku<em>Replay</em></span></a>
+      <p>بيانات سوق حقيقية، تداول ورقي. مصنوع للتدريب.</p>
+    </div>
+    <div class="footer__links">
+      <a href="terminal.html">التيرمينال</a>
+      <a href="dashboard.html">اللوحة</a>
+      <a href="login.html">دخول</a>
+      <a href="signup.html">تسجيل</a>
+      <a href="index.html">English</a>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/store.js"></script>
+<script src="assets/js/feed.js"></script>
+<script src="assets/js/chart.js"></script>
+<script src="assets/js/landing.js"></script>
+</body>
+</html>

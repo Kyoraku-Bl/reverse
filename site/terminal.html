@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terminal · KyorakuReplay</title>
+<meta name="description" content="Replay real CME and index data bar by bar, draw on the chart and backtest your strategy.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c6cff'/><path d='M9 22V10l7 8 7-8v12' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/terminal.css">
+</head>
+<body class="terminal">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-cursor" viewBox="0 0 24 24"><path d="m4 3 6.5 17 2.4-6.1L19 11.5 4 3Z"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="m4 17 6-6 4 4 6-7"/><circle cx="4" cy="17" r="1.6"/><circle cx="20" cy="8" r="1.6"/></symbol>
+  <symbol id="i-hline" viewBox="0 0 24 24"><path d="M3 12h18"/><circle cx="7" cy="12" r="1.6"/><circle cx="17" cy="12" r="1.6"/></symbol>
+  <symbol id="i-rect" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1.5"/></symbol>
+  <symbol id="i-fib" viewBox="0 0 24 24"><path d="M4 5h16M4 10h16M4 14h16M4 19h16"/></symbol>
+  <symbol id="i-long" viewBox="0 0 24 24"><path d="M4 12h11"/><path d="m12 9 3 3-3 3"/><rect x="16" y="5" width="4" height="6" rx="1"/><rect x="16" y="13" width="4" height="6" rx="1"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 7 4 12l5 5"/><path d="M4 12h9a6 6 0 0 1 0 12"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8L7 4Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-step" viewBox="0 0 24 24"><path d="m5 4 10 8-10 8V4Z" fill="currentColor" stroke="none"/><path d="M18 4v16"/></symbol>
+  <symbol id="i-replay" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+</svg>
+
+<div class="term">
+  <header class="tbar">
+    <a class="brand" href="index.html" title="Back to the site">
+      <span class="brand__mark">K</span><span>Kyoraku<em>Replay</em></span>
+    </a>
+    <span class="tbar__sep"></span>
+
+    <button class="sym-btn" id="symBtn">
+      <svg class="ic ic--sm"><use href="#i-search"/></svg>
+      <span><b id="symLabel">NQ</b><small id="symName">E-mini Nasdaq-100 · CME</small></span>
+    </button>
+
+    <div class="seg" id="tfSeg" aria-label="Timeframe"></div>
+    <div class="seg seg--ranges" id="rangeSeg" aria-label="Visible range"></div>
+
+    <div class="tbar__right">
+      <span class="pill" id="srcPill"><span class="dot"></span><span id="srcText">loading</span></span>
+      <button class="icon-btn" id="replayBtn" title="Bar replay (R)"><svg class="ic"><use href="#i-replay"/></svg></button>
+      <button class="icon-btn" id="csvBtn" title="Download candles as CSV"><svg class="ic"><use href="#i-download"/></svg></button>
+      <button class="icon-btn" id="themeBtn" title="Theme"><svg class="ic"><use href="#i-sun"/></svg></button>
+      <button class="icon-btn" id="userBtn" title="Account"><svg class="ic"><use href="#i-user"/></svg></button>
+    </div>
+  </header>
+
+  <div class="work">
+    <aside class="tools" aria-label="Drawing tools">
+      <button class="icon-btn on" data-tool="cursor" title="Cursor"><svg class="ic"><use href="#i-cursor"/></svg></button>
+      <button class="icon-btn" data-tool="trend" title="Trend line"><svg class="ic"><use href="#i-trend"/></svg></button>
+      <button class="icon-btn" data-tool="hline" title="Horizontal line"><svg class="ic"><use href="#i-hline"/></svg></button>
+      <button class="icon-btn" data-tool="rect" title="Rectangle"><svg class="ic"><use href="#i-rect"/></svg></button>
+      <button class="icon-btn" data-tool="fib" title="Fibonacci retracement"><svg class="ic"><use href="#i-fib"/></svg></button>
+      <button class="icon-btn" data-tool="long" title="Long position"><svg class="ic"><use href="#i-long"/></svg></button>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="undoBtn" title="Undo drawing (Ctrl+Z)"><svg class="ic"><use href="#i-undo"/></svg></button>
+      <button class="icon-btn" id="clearBtn" title="Clear drawings"><svg class="ic"><use href="#i-trash"/></svg></button>
+    </aside>
+
+    <main class="stage">
+      <div class="chart-host" id="chartHost">
+        <canvas id="chart"></canvas>
+        <div class="legend">
+          <div class="legend__top">
+            <span class="legend__sym" id="lgSym">—</span>
+            <span class="legend__tf" id="lgTf">—</span>
+            <span class="legend__chg" id="lgChg"></span>
+          </div>
+          <div class="legend__ohlc" id="lgOhlc"></div>
+        </div>
+        <div class="chart-note" id="chartNote" hidden></div>
+        <div class="replaybar" id="replaybar" hidden>
+          <button class="icon-btn" id="jumpBtn" title="Jump to a date"><svg class="ic"><use href="#i-hline"/></svg></button>
+          <button class="icon-btn play" id="playBtn" title="Play / pause (Space)"><svg class="ic"><use href="#i-play"/></svg></button>
+          <button class="icon-btn" id="stepBtn" title="Next candle (→)"><svg class="ic"><use href="#i-step"/></svg></button>
+          <span class="replaybar__pos" id="replayPos">—</span>
+          <div class="seg" id="speedSeg">
+            <button data-speed="900">0.5×</button>
+            <button data-speed="450" class="on">1×</button>
+            <button data-speed="180">2×</button>
+            <button data-speed="60">5×</button>
+          </div>
+          <button class="icon-btn" id="exitReplay" title="Exit replay"><svg class="ic"><use href="#i-close"/></svg></button>
+        </div>
+      </div>
+      <div class="statusbar">
+        <span id="stSymbol">—</span>
+        <span id="stRange">—</span>
+        <span id="stBars">—</span>
+        <span class="right">
+          <span id="stTz">UTC</span>
+          <span id="stFeed">—</span>
+        </span>
+      </div>
+    </main>
+
+    <aside class="rail">
+      <div class="rail__tabs">
+        <button class="on" data-tab="watch">Watchlist</button>
+        <button data-tab="pos">Positions</button>
+        <button data-tab="jrn">Journal</button>
+      </div>
+      <div class="rail__body">
+        <div class="rail-pane on" id="paneWatch"><div class="wl" id="wlList"></div></div>
+        <div class="rail-pane" id="panePos"><div id="posList"></div></div>
+        <div class="rail-pane" id="paneJrn">
+          <table class="jrn"><thead><tr><th>Date</th><th>Sym</th><th class="num">P&amp;L</th></tr></thead><tbody id="jrnBody"></tbody></table>
+          <p class="empty" id="jrnEmpty" hidden>Closed trades land here.</p>
+        </div>
+      </div>
+      <div class="ticket">
+        <div class="ticket__row">
+          <button class="side buy" id="buyBtn">Buy / Long</button>
+          <button class="side sell" id="sellBtn">Sell / Short</button>
+        </div>
+        <div class="ticket__row">
+          <input id="qtyInput" type="number" min="1" step="1" value="1" aria-label="Contracts">
+          <input id="riskInput" type="number" min="0" step="1" placeholder="Stop (ticks)" aria-label="Stop in ticks">
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="modal" id="symModal" hidden>
+  <div class="modal__card">
+    <div class="modal__head">
+      <svg class="ic"><use href="#i-search"/></svg>
+      <input id="symSearch" placeholder="Search NAS100USD, NQ1!, ES, gold…" autocomplete="off" spellcheck="false">
+      <button class="icon-btn" id="symClose"><svg class="ic"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal__list" id="symList"></div>
+  </div>
+</div>
+
+<div class="modal" id="jumpModal" hidden>
+  <div class="modal__card" style="max-width:380px">
+    <div class="modal__head"><b style="font-size:13px">Jump to a date</b><button class="icon-btn" id="jumpClose"><svg class="ic"><use href="#i-close"/></svg></button></div>
+    <div style="padding:14px">
+      <div class="field"><label for="jumpInput">Date &amp; time (UTC)</label><input id="jumpInput" type="datetime-local"></div>
+      <p class="hint" id="jumpRange" style="color:var(--muted);font-size:12px"></p>
+      <button class="btn btn--primary btn--block" id="jumpGo" style="margin-top:12px">Go</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="userModal" hidden>
+  <div class="modal__card" style="max-width:360px">
+    <div class="modal__head"><b style="font-size:13px" id="userTitle">Account</b><button class="icon-btn" id="userClose"><svg class="ic"><use href="#i-close"/></svg></button></div>
+    <div style="padding:16px" id="userBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/store.js"></script>
+<script src="assets/js/feed.js"></script>
+<script src="assets/js/chart.js"></script>
+<script src="assets/js/terminal.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+/* KyorakuReplay — Arabic / RTL */
+html[dir="rtl"] body { font-family: "Noto Kufi Arabic", "Segoe UI", Tahoma, system-ui, sans-serif; }
+html[dir="rtl"] .hero h1,
+html[dir="rtl"] .section-head h2 { letter-spacing: 0; }
+html[dir="rtl"] .hero h1 { font-size: clamp(33px, 3.6vw, 47px); line-height: 1.28; }
+html[dir="rtl"] .hero h1 span { display: block; }
+html[dir="rtl"] .hero p.lead { font-size: 16px; line-height: 1.85; }
+html[dir="rtl"] .section-head h2 { font-size: clamp(25px, 2.9vw, 33px); line-height: 1.35; }
+html[dir="rtl"] .kicker { letter-spacing: .02em; }
+html[dir="rtl"] .hero__in { direction: rtl; }
+html[dir="rtl"] .nav__in { direction: rtl; }
+html[dir="rtl"] .nav__right { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] .brand__mark { font-family: var(--sans); }
+html[dir="rtl"] .hero__cta .ic,
+html[dir="rtl"] .btn .ic--sm { transform: scaleX(-1); }
+html[dir="rtl"] .footer__in { direction: rtl; }
+html[dir="rtl"] .price-card li svg { transform: none; }
+html[dir="rtl"] .live-pill { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] .sym-card small { direction: ltr; text-align: right; }
+html[dir="rtl"] .tick { direction: ltr; }
+html[dir="rtl"] .faq summary::after { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] table.tbl th { text-align: right; }
+html[dir="rtl"] table.tbl td.num,
+html[dir="rtl"] table.tbl th.num { text-align: left; }
+html[dir="rtl"] .dash__head,
+html[dir="rtl"] .panel__head { direction: rtl; }
+html[dir="rtl"] .panel__head .btn { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] .watch__row .px { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] .auth__aside { border-right: 0; border-left: 1px solid var(--line); }
+html[dir="rtl"] .field label { text-align: right; }
+html[dir="rtl"] .form-msg, html[dir="rtl"] .hint { text-align: right; }
+html[dir="rtl"] .auth__form { text-align: right; }
+html[dir="rtl"] code { direction: ltr; display: inline-block; }

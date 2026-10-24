@@ -1,13 +1,11 @@
 name: KyorakuReplay site
 
-# Publishes only the fxreplay/ folder to GitHub Pages.
+# Publishes only the site/ folder to GitHub Pages, after refreshing the market
+# snapshot that ships with it.
 #
-# Why a workflow instead of "Deploy from a branch": the repository also holds
-# the REA toolchain (~5,500 files), and letting Pages copy the whole tree from
-# the branch root is slow and fragile. The artifact below contains exactly the
-# 28 files of the website, so the deploy takes seconds and
-#   https://<owner>.github.io/<repo>/        serves the site root directly,
-#   https://<owner>.github.io/<repo>/replay.html   the terminal.
+#   https://<owner>.github.io/<repo>/              landing page
+#   https://<owner>.github.io/<repo>/terminal.html the replay terminal
+#   https://<owner>.github.io/<repo>/data/NQ.json  the real candles the terminal reads
 #
 # Repository setup: Settings -> Pages -> Source = "GitHub Actions".
 
@@ -15,16 +13,16 @@ on:
   push:
     branches: [arena/145acf38-reverse]
     paths:
-      - "fxreplay/**"
+      - "site/**"
       - ".github/workflows/kyorakureplay-pages.yml"
   schedule:
-    # Refresh the market snapshot every 30 minutes. Scheduled runs only fire
-    # when this branch is the repository default; manual runs always work.
+    # Refresh the market snapshot every 30 minutes (schedules only fire on the
+    # repository default branch; manual runs always work).
     - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       only:
-        description: "Comma-separated instruments (empty = all 103)"
+        description: "Comma-separated instruments (empty = all)"
         required: false
         default: ""
       deadline:
@@ -61,9 +59,9 @@ jobs:
       - name: Stage the website
         run: |
           mkdir -p _site
-          rsync -a fxreplay/ _site/ --exclude 'tests' --exclude 'scripts'
+          rsync -a site/ _site/ --exclude 'scripts' --exclude 'tests' --exclude 'data'
           test -f _site/index.html
-          test -f _site/replay.html
+          test -f _site/terminal.html
           du -sh _site
 
       - name: Set up Node for the market snapshot
@@ -72,8 +70,8 @@ jobs:
           node-version: "20"
 
       - name: Keep the previous market snapshot
-        # A fresh run that cannot reach a provider must not blank the chart:
-        # the newest snapshot is restored first and only overwritten per file.
+        # A run that cannot reach a provider must not blank the chart: the newest
+        # snapshot is restored first and only overwritten per file.
         uses: actions/cache@v4
         with:
           path: _site/data
@@ -108,7 +106,7 @@ jobs:
                 out[name] = { status: r.status, ms: Date.now() - t0, bytes: body.length,
                               json: body.trim().startsWith("{") || body.includes('"chart"') };
               } catch (e) {
-                out[name] = { error: String(e && e.message || e).slice(0, 120), ms: Date.now() - t0 };
+                out[name] = { error: String((e && e.message) || e).slice(0, 120), ms: Date.now() - t0 };
               }
             }
             fs.writeFileSync("_site/data-probe.json", JSON.stringify({ at: new Date().toISOString(), targets: out }, null, 1));
@@ -116,23 +114,21 @@ jobs:
           })();
           JS
 
-      - name: Fetch real market data (Yahoo Finance + Binance)
-        # A provider outage must never block a deploy: the site keeps working
-        # with the live feed or the labelled fallback. The script stops itself
-        # after 10 minutes, keeping everything it already fetched. Files
-        # restored from the cache keep their real candles and are refreshed
-        # oldest-first, so the snapshot is complete after a few runs even
-        # though one run cannot re-fetch all 103 instruments.
+      - name: Fetch real market data
+        # A provider outage must never block a deploy: the site keeps working with
+        # the previous snapshot or the live feed. NQ, ES and NAS100 are fetched
+        # first, and anything throttled gets a second pass at the end.
         continue-on-error: true
-        timeout-minutes: 14
+        timeout-minutes: 16
         env:
           ONLY: ${{ inputs.only }}
           DEADLINE: ${{ inputs.deadline || '600' }}
           MAX_AGE: ${{ inputs.max_age || '20' }}
+          DATABENTO_API_KEY: ${{ secrets.DATABENTO_API_KEY }}
         run: |
           set +e
-          node fxreplay/scripts/fetch-market-data.mjs \
-            --out "$GITHUB_WORKSPACE/_site/data" --concurrency 8 \
+          node site/scripts/fetch-data.mjs \
+            --out "$GITHUB_WORKSPACE/_site/data" --concurrency 6 \
             --deadline "${DEADLINE:-600}" --max-age "${MAX_AGE:-20}" \
             ${ONLY:+--only "$ONLY"}
           code=$?
@@ -145,32 +141,24 @@ jobs:
 
       - name: Publish the snapshot status
         # Runner logs are not always reachable, so the job also commits a tiny
-        # status file (fetched / failed / why). It is only committed when the
-        # result actually changes, so a healthy schedule stays quiet.
+        # status file (fetched / failed / why) when the result changes.
         if: always()
         continue-on-error: true
         run: |
           python3 - <<'PY'
-          import json, pathlib, subprocess
+          import json, pathlib
           src = pathlib.Path("_site/data-status.json")
           if src.exists():
               doc = json.loads(src.read_text())
           else:
-              doc = {
-                  "ok": 0, "requested": 0, "phase": "missing",
-                  "failed": ["the snapshot script wrote no report"],
-                  "partial": {},
-                  "node": subprocess.run(["node", "-v"], capture_output=True, text=True).stdout.strip(),
-                  "files": sorted(p.name for p in pathlib.Path("_site").glob("*"))[:40],
-              }
+              doc = {"ok": 0, "requested": 0, "failed": ["the snapshot script wrote no report"],
+                     "partial": {}, "skipped": 0}
           doc.pop("at", None)
           probe = pathlib.Path("_site/data-probe.json")
           if probe.exists():
               pd = json.loads(probe.read_text())
               pd.pop("at", None)
               doc["probe"] = pd.get("targets", {})
-          if doc.get("failed") == [] and doc.get("ok", 0) == doc.get("requested"):
-              pass
           dst = pathlib.Path("market-data-status.json")
           new = json.dumps(doc, indent=1, sort_keys=True) + "\n"
           old = dst.read_text() if dst.exists() else ""
