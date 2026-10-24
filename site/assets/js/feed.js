@@ -259,6 +259,16 @@
         if (BASE.indexOf("kyoraku-bl.github.io") !== -1) throw new Error("no local snapshot");
         return snapshotPath(LEGACY, id);
       })
+      .catch(function () {
+        /* last resort: the same Pages file through a CORS-enabled reader */
+        return fetch("https://r.jina.ai/" + LEGACY + encodeURIComponent(id) + ".json", { cache: "no-store" })
+          .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+          .then(function (txt) {
+            var i = txt.indexOf("{");
+            if (i < 0) throw new Error("not json");
+            return JSON.parse(txt.slice(i));
+          });
+      })
       .catch(function () { return null; });
   }
 
