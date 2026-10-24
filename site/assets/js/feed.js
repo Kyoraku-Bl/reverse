@@ -248,6 +248,8 @@
      it is the same exchange data, one refresh behind, and it keeps real candles
      on screen while this deployment has none of its own. */
   var LEGACY = "https://kyoraku-bl.github.io/reverse/data/";
+  /* the published snapshot spells a couple of contracts differently */
+  var LEGACY_ALIAS = { NGAS: "NG" };
 
   function snapshotPath(base, id) {
     return fetch(base + encodeURIComponent(id) + ".json", { cache: "no-store" }).then(json);
@@ -258,6 +260,11 @@
       .catch(function () {
         if (BASE.indexOf("kyoraku-bl.github.io") !== -1) throw new Error("no local snapshot");
         return snapshotPath(LEGACY, id);
+      })
+      .catch(function () {
+        var alt = LEGACY_ALIAS[id];
+        if (!alt) throw new Error("no alias");
+        return snapshotPath(LEGACY, alt);
       })
       .catch(function () {
         /* last resort: the same Pages file through a CORS-enabled reader */
@@ -338,7 +345,8 @@
       if (!doc || !doc.quotes) return {};
       var out = {};
       (ids || Object.keys(doc.quotes)).forEach(function (id) {
-        if (doc.quotes[id]) out[id] = doc.quotes[id];
+        var row = doc.quotes[id] || doc.quotes[LEGACY_ALIAS[id]];
+        if (row) out[id] = row;
       });
       return out;
     });
