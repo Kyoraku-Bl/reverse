@@ -1,0 +1,429 @@
+@import "tailwindcss";
+
+/*
+ * PromptWorld visual system.
+ *
+ * Near-black ground, one warm accent, hairline rules and mono metadata. The
+ * whole site is dark by design — it is a library of cinematic layers, and the
+ * cards need the darkest possible ground to read as lit objects.
+ */
+
+@theme {
+  --color-ground: #060607;
+  --color-ground-2: #0b0b0d;
+  --color-surface: #101013;
+  --color-surface-2: #16161a;
+  --color-hairline: #232329;
+  --color-hairline-soft: #1a1a1f;
+  --color-ink: #f4f2ef;
+  --color-ink-2: #b8b5ae;
+  --color-ink-3: #7c7a74;
+  --color-accent: #ff6a2b;
+  --color-accent-soft: #ffa37a;
+  --color-cool: #7dd3fc;
+
+  --font-display: "Inter Tight", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    border-color: var(--color-hairline-soft);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  /* Fine grain over the whole page. A single tiling SVG, re-seeded at 8fps so
+     it reads as film rather than as a static texture, and cheap enough to keep
+     off the compositor's critical path. */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: -50%;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.028;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: grain 1s steps(4) infinite;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent) 32%, transparent);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-ground);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #26262c;
+    border-radius: 99px;
+    border: 3px solid var(--color-ground);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a3a42;
+  }
+}
+
+@keyframes grain {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-4%, 3%); }
+  50%  { transform: translate(3%, -5%); }
+  75%  { transform: translate(-2%, -2%); }
+  100% { transform: translate(4%, 4%); }
+}
+
+@utility label-mono {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+
+@utility hairline {
+  border: 1px solid var(--color-hairline-soft);
+}
+
+/* ------------------------------ card artwork ----------------------------- */
+
+/*
+ * Every card preview is drawn with CSS from the prompt's own palette, so a
+ * library of 1,360 items costs zero image bytes and still looks designed.
+ * Twelve patterns, each parameterised by three swatch colours.
+ */
+
+@utility art {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--art-0, #0b0b0d);
+}
+
+.art-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* aurora — three drifting blurred conic washes */
+.art-aurora::before,
+.art-aurora::after {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: conic-gradient(from 0deg, transparent, var(--art-2, #fff), transparent 55%);
+  filter: blur(48px);
+  opacity: 0.55;
+  animation: art-spin 26s linear infinite;
+}
+.art-aurora::after {
+  background: conic-gradient(from 180deg, transparent, var(--art-1, #888), transparent 60%);
+  animation-duration: 40s;
+  animation-direction: reverse;
+  opacity: 0.4;
+}
+
+/* rings — concentric outlines breathing outward */
+.art-rings::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-radial-gradient(
+    circle at 50% 120%,
+    transparent 0 14px,
+    color-mix(in srgb, var(--art-2, #fff) 42%, transparent) 14px 15px
+  );
+  animation: art-breathe 12s var(--ease-out-expo) infinite alternate;
+}
+
+/* mesh — soft off-centre radial blobs */
+.art-mesh::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(38% 46% at 22% 28%, var(--art-2, #fff) 0%, transparent 62%),
+    radial-gradient(44% 40% at 78% 68%, var(--art-1, #999) 0%, transparent 60%);
+  filter: blur(26px);
+  opacity: 0.75;
+  animation: art-drift 22s ease-in-out infinite alternate;
+}
+
+/* grid — perspective floor receding to a horizon */
+.art-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--art-2, #fff) 26%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--art-2, #fff) 26%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  transform: perspective(240px) rotateX(62deg) scale(2.1);
+  transform-origin: 50% 100%;
+  mask-image: linear-gradient(to top, #000 8%, transparent 72%);
+  animation: art-scroll 9s linear infinite;
+}
+
+/* beams — hard light shafts sweeping across */
+.art-beams::before {
+  content: "";
+  position: absolute;
+  inset: -40% -60%;
+  background: repeating-linear-gradient(
+    104deg,
+    transparent 0 34px,
+    color-mix(in srgb, var(--art-2, #fff) 22%, transparent) 34px 44px,
+    transparent 44px 96px
+  );
+  animation: art-slide 18s linear infinite;
+}
+.art-beams::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 80% at 70% 20%, color-mix(in srgb, var(--art-1, #999) 40%, transparent), transparent 70%);
+}
+
+/* orb — a single lit sphere with a rim */
+.art-orb::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  width: 62%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, var(--art-2, #fff) 0%, var(--art-1, #777) 34%, transparent 68%),
+    radial-gradient(circle at 50% 50%, var(--art-0, #000) 58%, transparent 60%);
+  box-shadow: 0 0 60px color-mix(in srgb, var(--art-2, #fff) 34%, transparent);
+  animation: art-float 10s ease-in-out infinite alternate;
+}
+
+/* waves — layered sine bands */
+.art-waves::before,
+.art-waves::after {
+  content: "";
+  position: absolute;
+  inset: -10% -50%;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 12px,
+    color-mix(in srgb, var(--art-2, #fff) 30%, transparent) 12px 13px
+  );
+  border-radius: 46% 54% 52% 48% / 30% 30% 70% 70%;
+  animation: art-wave 14s ease-in-out infinite alternate;
+}
+.art-waves::after {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 18px,
+    color-mix(in srgb, var(--art-1, #999) 26%, transparent) 18px 19px
+  );
+  animation-duration: 20s;
+  animation-direction: reverse;
+}
+
+/* dots — halftone field brightening toward one corner */
+.art-dots::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--art-2, #fff) 1.1px, transparent 1.2px);
+  background-size: 12px 12px;
+  mask-image: radial-gradient(80% 90% at 76% 24%, #000 12%, transparent 76%);
+  opacity: 0.85;
+}
+
+/* shards — angular translucent planes */
+.art-shards::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(122deg, transparent 42%, color-mix(in srgb, var(--art-2, #fff) 30%, transparent) 42% 52%, transparent 52%),
+    linear-gradient(58deg, transparent 56%, color-mix(in srgb, var(--art-1, #999) 26%, transparent) 56% 70%, transparent 70%),
+    linear-gradient(200deg, transparent 30%, color-mix(in srgb, var(--art-2, #fff) 16%, transparent) 30% 44%, transparent 44%);
+  animation: art-sheen 16s ease-in-out infinite alternate;
+}
+
+/* horizon — stacked blurred bands faking depth */
+.art-horizon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, transparent 46%, var(--art-1, #555) 46% 58%, var(--art-2, #fff) 58% 62%, var(--art-1, #555) 62% 100%);
+  filter: blur(9px);
+  opacity: 0.6;
+  animation: art-breathe 18s ease-in-out infinite alternate;
+}
+.art-horizon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(70% 40% at 50% 60%, color-mix(in srgb, var(--art-2, #fff) 26%, transparent), transparent 70%);
+}
+
+/* noise — turbulent marble */
+.art-noise::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' seed='7'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23t)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+.art-noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(140deg, var(--art-1, #444), transparent 60%, var(--art-2, #fff));
+  opacity: 0.32;
+}
+
+/* column — editorial vertical rules with a moving highlight */
+.art-column::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--art-2, #fff) 18%, transparent) 0 1px,
+    transparent 1px 22px
+  );
+}
+.art-column::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--art-2, #fff) 34%, transparent), transparent);
+  background-size: 42% 100%;
+  background-repeat: no-repeat;
+  animation: art-scan 11s ease-in-out infinite;
+}
+
+@keyframes art-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes art-breathe {
+  from { opacity: 0.42; transform: scale(1); }
+  to   { opacity: 0.78; transform: scale(1.06); }
+}
+@keyframes art-drift {
+  from { transform: translate3d(-3%, 2%, 0) scale(1.02); }
+  to   { transform: translate3d(4%, -3%, 0) scale(1.1); }
+}
+@keyframes art-scroll {
+  from { background-position: 0 0; }
+  to   { background-position: 0 28px; }
+}
+@keyframes art-slide {
+  from { transform: translateX(-14%); }
+  to   { transform: translateX(14%); }
+}
+@keyframes art-float {
+  from { transform: translate(-50%, -50%) scale(0.96); }
+  to   { transform: translate(-50%, -53%) scale(1.04); }
+}
+@keyframes art-wave {
+  from { transform: translateY(-2%) rotate(-1deg); }
+  to   { transform: translateY(3%) rotate(1.5deg); }
+}
+@keyframes art-sheen {
+  from { opacity: 0.6; transform: translateX(-3%); }
+  to   { opacity: 1; transform: translateX(3%); }
+}
+@keyframes art-scan {
+  0%   { background-position: -50% 0; }
+  50%  { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
+}
+
+/* ------------------------------ prompt body ------------------------------ */
+
+.prompt-body {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.75;
+  color: var(--color-ink-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  tab-size: 2;
+}
+
+.prompt-body h2,
+.prompt-heading {
+  color: var(--color-accent-soft);
+}
+
+/* --------------------------------- motion -------------------------------- */
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.rise-in {
+  animation: rise-in 0.7s var(--ease-out-expo) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  body::after,
+  .art-layer,
+  [class*="art-"]::before,
+  [class*="art-"]::after,
+  .rise-in {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

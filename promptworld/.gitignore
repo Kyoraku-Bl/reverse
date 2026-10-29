@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+.env*.local
+.DS_Store
+
+# Generated dataset. Deterministic from scripts/generate-prompts.mjs, recreated
+# by the predev/prebuild hooks — not checked in.
+data/
+public/data/
