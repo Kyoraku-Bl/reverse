@@ -1,0 +1,26 @@
+{
+  "name": "capcut-free-editor",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "description": "محاكاة مجانية لتطبيق CapCut للمونتاج — 100% من المتصفح، بدون سيرفر، بدون خطة مدفوعة، بدون اشتراك",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
+    "lucide-react": "^0.454.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "vite": "^5.4.10"
+  }
+}
